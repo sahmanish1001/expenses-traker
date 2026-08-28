@@ -44,6 +44,10 @@
   .kh-legend-name{flex:1; font-size:12.5px;}
   .kh-legend-amt{font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600;}
   .kh-legend-pct{font-size:11px; color:var(--dim); width:34px; text-align:right;}
+  .kh-np-pie-card{margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px;}
+  .kh-np-pie-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 2px;}
+  .kh-np-pie-sub{font-size:10.5px; color:var(--dim); margin:0 0 12px; line-height:1.5;}
+  .kh-day-np{font-weight:400; color:var(--dim); text-transform:none; letter-spacing:0;}
   .kh-section-title{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:24px 0 10px;}
   .kh-empty{font-size:13.5px; color:var(--dim); background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:22px 16px; text-align:center; line-height:1.5;}
   .kh-day{margin-bottom:16px;}
@@ -105,6 +109,7 @@
     .kh-stats{margin-top:16px;}
     .kh-stat{min-width:140px;padding:14px 16px;}
     .kh-pie-card{margin-top:0;position:sticky;top:20px;}
+    .kh-np-pie-card{margin-top:16px;}
     .kh-pie{width:210px;height:210px;}
     .kh-pie::after{inset:32px;}
     .kh-section-title{margin-top:22px;}
@@ -184,6 +189,12 @@
         <p class="kh-pie-title" id="pieTitle">Spending by account</p>
         <div id="pieBody"></div>
       </div>
+
+      <div class="kh-np-pie-card">
+        <p class="kh-np-pie-title">Spending by Nepali month (all accounts)</p>
+        <p class="kh-np-pie-sub">Dates you enter in the worldwide (AD) calendar, converted to Bikram Sambat.</p>
+        <div id="npPieBody"></div>
+      </div>
     </div>
   </div>
 
@@ -251,6 +262,77 @@
 
   function fmtDate(d){
     return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" });
+  }
+
+  // ---------------------------------------------------------------------
+  // Nepali (Bikram Sambat) calendar support.
+  // Converts a worldwide/Gregorian (AD) date into the Nepali BS date so
+  // spending can be grouped and viewed by Nepali month.
+  //
+  // Nepal's BS calendar doesn't follow a fixed formula (each month's length
+  // is fixed by the official Nepali calendar and can shift by a day from
+  // year to year), so this uses the well-established month-start dates that
+  // hold for the current era (~2018-2035 AD / BS 2075-2091). Day-of-month
+  // can occasionally be off by a day right at a month boundary in some
+  // years; month and year are reliable, which is what the grouping below
+  // depends on.
+  // ---------------------------------------------------------------------
+  const NEPALI_MONTHS = [
+    { name: "Baisakh", color: "#f2a93b" },
+    { name: "Jestha",  color: "#5fd1a4" },
+    { name: "Asar",    color: "#ef6f6c" },
+    { name: "Shrawan", color: "#7f9cf5" },
+    { name: "Bhadra",  color: "#c792ea" },
+    { name: "Ashwin",  color: "#e8a87c" },
+    { name: "Kartik",  color: "#6ec6dc" },
+    { name: "Mangsir", color: "#8fd19e" },
+    { name: "Poush",   color: "#e0473e" },
+    { name: "Magh",    color: "#3aa655" },
+    { name: "Falgun",  color: "#b98cce" },
+    { name: "Chaitra", color: "#f2c14e" },
+  ];
+  // [adMonth, adDay] each BS month begins on, for a BS year that starts
+  // (Baisakh 1) in April of a given AD year "Y". Magh/Falgun/Chaitra fall
+  // in Y+1.
+  const BS_MONTH_STARTS = [
+    [4, 13], [5, 14], [6, 14], [7, 16], [8, 16], [9, 17],
+    [10, 17], [11, 16], [12, 15], [1, 14], [2, 12], [3, 14],
+  ];
+
+  function bsBoundariesForBaisakhYear(Y){
+    // Returns the 12 month-start boundaries (as real Date objects) for the
+    // BS year that begins Baisakh 1 in April of AD year Y.
+    return BS_MONTH_STARTS.map(([adMonth, adDay], i) => {
+      const adYear = adMonth <= 3 ? Y + 1 : Y; // Magh(10)/Falgun(11)/Chaitra(12) land in Jan-Mar of Y+1
+      return {
+        date: new Date(Date.UTC(adYear, adMonth - 1, adDay)),
+        bsMonth: i + 1,
+        bsYear: Y + 57,
+      };
+    });
+  }
+
+  function adToBs(dateStr){
+    const d = new Date(dateStr + "T00:00:00Z");
+    const adYear = d.getUTCFullYear();
+    // The boundary that applies could belong to "this AD year's Baisakh"
+    // or the previous one (for Jan/Feb/early-Mar dates), so build both.
+    const candidates = [
+      ...bsBoundariesForBaisakhYear(adYear - 1),
+      ...bsBoundariesForBaisakhYear(adYear),
+    ].sort((a, b) => a.date - b.date);
+
+    let match = candidates[0];
+    for (const c of candidates){
+      if (c.date <= d) match = c; else break;
+    }
+    const dayDiff = Math.round((d - match.date) / 86400000) + 1;
+    return { year: match.bsYear, month: match.bsMonth, day: dayDiff };
+  }
+
+  function bsLabel(dateStr){
+    const bs = adToBs(dateStr);
+    return `${NEPALI_MONTHS[bs.month - 1].name} ${bs.day}, ${bs.year}`;
   }
 
   function showToast(msg){
@@ -572,6 +654,54 @@
     body.innerHTML = html;
   }
 
+  function renderNepaliPie(){
+    // Always across ALL accounts/transactions, regardless of the active
+    // account filter — this chart answers "where did the money go, by
+    // Nepali month" for everything in the tracker.
+    const totals = {}; // "2083-5" -> amount
+    TRANSACTIONS.filter(t => t.type === "out").forEach(t => {
+      const bs = adToBs(t.date);
+      const key = `${bs.year}-${bs.month}`;
+      totals[key] = (totals[key] || 0) + t.amount;
+    });
+
+    const body = document.getElementById("npPieBody");
+    const keys = Object.keys(totals);
+    if (keys.length === 0){
+      body.innerHTML = `<div class="kh-pie-empty">No spending recorded yet.</div>`;
+      return;
+    }
+
+    const data = keys
+      .map(key => {
+        const [y, m] = key.split("-").map(Number);
+        const meta = NEPALI_MONTHS[m - 1];
+        return { name: `${meta.name} ${y}`, value: totals[key], color: meta.color, y, m };
+      })
+      .sort((a, b) => (a.y - b.y) || (a.m - b.m)); // chronological, Baisakh -> Chaitra
+
+    const total = data.reduce((s, d) => s + d.value, 0) || 1;
+    let angle = 0;
+    const stops = data.map(d => {
+      const start = angle;
+      const deg = (d.value / total) * 360;
+      angle += deg;
+      return `${d.color} ${start}deg ${angle}deg`;
+    }).join(", ");
+
+    let html = `<div class="kh-pie-wrap"><div class="kh-pie" style="background:conic-gradient(${stops})"></div></div><div class="kh-legend">`;
+    data.forEach(d => {
+      html += `<div class="kh-legend-row">
+        <span class="kh-legend-dot" style="background:${d.color}"></span>
+        <span class="kh-legend-name">${d.name}</span>
+        <span class="kh-legend-amt">${rs(d.value)}</span>
+        <span class="kh-legend-pct">${Math.round((d.value / total) * 100)}%</span>
+      </div>`;
+    });
+    html += `</div>`;
+    body.innerHTML = html;
+  }
+
   function renderTx(){
     const scoped = getScoped();
     const el = document.getElementById("txList");
@@ -588,7 +718,7 @@
     let html = "";
     Object.entries(groups).forEach(([day, rows]) => {
       html += `<div class="kh-day">
-        <div class="kh-day-label">${fmtDate(day)}<div class="kh-day-line"></div></div>
+        <div class="kh-day-label">${fmtDate(day)} <span class="kh-day-np">· ${bsLabel(day)} BS</span><div class="kh-day-line"></div></div>
         <div class="kh-card">`;
       rows.forEach(t => {
         const meta = CAT[t.category] || CAT.Other;
@@ -612,6 +742,7 @@
     renderChips();
     renderStats();
     renderPie();
+    renderNepaliPie();
     renderTx();
   }
 
