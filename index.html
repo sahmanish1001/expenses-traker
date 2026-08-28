@@ -71,6 +71,18 @@
   .kh-import-status{font-size:11.5px; color:var(--dim);}
   .kh-import-status.err{color:var(--out);}
   .kh-import-status.ok{color:var(--in);}
+
+  .kh-cat-manager{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;}
+  .kh-cat-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 4px;}
+  .kh-cat-hint{font-size:11.5px;color:var(--dim);margin:0 0 10px;line-height:1.5;}
+  .kh-cat-form{display:flex;gap:8px;}
+  .kh-cat-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-family:inherit;font-size:12.5px;}
+  .kh-cat-input:focus{outline:none;border-color:var(--accent);}
+  .kh-cat-add{background:var(--accent);color:#1a1400;border:none;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .kh-cat-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
+  .kh-cat-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:12px;}
+  .kh-cat-remove:hover{color:var(--out);}
 </style>
 </head>
 <body>
@@ -100,6 +112,17 @@
       <button class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="toggleImport()">Cancel</button>
       <span class="kh-import-status" id="importStatus"></span>
     </div>
+  </div>
+
+
+  <div class="kh-cat-manager">
+    <p class="kh-cat-title">Personalized categories</p>
+    <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
+    <div class="kh-cat-form">
+      <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
+      <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
+    </div>
+    <div class="kh-cat-list" id="categoryList"></div>
   </div>
 
   <div class="kh-chips" id="chips"></div>
@@ -139,6 +162,8 @@
     "Transport":        { color: "#6ec6dc", icon: "⛽" },
     "Other":            { color: "#9aa0ac", icon: "❔" },
   };
+  const DEFAULT_CATEGORIES = Object.keys(CAT);
+  const CUSTOM_CATEGORIES_KEY = "kharcha_custom_categories";
 
   const TRANSACTIONS = [
     { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:3000, account:"Nabil Bank" },
@@ -222,6 +247,68 @@
     if (!CAT[name]) {
       CAT[name] = { color: nextColor(), icon: "❔" };
     }
+  }
+
+
+  function loadCustomCategories(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
+      if (Array.isArray(saved)){
+        saved.forEach(name => {
+          if (typeof name === "string" && name.trim()) ensureCategory(name.trim());
+        });
+      }
+    }catch(e){}
+  }
+
+  function saveCustomCategories(){
+    const custom = Object.keys(CAT).filter(name => !DEFAULT_CATEGORIES.includes(name));
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(custom));
+  }
+
+  function addCategory(){
+    const input = document.getElementById("categoryInput");
+    const name = input.value.trim();
+    if (!name) return;
+    if (CAT[name]){
+      showToast("Category already exists");
+      input.focus();
+      return;
+    }
+    ensureCategory(name);
+    saveCustomCategories();
+    input.value = "";
+    renderCategoryManager();
+    showToast(`Added ${name}`);
+  }
+
+  function removeCategory(name){
+    if (DEFAULT_CATEGORIES.includes(name)){
+      showToast("Default categories can't be removed");
+      return;
+    }
+    const used = TRANSACTIONS.some(t => t.category === name);
+    if (used){
+      if (!confirm(`"${name}" is used by existing transactions. Remove it and move those transactions to Other?`)) return;
+      TRANSACTIONS.forEach(t => { if (t.category === name) t.category = "Other"; });
+    }
+    delete CAT[name];
+    saveCustomCategories();
+    renderAll();
+    showToast(`Removed ${name}`);
+  }
+
+  function renderCategoryManager(){
+    const el = document.getElementById("categoryList");
+    if (!el) return;
+    el.innerHTML = Object.keys(CAT).map(name => {
+      const isDefault = DEFAULT_CATEGORIES.includes(name);
+      return `<span class="kh-cat-tag">
+        <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${CAT[name].color}"></span>
+        ${name}
+        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${JSON.stringify(name)})" title="Remove">✕</button>`}
+      </span>`;
+    }).join("");
   }
 
   function parseAmount(val){
@@ -314,7 +401,9 @@
       if (bal !== null){ BALANCES[account] = bal; balanceSet = true; }
     }
 
+    saveCustomCategories();
     renderAll();
+    renderCategoryManager();
 
     if (added || balanceSet){
       let msg = [];
@@ -455,7 +544,9 @@
     renderTx();
   }
 
+  loadCustomCategories();
   renderAll();
+  renderCategoryManager();
 </script>
 </body>
 </html>
