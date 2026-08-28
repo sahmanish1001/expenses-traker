@@ -243,9 +243,25 @@
       ACCOUNT_LIST.push(name);
     }
   }
+  function categoryIcon(name){
+    const n = String(name).toLowerCase();
+    if (/food|drink|dining|restaurant|cafe|chai|momo|snack/.test(n)) return "🍽️";
+    if (/grocer|vegetable|tarkari|household/.test(n)) return "🧺";
+    if (/mobile|internet|phone|telecom|ntc|ncell|data|wifi/.test(n)) return "📱";
+    if (/transport|fuel|petrol|taxi|bus|ride/.test(n)) return "⛽";
+    if (/shopping|purchase|clothes|fashion/.test(n)) return "🛍️";
+    if (/bill|payment|electric|water|rent/.test(n)) return "🧾";
+    if (/education|school|college|course|book/.test(n)) return "📚";
+    if (/health|medicine|medical|hospital|pharmacy/.test(n)) return "💊";
+    if (/entertainment|movie|cinema|game/.test(n)) return "🎬";
+    if (/salary|income|earning/.test(n)) return "💰";
+    if (/transfer/.test(n)) return name.toLowerCase().includes("in") ? "↙️" : "↗️";
+    return "🏷️";
+  }
+
   function ensureCategory(name){
     if (!CAT[name]) {
-      CAT[name] = { color: nextColor(), icon: "❔" };
+      CAT[name] = { color: nextColor(), icon: categoryIcon(name) };
     }
   }
 
@@ -256,6 +272,11 @@
       if (Array.isArray(saved)){
         saved.forEach(name => {
           if (typeof name === "string" && name.trim()) ensureCategory(name.trim());
+        });
+        Object.keys(CAT).forEach(name => {
+          if (!DEFAULT_CATEGORIES.includes(name) && CAT[name].icon === "❔") {
+            CAT[name].icon = categoryIcon(name);
+          }
         });
       }
     }catch(e){}
