@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kharchā — Expense Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
@@ -48,6 +49,26 @@
   .kh-np-pie-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 2px;}
   .kh-np-pie-sub{font-size:10.5px; color:var(--dim); margin:0 0 12px; line-height:1.5;}
   .kh-day-np{font-weight:400; color:var(--dim); text-transform:none; letter-spacing:0;}
+  .kh-legend-row.clickable{cursor:pointer; border-radius:8px; margin:0 -6px; padding-left:6px; padding-right:6px;}
+  .kh-legend-row.clickable:hover{background:var(--surface2);}
+  .kh-legend-row.active{background:rgba(242,169,59,.12);}
+  .kh-np-filter-clear{font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; margin-top:8px; font-family:inherit;}
+
+  /* Auth gate */
+  .kh-auth-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .kh-auth-card{max-width:340px; width:100%; text-align:center;}
+  .kh-auth-logo{font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; margin:0 0 4px;}
+  .kh-auth-tag{font-size:13px; color:var(--dim); margin:0 0 26px; line-height:1.5;}
+  .kh-auth-btn-wrap{display:flex; justify-content:center;}
+  .kh-auth-note{font-size:11px; color:var(--dim); margin-top:18px; line-height:1.6;}
+  .kh-account-badge{display:flex; align-items:center; gap:8px;}
+  .kh-account-avatar{width:26px; height:26px; border-radius:50%; background:var(--surface2); object-fit:cover; flex-shrink:0;}
+  .kh-account-name{font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;}
+  .kh-signout-btn{background:var(--surface); color:var(--dim); border:1px solid var(--border); border-radius:12px; padding:9px 11px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
+
+  .kh-np-filter{display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .kh-np-filter label{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;}
+  .kh-np-filter select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
   .kh-section-title{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:24px 0 10px;}
   .kh-empty{font-size:13.5px; color:var(--dim); background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:22px 16px; text-align:center; line-height:1.5;}
   .kh-day{margin-bottom:16px;}
@@ -135,7 +156,17 @@
 </style>
 </head>
 <body>
-<div class="kh-app">
+
+<div class="kh-auth-screen" id="authScreen">
+  <div class="kh-auth-card">
+    <p class="kh-auth-logo">Kharchā</p>
+    <p class="kh-auth-tag">Sign in with Google to keep your own private set of accounts, transactions, and categories — separate from everyone else who uses this tracker.</p>
+    <div class="kh-auth-btn-wrap" id="gSignInDiv"></div>
+    <p class="kh-auth-note" id="authFallbackNote"></p>
+  </div>
+</div>
+
+<div class="kh-app" id="appRoot" style="display:none;">
 
   <div class="kh-top">
     <div>
@@ -143,14 +174,14 @@
       <h1 class="kh-title">Kharchā</h1>
     </div>
     <div class="kh-top-btns">
+      <div class="kh-account-badge" id="accountBadge"></div>
       <button class="kh-clear-btn" onclick="clearAllData()" title="Delete all data">🗑</button>
       <button class="kh-upload-btn" onclick="toggleImport()">＋ Import</button>
+      <button class="kh-signout-btn" onclick="signOut()">Sign out</button>
     </div>
   </div>
 
-  <div class="kh-demo-note">
-    Seeded with real Nabil Bank data. Use "＋ Import" to paste in more statement rows.
-  </div>
+  <div class="kh-demo-note" id="demoNote"></div>
 
   <div class="kh-import-card" id="importCard" style="display:none;">
     <p class="kh-import-title">Paste statement data</p>
@@ -177,6 +208,11 @@
   <div class="kh-main-grid">
     <div class="kh-left-column">
       <div class="kh-chips" id="chips"></div>
+
+      <div class="kh-np-filter">
+        <label for="npMonthFilter">Nepali month</label>
+        <select id="npMonthFilter" onchange="setNepaliMonthFilter(this.value)"></select>
+      </div>
 
       <div class="kh-stats" id="stats"></div>
 
@@ -210,7 +246,8 @@
     "Khalti":      { color: "#5c2d91", icon: "👛" },
     "Other":       { color: "#9aa0ac", icon: "❔" },
   };
-  const ACCOUNT_LIST = Object.keys(ACCOUNTS);
+  const DEFAULT_ACCOUNTS = Object.keys(ACCOUNTS);
+  let ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
 
   const CAT = {
     "Food & Drink":     { color: "#f2a93b", icon: "☕" },
@@ -224,9 +261,12 @@
     "Other":            { color: "#9aa0ac", icon: "❔" },
   };
   const DEFAULT_CATEGORIES = Object.keys(CAT);
-  const CUSTOM_CATEGORIES_KEY = "kharcha_custom_categories";
 
-  const TRANSACTIONS = [
+  // This is only a one-time DEMO seed, offered to a brand-new user so they
+  // can see what the tracker looks like with data in it. It is never
+  // auto-loaded for every user — each signed-in Google account gets its own
+  // empty tracker and can load the demo from the empty-state button.
+  const DEMO_SEED_TRANSACTIONS = [
     { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:3000, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:1000, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"Chai Town", category:"Food & Drink", type:"out", amount:35, account:"Nabil Bank" },
@@ -251,13 +291,16 @@
     { date:"2026-08-27", vendor:"Binayak Tarkari Pasal", category:"Groceries", type:"out", amount:50, account:"Nabil Bank" },
     { date:"2026-08-27", vendor:"Anshila Ghimire", category:"Transfer In", type:"in", amount:5000, account:"Nabil Bank" },
   ];
-  const BALANCES = { "Nabil Bank": 5608 };
+  const DEMO_SEED_BALANCES = { "Nabil Bank": 5608 };
 
-  // Give every seed transaction a stable id so rows can be deleted individually.
+  // Live state for the signed-in user — populated by loadUserData() after
+  // Google sign-in, saved back to that user's own storage slot on change.
+  let TRANSACTIONS = [];
+  let BALANCES = {};
   let nextTxId = 1;
-  TRANSACTIONS.forEach(t => { t.id = "tx" + (nextTxId++); });
 
   let activeAccount = "All";
+  let activeNepaliMonth = "All"; // "All" or a "bsYear-bsMonth" key like "2083-5"
   const rs = (n) => "Rs " + Math.round(n).toLocaleString("en-IN");
 
   function fmtDate(d){
@@ -352,6 +395,7 @@
     const idx = TRANSACTIONS.findIndex(t => t.id === id);
     if (idx === -1) return;
     TRANSACTIONS.splice(idx, 1);
+    saveCurrentUser();
     renderAll();
     showToast("Transaction deleted");
   }
@@ -361,6 +405,8 @@
     TRANSACTIONS.length = 0;
     Object.keys(BALANCES).forEach(k => delete BALANCES[k]);
     activeAccount = "All";
+    activeNepaliMonth = "All";
+    saveCurrentUser();
     renderAll();
     showToast("All data cleared");
   }
@@ -397,26 +443,71 @@
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Per-account (Google sign-in) data isolation.
+  // Everything the tracker holds — transactions, balances, and any custom
+  // accounts/categories — is saved under a storage key scoped to the
+  // signed-in user's email, so different Google accounts on this browser
+  // never see each other's data.
+  //
+  // Note: this keeps each person's data private on THIS browser/device.
+  // For data that syncs across devices for the same person, the app would
+  // need a real backend (e.g. Firebase, or your own server) to store this
+  // per-user data server-side instead of in localStorage — this file alone
+  // can't do that.
+  // ---------------------------------------------------------------------
+  const dataKeyFor = (email) => `kharcha_userdata_${email}`;
 
-  function loadCustomCategories(){
-    try{
-      const saved = JSON.parse(localStorage.getItem(CUSTOM_CATEGORIES_KEY) || "[]");
-      if (Array.isArray(saved)){
-        saved.forEach(name => {
-          if (typeof name === "string" && name.trim()) ensureCategory(name.trim());
-        });
-        Object.keys(CAT).forEach(name => {
-          if (!DEFAULT_CATEGORIES.includes(name) && CAT[name].icon === "❔") {
-            CAT[name].icon = categoryIcon(name);
-          }
-        });
-      }
-    }catch(e){}
+  function resetAccountsAndCategoriesToDefault(){
+    Object.keys(ACCOUNTS).forEach(k => { if (!DEFAULT_ACCOUNTS.includes(k)) delete ACCOUNTS[k]; });
+    ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
+    Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
   }
 
-  function saveCustomCategories(){
-    const custom = Object.keys(CAT).filter(name => !DEFAULT_CATEGORIES.includes(name));
-    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(custom));
+  function saveCurrentUser(){
+    if (!currentUser) return;
+    const snapshot = {
+      transactions: TRANSACTIONS,
+      balances: BALANCES,
+      nextTxId,
+      customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
+      customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
+    };
+    try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
+  }
+
+  function loadUserData(email){
+    resetAccountsAndCategoriesToDefault();
+    let data = null;
+    try{ data = JSON.parse(localStorage.getItem(dataKeyFor(email))); }catch(e){}
+
+    activeAccount = "All";
+    activeNepaliMonth = "All";
+    const noteEl = document.getElementById("demoNote");
+
+    if (data){
+      (data.customAccounts || []).forEach(a => { ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; ACCOUNT_LIST.push(a.name); });
+      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      TRANSACTIONS = data.transactions || [];
+      BALANCES = data.balances || {};
+      nextTxId = data.nextTxId || 1;
+      noteEl.innerHTML = "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows.";
+    } else {
+      TRANSACTIONS = [];
+      BALANCES = {};
+      nextTxId = 1;
+      noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
+    }
+  }
+
+  function loadDemoData(){
+    TRANSACTIONS = JSON.parse(JSON.stringify(DEMO_SEED_TRANSACTIONS));
+    nextTxId = 1;
+    TRANSACTIONS.forEach(t => { t.id = "tx" + (nextTxId++); });
+    BALANCES = { ...DEMO_SEED_BALANCES };
+    document.getElementById("demoNote").textContent = "Demo data loaded — this is only visible to you, delete it any time with the 🗑 button.";
+    saveCurrentUser();
+    renderAll();
   }
 
   function addCategory(){
@@ -429,7 +520,7 @@
       return;
     }
     ensureCategory(name);
-    saveCustomCategories();
+    saveCurrentUser();
     input.value = "";
     renderCategoryManager();
     showToast(`Added ${name}`);
@@ -446,7 +537,7 @@
       TRANSACTIONS.forEach(t => { if (t.category === name) t.category = "Other"; });
     }
     delete CAT[name];
-    saveCustomCategories();
+    saveCurrentUser();
     renderAll();
     showToast(`Removed ${name}`);
   }
@@ -554,7 +645,7 @@
       if (bal !== null){ BALANCES[account] = bal; balanceSet = true; }
     }
 
-    saveCustomCategories();
+    saveCurrentUser();
     renderAll();
     renderCategoryManager();
 
@@ -594,8 +685,37 @@
     });
   }
 
+  function bsMonthKey(dateStr){
+    const bs = adToBs(dateStr);
+    return `${bs.year}-${bs.month}`;
+  }
+
   function getScoped(){
-    return activeAccount === "All" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.account === activeAccount);
+    let list = activeAccount === "All" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.account === activeAccount);
+    if (activeNepaliMonth !== "All") list = list.filter(t => bsMonthKey(t.date) === activeNepaliMonth);
+    return list;
+  }
+
+  function setNepaliMonthFilter(key){
+    activeNepaliMonth = key;
+    renderAll();
+  }
+
+  function renderNepaliMonthFilter(){
+    const el = document.getElementById("npMonthFilter");
+    if (!el) return;
+    // Every BS month present in the data, in chronological order.
+    const seen = new Map();
+    TRANSACTIONS.forEach(t => {
+      const bs = adToBs(t.date);
+      const key = `${bs.year}-${bs.month}`;
+      if (!seen.has(key)) seen.set(key, { y: bs.year, m: bs.month, label: `${NEPALI_MONTHS[bs.month - 1].name} ${bs.year}` });
+    });
+    const months = [...seen.values()].sort((a, b) => (a.y - b.y) || (a.m - b.m));
+    el.innerHTML = `<option value="All">All months</option>` +
+      months.map(mo => `<option value="${mo.y}-${mo.m}">${mo.label}</option>`).join("");
+    el.value = months.some(mo => `${mo.y}-${mo.m}` === activeNepaliMonth) ? activeNepaliMonth : "All";
+    if (el.value === "All") activeNepaliMonth = "All";
   }
 
   function renderStats(){
@@ -691,7 +811,9 @@
 
     let html = `<div class="kh-pie-wrap"><div class="kh-pie" style="background:conic-gradient(${stops})"></div></div><div class="kh-legend">`;
     data.forEach(d => {
-      html += `<div class="kh-legend-row">
+      const key = `${d.y}-${d.m}`;
+      const isActive = activeNepaliMonth === key;
+      html += `<div class="kh-legend-row clickable${isActive ? " active" : ""}" onclick="setNepaliMonthFilter('${key}')" title="Filter transactions to this month">
         <span class="kh-legend-dot" style="background:${d.color}"></span>
         <span class="kh-legend-name">${d.name}</span>
         <span class="kh-legend-amt">${rs(d.value)}</span>
@@ -699,6 +821,9 @@
       </div>`;
     });
     html += `</div>`;
+    if (activeNepaliMonth !== "All"){
+      html += `<button class="kh-np-filter-clear" onclick="setNepaliMonthFilter('All')">✕ Clear month filter</button>`;
+    }
     body.innerHTML = html;
   }
 
@@ -740,15 +865,92 @@
 
   function renderAll(){
     renderChips();
+    renderNepaliMonthFilter();
     renderStats();
     renderPie();
     renderNepaliPie();
     renderTx();
   }
 
-  loadCustomCategories();
-  renderAll();
-  renderCategoryManager();
+  // ---------------------------------------------------------------------
+  // Google sign-in.
+  //
+  // ⚠️ To make sign-in actually work you must:
+  //   1. Create an OAuth Client ID (type "Web application") in the Google
+  //      Cloud Console → APIs & Services → Credentials.
+  //   2. Add the exact URL(s) this page will be served from (e.g.
+  //      https://yourapp.example.com) under "Authorized JavaScript origins".
+  //      Google Sign-In will NOT work if you just open this file locally
+  //      (file://) — it has to be served over http/https.
+  //   3. Paste that Client ID into GOOGLE_CLIENT_ID below.
+  //
+  // Sign-in itself only proves who the user is; this file has no server,
+  // so each person's data lives in their own browser's localStorage, keyed
+  // by their Google email (see saveCurrentUser/loadUserData above). That
+  // means the same person switching devices/browsers starts fresh unless
+  // this app is later connected to a real backend.
+  // ---------------------------------------------------------------------
+  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+  const CURRENT_USER_KEY = "kharcha_current_user";
+  let currentUser = null;
+
+  function decodeJwt(token){
+    const payload = token.split(".")[1];
+    const json = decodeURIComponent(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+      .split("").map(c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
+    return JSON.parse(json);
+  }
+
+  function handleCredentialResponse(response){
+    const claims = decodeJwt(response.credential);
+    signIn({ email: claims.email, name: claims.name || claims.email, picture: claims.picture || "" });
+  }
+
+  function signIn(user){
+    currentUser = user;
+    try{ localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user)); }catch(e){}
+
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("appRoot").style.display = "block";
+    const badge = document.getElementById("accountBadge");
+    badge.innerHTML = (user.picture ? `<img class="kh-account-avatar" src="${user.picture}" alt="">` : "") +
+      `<span class="kh-account-name" title="${user.name}">${user.name}</span>`;
+
+    loadUserData(user.email);
+    renderAll();
+    renderCategoryManager();
+  }
+
+  function signOut(){
+    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    currentUser = null;
+    try{ localStorage.removeItem(CURRENT_USER_KEY); }catch(e){}
+    document.getElementById("appRoot").style.display = "none";
+    document.getElementById("authScreen").style.display = "flex";
+  }
+
+  function initAuth(){
+    const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
+    if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
+      document.getElementById("authFallbackNote").innerHTML = placeholderId
+        ? "Google Sign-In isn't configured yet — set GOOGLE_CLIENT_ID near the bottom of the script (see the comment above it for setup steps)."
+        : "Couldn't load Google Sign-In (are you offline, or is this opened as a local file instead of served over https?).";
+      return;
+    }
+
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
+    google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
+    google.accounts.id.prompt(); // One Tap, if the browser already has a Google session
+
+    // Resume a session already established earlier in this browser.
+    try{
+      const saved = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
+      if (saved && saved.email) signIn(saved);
+    }catch(e){}
+  }
+
+  window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
 </script>
+  207990075260-58efvs88f4j4fucnrolk1c4q6ufoc9b3.apps.googleusercontent.com
 </body>
 </html>
