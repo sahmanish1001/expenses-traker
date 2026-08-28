@@ -1,6 +1,3 @@
-
-
-Index · HTML
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,7 +6,7 @@ Index · HTML
 <title>Kharchā — Expense Tracker</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
- 
+
   :root{
     --bg:#12141c; --surface:#191c27; --surface2:#20232f; --border:rgba(255,255,255,.08);
     --text:#f2f0ea; --dim:#9396a8; --accent:#f2a93b; --in:#5fd1a4; --out:#ef6f6c;
@@ -24,18 +21,9 @@ Index · HTML
   .kh-eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin:0 0 2px;}
   .kh-title{font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; margin:0;}
   .kh-upload-btn{display:flex; align-items:center; gap:6px; background:var(--accent); color:#1a1400; border:none; border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
-  .kh-import-card{margin-top:14px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; display:none;}
-  .kh-import-card.open{display:block;}
-  .kh-import-title{font-size:12.5px; font-weight:600; margin:0 0 4px;}
-  .kh-import-help{font-size:11.5px; color:var(--dim); line-height:1.5; margin:0 0 10px;}
-  .kh-import-textarea{width:100%; min-height:90px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:ui-monospace,monospace; font-size:11.5px; padding:10px; resize:vertical;}
-  .kh-import-actions{display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;}
-  .kh-btn{border:none; border-radius:10px; padding:8px 13px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
-  .kh-btn-primary{background:var(--accent); color:#1a1400;}
-  .kh-btn-ghost{background:none; color:var(--dim); border:1px solid var(--border);}
-  .kh-import-msg{font-size:11.5px; margin-top:8px;}
-  .kh-import-msg.ok{color:var(--in);}
-  .kh-import-msg.err{color:var(--out);}
+  .kh-top-btns{display:flex; gap:8px; flex-shrink:0;}
+  .kh-clear-btn{display:flex; align-items:center; gap:6px; background:var(--surface); color:var(--out); border:1px solid var(--border); border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
+  .kh-demo-note{margin-top:12px; font-size:12px; color:var(--dim); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 12px; line-height:1.5;}
   .kh-chips{display:flex; gap:8px; overflow-x:auto; margin-top:16px; padding-bottom:2px;}
   .kh-chip{display:flex; align-items:center; gap:6px; flex-shrink:0; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); font-size:12.5px; font-weight:500; color:var(--dim); cursor:pointer; font-family:inherit;}
   .kh-chip.active{color:#12141c; border-color:transparent;}
@@ -56,8 +44,7 @@ Index · HTML
   .kh-legend-name{flex:1; font-size:12.5px;}
   .kh-legend-amt{font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600;}
   .kh-legend-pct{font-size:11px; color:var(--dim); width:34px; text-align:right;}
-  .kh-section-title{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:24px 0 10px; display:flex; justify-content:space-between; align-items:center;}
-  .kh-section-title a{font-size:11px; color:var(--dim); cursor:pointer; text-transform:none; letter-spacing:0;}
+  .kh-section-title{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:24px 0 10px;}
   .kh-empty{font-size:13.5px; color:var(--dim); background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:22px 16px; text-align:center; line-height:1.5;}
   .kh-day{margin-bottom:16px;}
   .kh-day-label{display:flex; align-items:center; gap:8px; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;}
@@ -70,46 +57,67 @@ Index · HTML
   .kh-row-vendor{font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .kh-row-cat{font-size:11px; color:var(--dim); margin-top:1px;}
   .kh-row-amt{font-family:'Space Grotesk',sans-serif; font-size:13.5px; font-weight:600; flex-shrink:0;}
+  .kh-row-del{flex-shrink:0; width:22px; height:22px; border-radius:7px; border:none; background:transparent; color:var(--dim); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .kh-row-del:hover{background:rgba(239,111,108,.15); color:var(--out);}
+  .kh-toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#20232f; border:1px solid var(--border); color:var(--text); font-size:12.5px; padding:10px 16px; border-radius:10px; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .kh-toast.show{opacity:1;}
+  .kh-import-card{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
+  .kh-import-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 4px;}
+  .kh-import-hint{font-size:11.5px; color:var(--dim); margin:0 0 10px; line-height:1.5;}
+  .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Inter',sans-serif; font-size:12.5px; padding:10px 12px; line-height:1.5;}
+  .kh-import-textarea:focus{outline:none; border-color:var(--accent);}
+  .kh-import-actions{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;}
+  .kh-import-btn{background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-import-status{font-size:11.5px; color:var(--dim);}
+  .kh-import-status.err{color:var(--out);}
+  .kh-import-status.ok{color:var(--in);}
 </style>
 </head>
 <body>
 <div class="kh-app">
- 
+
   <div class="kh-top">
     <div>
       <p class="kh-eyebrow">Multi-wallet tracker</p>
       <h1 class="kh-title">Kharchā</h1>
     </div>
-    <button class="kh-upload-btn" onclick="toggleImport()">＋ Import statement</button>
-  </div>
- 
-  <div class="kh-import-card" id="importCard">
-    <p class="kh-import-title">Paste statement data</p>
-    <p class="kh-import-help">
-      Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below.
-    </p>
-    <textarea class="kh-import-textarea" id="importInput" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
-    <div class="kh-import-actions">
-      <button class="kh-btn kh-btn-primary" onclick="doImport()">Import</button>
-      <button class="kh-btn kh-btn-ghost" onclick="toggleImport()">Cancel</button>
+    <div class="kh-top-btns">
+      <button class="kh-clear-btn" onclick="clearAllData()" title="Delete all data">🗑</button>
+      <button class="kh-upload-btn" onclick="toggleImport()">＋ Import</button>
     </div>
-    <div id="importMsg"></div>
   </div>
- 
+
+  <div class="kh-demo-note">
+    Seeded with real Nabil Bank data. Use "＋ Import" to paste in more statement rows.
+  </div>
+
+  <div class="kh-import-card" id="importCard" style="display:none;">
+    <p class="kh-import-title">Paste statement data</p>
+    <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below.</p>
+    <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
+    <div class="kh-import-actions">
+      <button class="kh-import-btn" onclick="importData()">Import</button>
+      <button class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="toggleImport()">Cancel</button>
+      <span class="kh-import-status" id="importStatus"></span>
+    </div>
+  </div>
+
   <div class="kh-chips" id="chips"></div>
- 
+
   <div class="kh-stats" id="stats"></div>
- 
+
   <div class="kh-pie-card">
     <p class="kh-pie-title" id="pieTitle">Spending by account</p>
     <div id="pieBody"></div>
   </div>
- 
-  <p class="kh-section-title">Transactions <a onclick="clearImported()">Clear imported data</a></p>
+
+  <p class="kh-section-title">Transactions</p>
   <div id="txList"></div>
- 
+
 </div>
- 
+
+<div class="kh-toast" id="toast">Imported</div>
+
 <script>
   const ACCOUNTS = {
     "eSewa":       { color: "#3aa655", icon: "📱" },
@@ -119,7 +127,7 @@ Index · HTML
     "Other":       { color: "#9aa0ac", icon: "❔" },
   };
   const ACCOUNT_LIST = Object.keys(ACCOUNTS);
- 
+
   const CAT = {
     "Food & Drink":     { color: "#f2a93b", icon: "☕" },
     "Groceries":        { color: "#8fd19e", icon: "🧺" },
@@ -131,9 +139,8 @@ Index · HTML
     "Transport":        { color: "#6ec6dc", icon: "⛽" },
     "Other":            { color: "#9aa0ac", icon: "❔" },
   };
- 
-  // Seed data from your real Nabil Bank statement
-  const SEED_TRANSACTIONS = [
+
+  const TRANSACTIONS = [
     { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:3000, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:1000, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"Chai Town", category:"Food & Drink", type:"out", amount:35, account:"Nabil Bank" },
@@ -158,73 +165,172 @@ Index · HTML
     { date:"2026-08-27", vendor:"Binayak Tarkari Pasal", category:"Groceries", type:"out", amount:50, account:"Nabil Bank" },
     { date:"2026-08-27", vendor:"Anshila Ghimire", category:"Transfer In", type:"in", amount:5000, account:"Nabil Bank" },
   ];
-  const SEED_BALANCES = { "Nabil Bank": 5608 };
- 
+  const BALANCES = { "Nabil Bank": 5608 };
+
+  // Give every seed transaction a stable id so rows can be deleted individually.
+  let nextTxId = 1;
+  TRANSACTIONS.forEach(t => { t.id = "tx" + (nextTxId++); });
+
   let activeAccount = "All";
- 
-  function loadImported(){
-    try { return JSON.parse(localStorage.getItem("kharcha_imported") || "[]"); }
-    catch(e){ return []; }
-  }
-  function loadBalances(){
-    try { return JSON.parse(localStorage.getItem("kharcha_balances") || "{}"); }
-    catch(e){ return {}; }
-  }
-  function saveImported(list){ localStorage.setItem("kharcha_imported", JSON.stringify(list)); }
-  function saveBalances(obj){ localStorage.setItem("kharcha_balances", JSON.stringify(obj)); }
- 
-  function allTransactions(){ return [...SEED_TRANSACTIONS, ...loadImported()]; }
-  function allBalances(){ return { ...SEED_BALANCES, ...loadBalances() }; }
- 
   const rs = (n) => "Rs " + Math.round(n).toLocaleString("en-IN");
+
   function fmtDate(d){
     return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" });
   }
- 
-  function toggleImport(){
-    document.getElementById("importCard").classList.toggle("open");
+
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    if (msg) t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2200);
   }
- 
-  function doImport(){
+
+  function toggleImport(){
+    const el = document.getElementById("importCard");
+    el.style.display = (el.style.display === "none") ? "block" : "none";
+    if (el.style.display === "block") document.getElementById("importInput").focus();
+  }
+
+  function deleteTx(id){
+    const idx = TRANSACTIONS.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    TRANSACTIONS.splice(idx, 1);
+    renderAll();
+    showToast("Transaction deleted");
+  }
+
+  function clearAllData(){
+    if (!confirm("Delete all transactions and balances? This can't be undone.")) return;
+    TRANSACTIONS.length = 0;
+    Object.keys(BALANCES).forEach(k => delete BALANCES[k]);
+    activeAccount = "All";
+    renderAll();
+    showToast("All data cleared");
+  }
+
+  const PALETTE = ["#f2a93b","#5fd1a4","#ef6f6c","#7f9cf5","#c792ea","#e8a87c","#6ec6dc","#8fd19e","#e0473e","#3aa655"];
+  let paletteIdx = 0;
+  function nextColor(){ return PALETTE[(paletteIdx++) % PALETTE.length]; }
+
+  function ensureAccount(name){
+    if (!ACCOUNTS[name]) {
+      ACCOUNTS[name] = { color: nextColor(), icon: "👛" };
+      ACCOUNT_LIST.push(name);
+    }
+  }
+  function ensureCategory(name){
+    if (!CAT[name]) {
+      CAT[name] = { color: nextColor(), icon: "❔" };
+    }
+  }
+
+  function parseAmount(val){
+    if (val === null || val === undefined || val === "") return null;
+    const cleaned = String(val).replace(/[^0-9.\-]/g, "");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? null : Math.abs(n);
+  }
+
+  function normalizeDate(str){
+    if (!str) return null;
+    str = String(str).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return null;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  // Reads one transaction object and normalizes it into {date, vendor, category, type, amount}.
+  // Tolerates a few different key names/shapes so JSON pasted from different statement photos still works.
+  function parseTxObject(tx, i, errors){
+    const date = normalizeDate(tx.date || tx.dateTime || tx.datetime);
+    if (!date){ errors.push(`Item ${i+1}: bad or missing date`); return null; }
+
+    const vendor = tx.vendor || tx.description || tx.desc || tx.merchant || tx.narration;
+    if (!vendor){ errors.push(`Item ${i+1}: missing vendor/description`); return null; }
+
+    const category = tx.category || "Other";
+
+    let type = null, amount = null;
+    if (tx.type){
+      const t = String(tx.type).toLowerCase();
+      type = (t === "in" || t === "credit" || t === "cr" || t === "+") ? "in" : "out";
+      amount = parseAmount(tx.amount);
+    } else if (tx.dr !== undefined || tx.cr !== undefined || tx.debit !== undefined || tx.credit !== undefined){
+      const dr = parseAmount(tx.dr !== undefined ? tx.dr : tx.debit);
+      const cr = parseAmount(tx.cr !== undefined ? tx.cr : tx.credit);
+      if (cr){ type = "in"; amount = cr; }
+      else { type = "out"; amount = dr; }
+    } else {
+      amount = parseAmount(tx.amount);
+      type = (typeof tx.amount === "number" && tx.amount < 0) ? "out" : "in";
+    }
+
+    if (amount === null || amount === 0){ errors.push(`Item ${i+1}: missing/bad amount`); return null; }
+    return { date, vendor, category, type, amount };
+  }
+
+  function importData(){
     const raw = document.getElementById("importInput").value.trim();
-    const msgEl = document.getElementById("importMsg");
+    const status = document.getElementById("importStatus");
+
     if (!raw){
-      msgEl.className = "kh-import-msg err";
-      msgEl.textContent = "Paste the JSON block first.";
+      status.textContent = "Paste the JSON block first.";
+      status.className = "kh-import-status err";
       return;
     }
+
+    let data;
     try {
-      const cleaned = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(cleaned);
-      const account = ACCOUNTS[parsed.account] ? parsed.account : "Other";
-      const newTx = (parsed.transactions || []).map((t) => ({ ...t, account }));
-      const imported = loadImported();
-      saveImported([...imported, ...newTx]);
-      if (parsed.closingBalance != null){
-        const bal = loadBalances();
-        bal[account] = parsed.closingBalance;
-        saveBalances(bal);
-      }
-      msgEl.className = "kh-import-msg ok";
-      msgEl.textContent = `Added ${newTx.length} transaction(s) to ${account}.`;
+      data = JSON.parse(raw);
+    } catch (e) {
+      status.textContent = "That doesn't look like valid data — make sure you copied the whole block.";
+      status.className = "kh-import-status err";
+      return;
+    }
+
+    if (!data.account || !Array.isArray(data.transactions)){
+      status.textContent = 'JSON needs an "account" name and a "transactions" array.';
+      status.className = "kh-import-status err";
+      return;
+    }
+
+    const account = data.account;
+    ensureAccount(account);
+
+    let added = 0, errors = [];
+    data.transactions.forEach((tx, i) => {
+      const parsed = parseTxObject(tx, i, errors);
+      if (!parsed) return;
+      ensureCategory(parsed.category);
+      TRANSACTIONS.push({ ...parsed, account, id: "tx" + (nextTxId++) });
+      added++;
+    });
+
+    let balanceSet = false;
+    if (data.closingBalance !== undefined){
+      const bal = parseAmount(data.closingBalance);
+      if (bal !== null){ BALANCES[account] = bal; balanceSet = true; }
+    }
+
+    renderAll();
+
+    if (added || balanceSet){
+      let msg = [];
+      if (added) msg.push(`${added} transaction${added === 1 ? "" : "s"}`);
+      if (balanceSet) msg.push("balance updated");
+      status.textContent = `Imported ${msg.join(", ")} for ${account}.` + (errors.length ? ` ${errors.length} item(s) skipped.` : "");
+      status.className = "kh-import-status " + (errors.length ? "err" : "ok");
+      showToast(`Imported ${msg.join(", ")}`);
       document.getElementById("importInput").value = "";
-      activeAccount = account;
-      renderAll();
-    } catch(e){
-      msgEl.className = "kh-import-msg err";
-      msgEl.textContent = "That doesn't look like valid data — make sure you copied the whole block.";
+    } else {
+      status.textContent = errors.length ? errors.join(" · ") : "Nothing to import.";
+      status.className = "kh-import-status err";
     }
   }
- 
-  function clearImported(){
-    if (!confirm("Remove all imported statements? This keeps your original demo data.")) return;
-    localStorage.removeItem("kharcha_imported");
-    localStorage.removeItem("kharcha_balances");
-    renderAll();
-  }
- 
+
   function renderChips(){
-    const TRANSACTIONS = allTransactions();
     const el = document.getElementById("chips");
     el.innerHTML = "";
     const allBtn = document.createElement("button");
@@ -233,7 +339,7 @@ Index · HTML
     allBtn.textContent = "All accounts";
     allBtn.onclick = () => { activeAccount = "All"; renderAll(); };
     el.appendChild(allBtn);
- 
+
     ACCOUNT_LIST.forEach(name => {
       const meta = ACCOUNTS[name];
       const has = TRANSACTIONS.some(t => t.account === name);
@@ -245,28 +351,25 @@ Index · HTML
       el.appendChild(btn);
     });
   }
- 
+
   function getScoped(){
-    const TRANSACTIONS = allTransactions();
     return activeAccount === "All" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.account === activeAccount);
   }
- 
+
   function renderStats(){
     const scoped = getScoped();
     const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
     const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
-    const BAL = allBalances();
     let html = `
       <div class="kh-stat"><div class="kh-stat-head">Money in</div><div class="kh-stat-amt" style="color:var(--in)">${rs(totalIn)}</div></div>
       <div class="kh-stat"><div class="kh-stat-head">Money out</div><div class="kh-stat-amt" style="color:var(--out)">${rs(totalOut)}</div></div>`;
-    if (activeAccount !== "All" && BAL[activeAccount] != null){
-      html += `<div class="kh-stat"><div class="kh-stat-head">Last balance</div><div class="kh-stat-amt">${rs(BAL[activeAccount])}</div></div>`;
+    if (activeAccount !== "All" && BALANCES[activeAccount] != null){
+      html += `<div class="kh-stat"><div class="kh-stat-head">Last balance</div><div class="kh-stat-amt">${rs(BALANCES[activeAccount])}</div></div>`;
     }
     document.getElementById("stats").innerHTML = html;
   }
- 
+
   function renderPie(){
-    const TRANSACTIONS = allTransactions();
     let data = [];
     if (activeAccount === "All"){
       document.getElementById("pieTitle").textContent = "Spending by account";
@@ -281,7 +384,7 @@ Index · HTML
       data = Object.entries(m).map(([name,value]) => ({ name, value, color: CAT[name]?.color || "#9aa0ac" }))
         .sort((a,b)=>b.value-a.value);
     }
- 
+
     const body = document.getElementById("pieBody");
     if (data.length === 0){
       body.innerHTML = `<div class="kh-pie-empty">No spending recorded here yet.</div>`;
@@ -295,7 +398,7 @@ Index · HTML
       angle += deg;
       return `${d.color} ${start}deg ${angle}deg`;
     }).join(", ");
- 
+
     let html = `<div class="kh-pie-wrap"><div class="kh-pie" style="background:conic-gradient(${stops})"></div></div><div class="kh-legend">`;
     data.forEach(d => {
       html += `<div class="kh-legend-row">
@@ -308,7 +411,7 @@ Index · HTML
     html += `</div>`;
     body.innerHTML = html;
   }
- 
+
   function renderTx(){
     const scoped = getScoped();
     const el = document.getElementById("txList");
@@ -321,7 +424,7 @@ Index · HTML
       groups[t.date] = groups[t.date] || [];
       groups[t.date].push(t);
     });
- 
+
     let html = "";
     Object.entries(groups).forEach(([day, rows]) => {
       html += `<div class="kh-day">
@@ -337,23 +440,22 @@ Index · HTML
             <div class="kh-row-cat">${sub}</div>
           </div>
           <div class="kh-row-amt" style="color:${t.type === "in" ? "var(--in)" : "var(--out)"}">${t.type === "in" ? "+" : "−"}${rs(t.amount)}</div>
+          <button class="kh-row-del" onclick="deleteTx('${t.id}')" title="Delete">✕</button>
         </div>`;
       });
       html += `</div></div>`;
     });
     el.innerHTML = html;
   }
- 
+
   function renderAll(){
     renderChips();
     renderStats();
     renderPie();
     renderTx();
   }
- 
+
   renderAll();
 </script>
 </body>
 </html>
- 
-Add suggestion to line 3
