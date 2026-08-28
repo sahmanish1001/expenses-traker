@@ -19,6 +19,9 @@
   }
   .kh-app{ max-width:480px; margin:0 auto; padding:20px 16px 50px; }
   .kh-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .kh-top-brand{display:flex; align-items:center; gap:10px;}
+  .kh-top-mark{width:34px; height:34px; flex-shrink:0;}
+  .kh-top-mark svg{width:100%; height:100%; display:block;}
   .kh-eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin:0 0 2px;}
   .kh-title{font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; margin:0;}
   .kh-upload-btn{display:flex; align-items:center; gap:6px; background:var(--accent); color:#1a1400; border:none; border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
@@ -54,10 +57,19 @@
   .kh-legend-row.active{background:rgba(242,169,59,.12);}
   .kh-np-filter-clear{font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; margin-top:8px; font-family:inherit;}
 
+  /* Splash screen */
+  .kh-splash{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; transition:opacity .5s ease; opacity:1;}
+  .kh-splash.hide{opacity:0; pointer-events:none;}
+  .kh-splash-mark{width:104px; height:104px;}
+  .kh-splash-mark svg{width:100%; height:100%; display:block;}
+
   /* Auth gate */
   .kh-auth-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
   .kh-auth-card{max-width:340px; width:100%; text-align:center;}
+  .kh-auth-mark{width:68px; height:68px; margin:0 auto 14px;}
+  .kh-auth-mark svg{width:100%; height:100%; display:block;}
   .kh-auth-logo{font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; margin:0 0 4px;}
+  .kh-auth-slogan{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin:0 0 20px;}
   .kh-auth-tag{font-size:13px; color:var(--dim); margin:0 0 26px; line-height:1.5;}
   .kh-auth-btn-wrap{display:flex; justify-content:center;}
   .kh-auth-note{font-size:11px; color:var(--dim); margin-top:18px; line-height:1.6;}
@@ -157,9 +169,46 @@
 </head>
 <body>
 
+<div class="kh-splash" id="splashScreen">
+  <div class="kh-splash-mark">
+    <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+      <title>Kharchā</title>
+      <style>
+        .kh-splash-ring{animation:kh-spin 3s linear infinite; transform-origin:256px 256px;}
+        @keyframes kh-spin{to{transform:rotate(360deg);}}
+        .kh-splash-coin{animation:kh-pulse 1.5s ease-in-out infinite; transform-origin:256px 256px;}
+        @keyframes kh-pulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.08);}}
+      </style>
+      <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+      <g class="kh-splash-ring">
+        <path d="M146,256 A110,110 0 0 1 366,256" fill="none" stroke="#5fd1a4" stroke-width="20" stroke-linecap="butt"/>
+        <path d="M366,256 A110,110 0 0 1 146,256" fill="none" stroke="#ef6f6c" stroke-width="20" stroke-linecap="butt"/>
+        <polygon points="366,256 350,244 350,268" fill="#5fd1a4"/>
+        <polygon points="146,256 162,244 162,268" fill="#ef6f6c"/>
+      </g>
+      <g class="kh-splash-coin">
+        <circle cx="256" cy="256" r="34" fill="#f2a93b"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
 <div class="kh-auth-screen" id="authScreen">
   <div class="kh-auth-card">
+    <div class="kh-auth-mark">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>Kharchā icon</title>
+        <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+        <g transform="rotate(-90 256 256)">
+          <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-dashoffset="0" stroke-linecap="butt"/>
+          <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65" stroke-linecap="butt"/>
+          <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24" stroke-linecap="butt"/>
+        </g>
+        <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
+      </svg>
+    </div>
     <p class="kh-auth-logo">Kharchā</p>
+    <p class="kh-auth-slogan">Expense tracker</p>
     <p class="kh-auth-tag">Sign in with Google to keep your own private set of accounts, transactions, and categories — separate from everyone else who uses this tracker.</p>
     <div class="kh-auth-btn-wrap" id="gSignInDiv"></div>
     <p class="kh-auth-note" id="authFallbackNote"></p>
@@ -169,9 +218,23 @@
 <div class="kh-app" id="appRoot" style="display:none;">
 
   <div class="kh-top">
-    <div>
-      <p class="kh-eyebrow">Multi-wallet tracker</p>
-      <h1 class="kh-title">Kharchā</h1>
+    <div class="kh-top-brand">
+      <div class="kh-top-mark">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+          <title>Kharchā icon</title>
+          <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+          <g transform="rotate(-90 256 256)">
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-dashoffset="0" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24" stroke-linecap="butt"/>
+          </g>
+          <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
+        </svg>
+      </div>
+      <div>
+        <p class="kh-eyebrow">Multi-wallet tracker</p>
+        <h1 class="kh-title">Kharchā</h1>
+      </div>
     </div>
     <div class="kh-top-btns">
       <div class="kh-account-badge" id="accountBadge"></div>
@@ -950,6 +1013,15 @@
   }
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
+
+  // Splash screen: show the animated mark briefly, then reveal the auth/app screen beneath it.
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      const splash = document.getElementById("splashScreen");
+      splash.classList.add("hide");
+      setTimeout(() => { splash.style.display = "none"; }, 500);
+    }, 1100);
+  });
 </script>
 </body>
 </html>
