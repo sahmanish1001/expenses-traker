@@ -83,6 +83,50 @@
   .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
   .kh-cat-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:12px;}
   .kh-cat-remove:hover{color:var(--out);}
+
+  /* Laptop / desktop layout */
+  @media (min-width:768px){
+    body{min-height:100vh;}
+    .kh-app{max-width:1180px;padding:28px 32px 60px;}
+    .kh-top{align-items:center;padding-bottom:4px;}
+    .kh-title{font-size:30px;}
+    .kh-eyebrow{font-size:12px;}
+    .kh-demo-note{margin-top:16px;max-width:760px;}
+    .kh-main-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);
+      gap:20px;
+      align-items:start;
+      margin-top:18px;
+    }
+    .kh-left-column,.kh-right-column{min-width:0;}
+    .kh-chips{margin-top:0;padding-bottom:4px;}
+    .kh-cat-manager{margin-top:16px;}
+    .kh-stats{margin-top:16px;}
+    .kh-stat{min-width:140px;padding:14px 16px;}
+    .kh-pie-card{margin-top:0;position:sticky;top:20px;}
+    .kh-pie{width:210px;height:210px;}
+    .kh-pie::after{inset:32px;}
+    .kh-section-title{margin-top:22px;}
+    .kh-row{padding:13px 16px;gap:12px;}
+    .kh-row-icon{width:36px;height:36px;border-radius:10px;font-size:16px;}
+    .kh-row-vendor{font-size:14px;}
+    .kh-row-cat{font-size:11.5px;}
+    .kh-row-amt{font-size:14px;}
+    .kh-import-card{max-width:760px;}
+  }
+  @media (min-width:1100px){
+    .kh-app{padding-left:40px;padding-right:40px;}
+    .kh-main-grid{grid-template-columns:minmax(0,1.7fr) minmax(360px,.8fr);gap:24px;}
+    .kh-pie-card{padding:18px;}
+  }
+  @media (min-width:1400px){
+    .kh-app{max-width:1280px;}
+  }
+  @media (max-width:767px){
+    .kh-main-grid{display:block;}
+  }
+
 </style>
 </head>
 <body>
@@ -125,17 +169,23 @@
     <div class="kh-cat-list" id="categoryList"></div>
   </div>
 
-  <div class="kh-chips" id="chips"></div>
+  <div class="kh-main-grid">
+    <div class="kh-left-column">
+      <div class="kh-chips" id="chips"></div>
 
-  <div class="kh-stats" id="stats"></div>
+      <div class="kh-stats" id="stats"></div>
 
-  <div class="kh-pie-card">
-    <p class="kh-pie-title" id="pieTitle">Spending by account</p>
-    <div id="pieBody"></div>
+      <p class="kh-section-title">Transactions</p>
+      <div id="txList"></div>
+    </div>
+
+    <div class="kh-right-column">
+      <div class="kh-pie-card">
+        <p class="kh-pie-title" id="pieTitle">Spending by account</p>
+        <div id="pieBody"></div>
+      </div>
+    </div>
   </div>
-
-  <p class="kh-section-title">Transactions</p>
-  <div id="txList"></div>
 
 </div>
 
