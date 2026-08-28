@@ -890,7 +890,7 @@
   // means the same person switching devices/browsers starts fresh unless
   // this app is later connected to a real backend.
   // ---------------------------------------------------------------------
-  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID = 207990075260-58efvs88f4j4fucnrolk1c4q6ufoc9b3.apps.googleusercontent.com
   const CURRENT_USER_KEY = "kharcha_current_user";
   let currentUser = null;
 
@@ -933,7 +933,7 @@
     const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
     if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
       document.getElementById("authFallbackNote").innerHTML = placeholderId
-        ? const GOOGLE_CLIENT_ID = "123456789-abc123xyz.apps.googleusercontent.com";
+        ? "Google Sign-In isn't configured yet — set GOOGLE_CLIENT_ID near the bottom of the script (see the comment above it for setup steps)."
         : "Couldn't load Google Sign-In (are you offline, or is this opened as a local file instead of served over https?).";
       return;
     }
