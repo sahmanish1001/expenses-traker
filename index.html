@@ -933,7 +933,7 @@
     const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
     if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
       document.getElementById("authFallbackNote").innerHTML = placeholderId
-        ? "Google Sign-In isn't configured yet — set GOOGLE_CLIENT_ID near the bottom of the script (see the comment above it for setup steps)."
+        ? const GOOGLE_CLIENT_ID = "123456789-abc123xyz.apps.googleusercontent.com";
         : "Couldn't load Google Sign-In (are you offline, or is this opened as a local file instead of served over https?).";
       return;
     }
@@ -951,6 +951,5 @@
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
 </script>
-  207990075260-58efvs88f4j4fucnrolk1c4q6ufoc9b3.apps.googleusercontent.com
 </body>
 </html>
