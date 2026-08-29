@@ -139,8 +139,9 @@
   .kh-loan-page-head{margin:0 0 16px;}
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
-  .kh-settings-tabs{display:flex; gap:5px; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
-  .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11.5px; font-weight:600; padding:9px 3px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
+  .kh-settings-tabs{display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
+  .kh-settings-tabs::-webkit-scrollbar{display:none;}
+  .kh-settings-tab{flex:0 0 auto; white-space:nowrap; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12px; font-weight:600; padding:9px 14px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
   .kh-settings-section{display:none;}
   .kh-settings-section.active{display:block;}
