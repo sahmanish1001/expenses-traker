@@ -101,6 +101,14 @@
   .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
   .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
 
+  /* Settings opens larger, with its own internal tabs */
+  .kh-panel-large{max-height:92vh; top:0; padding-top:16px;}
+  .kh-settings-tabs{display:flex; gap:5px; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
+  .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12.5px; font-weight:600; padding:9px 6px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
+  .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
+  .kh-settings-section{display:none;}
+  .kh-settings-section.active{display:block;}
+
   /* Splash screen */
   .kh-splash{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; transition:opacity .5s ease; opacity:1;}
   .kh-splash.hide{opacity:0; pointer-events:none;}
@@ -339,55 +347,70 @@
     <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
   </div>
 
-  <div class="kh-panel" id="panelSettings">
+  <div class="kh-panel kh-panel-large" id="panelSettings">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Settings</p>
 
-    <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
-      <p class="kh-cat-title">Edit profile</p>
-      <p class="kh-cat-hint">This is saved to your account only — no one else can see it.</p>
-      <div class="kh-profile-form">
-        <div class="kh-profile-field">
-          <label for="profileName">Name</label>
-          <input id="profileName" type="text" placeholder="Your name" />
+    <div class="kh-settings-tabs">
+      <button class="kh-settings-tab active" id="settingsTabBtnProfile" onclick="setSettingsTab('profile')">Profile</button>
+      <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')">Categories</button>
+      <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')">Data</button>
+    </div>
+
+    <div class="kh-settings-section active" id="settingsSectionProfile">
+      <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+        <p class="kh-cat-title">Edit profile</p>
+        <p class="kh-cat-hint">This is saved to your account only — no one else can see it.</p>
+        <div class="kh-profile-form">
+          <div class="kh-profile-field">
+            <label for="profileName">Name</label>
+            <input id="profileName" type="text" placeholder="Your name" />
+          </div>
+          <div class="kh-profile-field">
+            <label for="profileAge">Age</label>
+            <input id="profileAge" type="number" min="1" max="120" placeholder="e.g. 28" />
+          </div>
+          <div class="kh-profile-field full">
+            <label for="profileEmail">Email</label>
+            <input id="profileEmail" type="email" placeholder="you@example.com" />
+          </div>
+          <div class="kh-profile-field">
+            <label for="profileCurrency">Currency</label>
+            <select id="profileCurrency">
+              <option value="NPR">NPR — Rs</option>
+              <option value="INR">INR — ₹</option>
+              <option value="USD">USD — $</option>
+              <option value="EUR">EUR — €</option>
+              <option value="GBP">GBP — £</option>
+            </select>
+          </div>
+          <div class="kh-profile-field">
+            <label for="profileIncome">Monthly income</label>
+            <input id="profileIncome" type="number" min="0" placeholder="e.g. 50000" />
+          </div>
+          <button class="kh-profile-save" onclick="saveProfile()">Save profile</button>
+          <span class="kh-profile-saved-note" id="profileSavedNote"></span>
         </div>
-        <div class="kh-profile-field">
-          <label for="profileAge">Age</label>
-          <input id="profileAge" type="number" min="1" max="120" placeholder="e.g. 28" />
-        </div>
-        <div class="kh-profile-field full">
-          <label for="profileEmail">Email</label>
-          <input id="profileEmail" type="email" placeholder="you@example.com" />
-        </div>
-        <div class="kh-profile-field">
-          <label for="profileCurrency">Currency</label>
-          <select id="profileCurrency">
-            <option value="NPR">NPR — Rs</option>
-            <option value="INR">INR — ₹</option>
-            <option value="USD">USD — $</option>
-            <option value="EUR">EUR — €</option>
-            <option value="GBP">GBP — £</option>
-          </select>
-        </div>
-        <div class="kh-profile-field">
-          <label for="profileIncome">Monthly income</label>
-          <input id="profileIncome" type="number" min="0" placeholder="e.g. 50000" />
-        </div>
-        <button class="kh-profile-save" onclick="saveProfile()">Save profile</button>
-        <span class="kh-profile-saved-note" id="profileSavedNote"></span>
       </div>
     </div>
 
-    <div class="kh-cat-manager" style="margin-top:20px; padding:0; background:none; border:none; border-top:1px solid var(--border); padding-top:18px;">
-      <p class="kh-cat-title">Personalized categories</p>
-      <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
-      <div class="kh-cat-form">
-        <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
-        <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
+    <div class="kh-settings-section" id="settingsSectionCategories">
+      <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+        <p class="kh-cat-title">Personalized categories</p>
+        <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
+        <div class="kh-cat-form">
+          <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
+          <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
+        </div>
+        <div class="kh-cat-list" id="categoryList"></div>
       </div>
-      <div class="kh-cat-list" id="categoryList"></div>
     </div>
-    <button class="kh-clear-btn" style="width:100%; margin-top:20px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+
+    <div class="kh-settings-section" id="settingsSectionData">
+      <p class="kh-cat-title">Data</p>
+      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account.</p>
+      <button class="kh-clear-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+    </div>
   </div>
 
   <div class="kh-panel" id="panelMore">
@@ -597,6 +620,14 @@
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
     setActiveNav(name);
+    if (name === "settings") setSettingsTab("profile");
+  }
+
+  function setSettingsTab(tab){
+    ["profile", "categories", "data"].forEach(t => {
+      document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
+      document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
+    });
   }
 
   function closePanel(){
