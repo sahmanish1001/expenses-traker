@@ -40,6 +40,8 @@
   .kh-chip{display:flex; align-items:center; gap:6px; flex-shrink:0; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); font-size:12.5px; font-weight:500; color:var(--dim); cursor:pointer; font-family:inherit;}
   .kh-chip.active{color:#12141c; border-color:transparent;}
   .kh-chip-dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .kh-chip-add{width:30px; height:30px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px dashed var(--border); background:transparent; color:var(--dim); font-size:16px; line-height:1; cursor:pointer; font-family:inherit;}
+  .kh-chip-add:hover{color:var(--accent); border-color:var(--accent);}
   .kh-stats{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;}
   .kh-stat{flex:1; min-width:100px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px;}
   .kh-stat-head{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
@@ -1060,6 +1062,33 @@
       btn.onclick = () => { activeAccount = name; renderAll(); };
       el.appendChild(btn);
     });
+
+    if (ACCOUNT_LIST.length < MAX_ACCOUNTS){
+      const addBtn = document.createElement("button");
+      addBtn.className = "kh-chip-add";
+      addBtn.title = "Add account";
+      addBtn.textContent = "＋";
+      addBtn.onclick = quickAddAccount;
+      el.appendChild(addBtn);
+    }
+  }
+
+  function quickAddAccount(){
+    const name = (prompt("Add an account (e.g. Nabil Bank, Khalti, Cash):") || "").trim();
+    if (!name) return;
+    if (ACCOUNT_LIST.includes(name)){
+      showToast("That account is already in your list");
+      return;
+    }
+    if (ACCOUNT_LIST.length >= MAX_ACCOUNTS){
+      showToast(`You can have up to ${MAX_ACCOUNTS} accounts`);
+      return;
+    }
+    ensureAccount(name);
+    saveCurrentUser();
+    renderAccountManager();
+    renderAll();
+    showToast(`Added ${name}`);
   }
 
   function bsMonthKey(dateStr){
