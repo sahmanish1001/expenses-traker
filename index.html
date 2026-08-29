@@ -1272,6 +1272,77 @@
   }
 
   // ---------------------------------------------------------------------
+  // Loan due-date reminders — pure client-side .ics generation. No backend,
+  // no API keys: the file downloads with a VALARM one day before (and one
+  // on) the due date, and importing it into Google Calendar means Gmail
+  // sends the reminder automatically, even after the app is closed.
+  // ---------------------------------------------------------------------
+  function icsEscape(str){
+    return String(str)
+      .replace(/\\/g, "\\\\")
+      .replace(/;/g, "\\;")
+      .replace(/,/g, "\\,")
+      .replace(/\r?\n/g, "\\n");
+  }
+
+  function addLoanReminder(id){
+    const l = LOANS.find(x => x.id === id);
+    if (!l || !l.dueDate) return;
+
+    const dueYMD = l.dueDate.replace(/-/g, "");
+    const verb = l.type === "lent" ? "Collect from" : "Pay back";
+    const title = `Loan due: ${verb} ${l.person} — ${rs(l.principal)}`;
+    const descParts = [
+      `${l.type === "lent" ? "Owed to you by" : "You owe"} ${l.person}: ${rs(l.principal)}.`
+    ];
+    if (l.notes) descParts.push(`Note: ${l.notes}`);
+    descParts.push("Logged in Kharcha.");
+    const desc = descParts.join(" ");
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Kharcha//Loan Reminder//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${l.id}-${dtstamp}@kharcha`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART;VALUE=DATE:${dueYMD}`,
+      `DTEND;VALUE=DATE:${dueYMD}`,
+      `SUMMARY:${icsEscape(title)}`,
+      `DESCRIPTION:${icsEscape(desc)}`,
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Loan due tomorrow",
+      "TRIGGER:-P1D",
+      "END:VALARM",
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Loan due today",
+      "TRIGGER:PT9H",
+      "END:VALARM",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ];
+    const ics = lines.join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `loan-reminder-${l.person.replace(/[^a-z0-9]+/gi, "_")}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // ---------------------------------------------------------------------
   // Loans — track money lent to or borrowed from people, separate from
   // regular expense/income transactions. Each loan optionally mirrors its
   // principal and repayments into TRANSACTIONS (see saveLoan/saveLoanPayment)
@@ -2598,6 +2669,7 @@
         ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
         <div class="kh-loan-actions">
           ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
+          ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kh-loan-btn" onclick="addLoanReminder('${l.id}')">📅 Add reminder</button>` : ""}
           <button type="button" class="kh-loan-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
           <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteLoanUI('${l.id}')">✕ Delete</button>
         </div>
