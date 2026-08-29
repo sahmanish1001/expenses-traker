@@ -27,6 +27,7 @@
   body{
     margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
     -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
   }
   .kh-app{ max-width:480px; margin:0 auto; padding:20px 16px 120px; }
   .kh-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
@@ -86,11 +87,11 @@
   .kh-manual-type-btn{flex:1; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-manual-type-btn.active-out{background:rgba(239,111,108,.16); border-color:var(--out); color:var(--out);}
   .kh-manual-type-btn.active-in{background:rgba(95,209,164,.16); border-color:var(--in); color:var(--in);}
-  .kh-manual-form{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .kh-manual-field{display:flex; flex-direction:column; gap:5px;}
+  .kh-manual-form{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px;}
+  .kh-manual-field{display:flex; flex-direction:column; gap:5px; min-width:0;}
   .kh-manual-field.full{grid-column:1 / -1;}
   .kh-manual-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
-  .kh-manual-field input, .kh-manual-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
+  .kh-manual-field input, .kh-manual-field select{width:100%; min-width:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
   .kh-manual-field input:focus, .kh-manual-field select:focus{outline:none; border-color:var(--accent2);}
   .kh-manual-actions{display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;}
   .kh-manual-btn{background:var(--accent2); color:#12141c; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
@@ -121,11 +122,11 @@
   .kh-more-about{font-size:12px; color:var(--dim); line-height:1.6; margin-top:12px;}
 
   /* Edit profile (in Settings) */
-  .kh-profile-form{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
-  .kh-profile-field{display:flex; flex-direction:column; gap:5px;}
+  .kh-profile-form{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; margin-top:10px;}
+  .kh-profile-field{display:flex; flex-direction:column; gap:5px; min-width:0;}
   .kh-profile-field.full{grid-column:1 / -1;}
   .kh-profile-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
-  .kh-profile-field input, .kh-profile-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
+  .kh-profile-field input, .kh-profile-field select{width:100%; min-width:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
   .kh-profile-field input:focus, .kh-profile-field select:focus{outline:none; border-color:var(--accent);}
   .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
   .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
