@@ -91,6 +91,16 @@
   .kh-more-item:active{transform:scale(.98);}
   .kh-more-about{font-size:12px; color:var(--dim); line-height:1.6; margin-top:12px;}
 
+  /* Edit profile (in Settings) */
+  .kh-profile-form{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .kh-profile-field{display:flex; flex-direction:column; gap:5px;}
+  .kh-profile-field.full{grid-column:1 / -1;}
+  .kh-profile-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
+  .kh-profile-field input, .kh-profile-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:13px;}
+  .kh-profile-field input:focus, .kh-profile-field select:focus{outline:none; border-color:var(--accent);}
+  .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
+  .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
+
   /* Splash screen */
   .kh-splash{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; transition:opacity .5s ease; opacity:1;}
   .kh-splash.hide{opacity:0; pointer-events:none;}
@@ -332,7 +342,43 @@
   <div class="kh-panel" id="panelSettings">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Settings</p>
+
     <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+      <p class="kh-cat-title">Edit profile</p>
+      <p class="kh-cat-hint">This is saved to your account only — no one else can see it.</p>
+      <div class="kh-profile-form">
+        <div class="kh-profile-field">
+          <label for="profileName">Name</label>
+          <input id="profileName" type="text" placeholder="Your name" />
+        </div>
+        <div class="kh-profile-field">
+          <label for="profileAge">Age</label>
+          <input id="profileAge" type="number" min="1" max="120" placeholder="e.g. 28" />
+        </div>
+        <div class="kh-profile-field full">
+          <label for="profileEmail">Email</label>
+          <input id="profileEmail" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="kh-profile-field">
+          <label for="profileCurrency">Currency</label>
+          <select id="profileCurrency">
+            <option value="NPR">NPR — Rs</option>
+            <option value="INR">INR — ₹</option>
+            <option value="USD">USD — $</option>
+            <option value="EUR">EUR — €</option>
+            <option value="GBP">GBP — £</option>
+          </select>
+        </div>
+        <div class="kh-profile-field">
+          <label for="profileIncome">Monthly income</label>
+          <input id="profileIncome" type="number" min="0" placeholder="e.g. 50000" />
+        </div>
+        <button class="kh-profile-save" onclick="saveProfile()">Save profile</button>
+        <span class="kh-profile-saved-note" id="profileSavedNote"></span>
+      </div>
+    </div>
+
+    <div class="kh-cat-manager" style="margin-top:20px; padding:0; background:none; border:none; border-top:1px solid var(--border); padding-top:18px;">
       <p class="kh-cat-title">Personalized categories</p>
       <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
       <div class="kh-cat-form">
@@ -436,9 +482,17 @@
   let BALANCES = {};
   let nextTxId = 1;
 
+  const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+  const CURRENCY_LOCALES = { NPR: "en-IN", INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
+  let PROFILE = { name: "", age: "", email: "", currency: "NPR", monthlyIncome: "" };
+
   let activeAccount = "All";
   let activeNepaliMonth = "All"; // "All" or a "bsYear-bsMonth" key like "2083-5"
-  const rs = (n) => "Rs " + Math.round(n).toLocaleString("en-IN");
+  const rs = (n) => {
+    const symbol = CURRENCY_SYMBOLS[PROFILE.currency] || "Rs";
+    const locale = CURRENCY_LOCALES[PROFILE.currency] || "en-IN";
+    return symbol + " " + Math.round(n).toLocaleString(locale);
+  };
 
   function fmtDate(d){
     return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" });
@@ -643,6 +697,7 @@
       transactions: TRANSACTIONS,
       balances: BALANCES,
       nextTxId,
+      profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
     };
@@ -664,13 +719,40 @@
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
       nextTxId = data.nextTxId || 1;
+      PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       noteEl.innerHTML = "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows.";
     } else {
       TRANSACTIONS = [];
       BALANCES = {};
       nextTxId = 1;
+      PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
     }
+    populateProfileForm();
+  }
+
+  function populateProfileForm(){
+    document.getElementById("profileName").value = PROFILE.name || "";
+    document.getElementById("profileAge").value = PROFILE.age || "";
+    document.getElementById("profileEmail").value = PROFILE.email || "";
+    document.getElementById("profileCurrency").value = PROFILE.currency || "NPR";
+    document.getElementById("profileIncome").value = PROFILE.monthlyIncome || "";
+    document.getElementById("profileSavedNote").textContent = "";
+  }
+
+  function saveProfile(){
+    PROFILE = {
+      name: document.getElementById("profileName").value.trim(),
+      age: document.getElementById("profileAge").value.trim(),
+      email: document.getElementById("profileEmail").value.trim(),
+      currency: document.getElementById("profileCurrency").value,
+      monthlyIncome: document.getElementById("profileIncome").value.trim(),
+    };
+    saveCurrentUser();
+    renderAll(); // currency symbol may have changed — refresh every amount on screen
+    const note = document.getElementById("profileSavedNote");
+    note.textContent = "Saved.";
+    setTimeout(() => { if (note.textContent === "Saved.") note.textContent = ""; }, 2500);
   }
 
   function loadDemoData(){
