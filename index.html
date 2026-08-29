@@ -21,6 +21,9 @@
     --text:#f2f0ea; --dim:#9396a8; --accent:#f2a93b; --accent2:#7f9cf5; --in:#5fd1a4; --out:#ef6f6c;
   }
   *{box-sizing:border-box;}
+  /* Keeps iOS Safari from auto-zooming the page when a form field is
+     focused — any input smaller than 16px triggers that zoom. */
+  input, select, textarea{font-size:16px;}
   body{
     margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -87,7 +90,7 @@
   .kh-manual-field{display:flex; flex-direction:column; gap:5px;}
   .kh-manual-field.full{grid-column:1 / -1;}
   .kh-manual-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
-  .kh-manual-field input, .kh-manual-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:13px;}
+  .kh-manual-field input, .kh-manual-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
   .kh-manual-field input:focus, .kh-manual-field select:focus{outline:none; border-color:var(--accent2);}
   .kh-manual-actions{display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;}
   .kh-manual-btn{background:var(--accent2); color:#12141c; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
@@ -121,7 +124,7 @@
   .kh-profile-field{display:flex; flex-direction:column; gap:5px;}
   .kh-profile-field.full{grid-column:1 / -1;}
   .kh-profile-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
-  .kh-profile-field input, .kh-profile-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:13px;}
+  .kh-profile-field input, .kh-profile-field select{background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
   .kh-profile-field input:focus, .kh-profile-field select:focus{outline:none; border-color:var(--accent);}
   .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
   .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
@@ -157,7 +160,7 @@
 
   .kh-np-filter{display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
   .kh-np-filter label{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;}
-  .kh-np-filter select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-size:12.5px; font-family:inherit;}
+  .kh-np-filter select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-size:16px; font-family:inherit;}
   .kh-section-title{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim); margin:24px 0 10px;}
   .kh-empty{font-size:13.5px; color:var(--dim); background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:22px 16px; text-align:center; line-height:1.5;}
   .kh-day{margin-bottom:16px;}
@@ -178,7 +181,7 @@
   .kh-import-card{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
   .kh-import-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 4px;}
   .kh-import-hint{font-size:11.5px; color:var(--dim); margin:0 0 10px; line-height:1.5;}
-  .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Inter',sans-serif; font-size:12.5px; padding:10px 12px; line-height:1.5;}
+  .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Inter',sans-serif; font-size:16px; padding:10px 12px; line-height:1.5;}
   .kh-import-textarea:focus{outline:none; border-color:var(--accent);}
   .kh-import-actions{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;}
   .kh-import-btn{background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
@@ -190,7 +193,7 @@
   .kh-cat-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 4px;}
   .kh-cat-hint{font-size:11.5px;color:var(--dim);margin:0 0 10px;line-height:1.5;}
   .kh-cat-form{display:flex;gap:8px;}
-  .kh-cat-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-family:inherit;font-size:12.5px;}
+  .kh-cat-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-family:inherit;font-size:16px;}
   .kh-cat-input:focus{outline:none;border-color:var(--accent);}
   .kh-cat-add{background:var(--accent);color:#1a1400;border:none;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
   .kh-cat-add:disabled{background:var(--surface2);color:var(--dim);cursor:not-allowed;}
