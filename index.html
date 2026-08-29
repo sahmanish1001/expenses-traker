@@ -3145,6 +3145,51 @@
   const CURRENT_USER_KEY = "kharcha_current_user";
   let currentUser = null;
 
+  // Builds the account-panel avatar with real DOM nodes (not an innerHTML
+  // string) so nothing breaks on names/URLs containing quotes, and falls
+  // back to an initials circle if the Google photo URL fails to load —
+  // which usually means an ad blocker / privacy extension in the browser
+  // is blocking requests to googleusercontent.com, not a bug in the app.
+  function renderAccountAvatar(user){
+    const info = document.getElementById("accountPanelInfo");
+    if (!info) return;
+    info.innerHTML = "";
+    const initials = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
+
+    const makeFallback = () => {
+      const div = document.createElement("div");
+      div.className = "kh-account-avatar-lg kh-account-avatar-fallback";
+      div.textContent = initials;
+      return div;
+    };
+
+    if (user.picture){
+      const img = document.createElement("img");
+      img.className = "kh-account-avatar-lg";
+      img.alt = "";
+      img.referrerPolicy = "no-referrer";
+      img.onerror = () => {
+        console.warn("Kharcha: profile photo failed to load (likely blocked by an ad blocker / privacy extension) —", user.picture);
+        img.replaceWith(makeFallback());
+      };
+      img.src = user.picture;
+      info.appendChild(img);
+    } else {
+      info.appendChild(makeFallback());
+    }
+
+    const textWrap = document.createElement("div");
+    const nameEl = document.createElement("div");
+    nameEl.className = "kh-account-panel-name";
+    nameEl.textContent = user.name || "";
+    const emailEl = document.createElement("div");
+    emailEl.className = "kh-account-panel-email";
+    emailEl.textContent = user.email || "";
+    textWrap.appendChild(nameEl);
+    textWrap.appendChild(emailEl);
+    info.appendChild(textWrap);
+  }
+
   function decodeJwt(token){
     const payload = token.split(".")[1];
     const json = decodeURIComponent(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
@@ -3163,18 +3208,17 @@
 
     document.getElementById("authScreen").style.display = "none";
     document.getElementById("appRoot").style.display = "block";
-    const info = document.getElementById("accountPanelInfo");
-    const initials = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
-    info.innerHTML = (user.picture
-        ? `<img class="kh-account-avatar-lg" src="${user.picture}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'), {className:'kh-account-avatar-lg kh-account-avatar-fallback', textContent:'${initials}'}))">`
-        : `<div class="kh-account-avatar-lg kh-account-avatar-fallback">${initials}</div>`) +
-      `<div><div class="kh-account-panel-name">${user.name}</div><div class="kh-account-panel-email">${user.email}</div></div>`;
+    renderAccountAvatar(user);
 
     const headerImg = document.getElementById("headerAvatarImg");
     const headerFallback = document.getElementById("headerAvatarFallback");
     if (user.picture){
       headerImg.referrerPolicy = "no-referrer";
-      headerImg.onerror = () => { headerImg.style.display = "none"; headerFallback.style.display = "block"; };
+      headerImg.onerror = () => {
+        console.warn("Kharcha: header avatar image failed to load —", user.picture);
+        headerImg.style.display = "none";
+        headerFallback.style.display = "block";
+      };
       headerImg.src = user.picture;
       headerImg.style.display = "block";
       headerFallback.style.display = "none";
