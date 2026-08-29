@@ -340,19 +340,13 @@
 
   <div class="kh-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
 
-  <div class="kh-panel" id="panelAccount">
-    <div class="kh-panel-handle"></div>
-    <p class="kh-panel-title">Account</p>
-    <div class="kh-account-panel-row" id="accountPanelInfo"></div>
-    <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
-  </div>
-
   <div class="kh-panel kh-panel-large" id="panelSettings">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Settings</p>
 
     <div class="kh-settings-tabs">
       <button class="kh-settings-tab active" id="settingsTabBtnProfile" onclick="setSettingsTab('profile')">Profile</button>
+      <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
       <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')">Categories</button>
       <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')">Data</button>
     </div>
@@ -394,6 +388,14 @@
       </div>
     </div>
 
+    <div class="kh-settings-section" id="settingsSectionAccount">
+      <p class="kh-cat-title">Signed in with Google</p>
+      <p class="kh-cat-hint">Every Google account that signs in gets its own private tracker on this device — transactions, categories, and this profile are never shared between accounts.</p>
+      <div class="kh-account-panel-row" id="accountPanelInfo" style="margin-top:10px;"></div>
+      <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
+      <p class="kh-cat-hint" style="margin-top:12px;">To switch to a different Google account, sign out and sign back in with the account you want — it'll pick up right where that account left off, or start fresh if it's new.</p>
+    </div>
+
     <div class="kh-settings-section" id="settingsSectionCategories">
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
         <p class="kh-cat-title">Personalized categories</p>
@@ -425,10 +427,6 @@
     <button class="kh-nav-btn active" id="navHome" onclick="goHome()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
-    </button>
-    <button class="kh-nav-btn" id="navAccount" onclick="openPanel('account')">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>Account</span>
     </button>
     <button class="kh-nav-btn" id="navSettings" onclick="openPanel('settings')">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -609,7 +607,7 @@
   // Bottom navigation + glass slide-up panels (Account / Settings / More).
   // ---------------------------------------------------------------------
   let openPanelName = null;
-  const PANEL_IDS = { account: "panelAccount", settings: "panelSettings", more: "panelMore" };
+  const PANEL_IDS = { settings: "panelSettings", more: "panelMore" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -624,7 +622,7 @@
   }
 
   function setSettingsTab(tab){
-    ["profile", "categories", "data"].forEach(t => {
+    ["profile", "account", "categories", "data"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
@@ -643,7 +641,7 @@
   }
 
   function setActiveNav(name){
-    ["home", "account", "settings", "more"].forEach(n => {
+    ["home", "settings", "more"].forEach(n => {
       const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
       if (btn) btn.classList.toggle("active", n === name);
     });
