@@ -321,6 +321,9 @@
   .kh-loan-chip{flex:0 0 auto; white-space:nowrap; text-align:center; padding:8px 13px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-loan-chip.active{background:var(--accent2); color:#12141c; border-color:transparent;}
   .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
+  .kh-loan-alert-row{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px;}
+  .kh-emi-outflow{background:rgba(242,169,59,.1); border:1px solid rgba(242,169,59,.3); border-radius:12px; padding:10px 12px; font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .kh-emi-outflow b{font-family:'Space Grotesk',sans-serif; color:var(--accent);}
   .kh-loan-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
   .kh-loan-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
   .kh-loan-person{font-size:14.5px; font-weight:600;}
@@ -910,6 +913,7 @@
       </div>
     </div>
 
+    <div id="emiOutflowBanner"></div>
     <div id="loanAlert"></div>
 
     <div class="kh-loan-toolbar">
@@ -917,7 +921,6 @@
         <button type="button" class="kh-loan-chip active" data-f="all" onclick="setLoanFilter('all')">All</button>
         <button type="button" class="kh-loan-chip" data-f="lent" onclick="setLoanFilter('lent')">Owed to me</button>
         <button type="button" class="kh-loan-chip" data-f="borrowed" onclick="setLoanFilter('borrowed')">I owe</button>
-        <button type="button" class="kh-loan-chip" data-f="loan" onclick="setLoanFilter('loan')">Loan</button>
         <button type="button" class="kh-loan-chip" data-f="emi" onclick="setLoanFilter('emi')">EMI</button>
       </div>
 
@@ -1300,7 +1303,7 @@
   let nextTxId = 1;
   let LOANS = [];
   let nextLoanId = 1;
-  let loanFilter = "all"; // "all" | "lent" | "borrowed" | "loan" | "emi"
+  let loanFilter = "all"; // "all" | "lent" | "borrowed" | "emi" — "all"/"lent"/"borrowed" exclude EMI loans
   let editingLoanId = null;
   let loanFormType = "borrowed";
   let payingLoanId = null;
@@ -1480,6 +1483,17 @@
     const totalOwed = loan.principal + interest;
     const outstanding = Math.max(0, totalOwed - paid);
     return { paid, interest, totalOwed, outstanding };
+  }
+
+  // Projects when an EMI loan will be fully paid off, assuming the
+  // remaining installments land roughly one per month from today.
+  function emiPayoffDate(loan){
+    if (!loan.isEmi || !loan.emiTenure) return null;
+    const remaining = loan.emiTenure - emiInstallmentsPaid(loan);
+    if (remaining <= 0) return null;
+    const d = new Date(todayStr() + "T00:00:00");
+    d.setMonth(d.getMonth() + remaining);
+    return d.toISOString().slice(0, 10);
   }
 
   const LOAN_STATUS_META = {
@@ -3000,6 +3014,15 @@
     netEl.style.color = pos.net >= 0 ? "var(--in)" : "var(--out)";
 
     const today = todayStr();
+    const activeEmis = LOANS.filter(l => l.isEmi && l.emiAmount && loanStatus(l) !== "Cleared");
+    const outflowEl = document.getElementById("emiOutflowBanner");
+    if (activeEmis.length){
+      const totalMonthly = activeEmis.reduce((s, l) => s + l.emiAmount, 0);
+      outflowEl.innerHTML = `<div class="kh-emi-outflow">💸 <b>${rs(totalMonthly)}</b>/month committed across ${activeEmis.length} EMI${activeEmis.length === 1 ? "" : "s"}</div>`;
+    } else {
+      outflowEl.innerHTML = "";
+    }
+
     const dueSoon = LOANS.filter(l => {
       if (!l.dueDate || loanStatus(l) === "Cleared") return false;
       const days = daysBetween(today, l.dueDate);
@@ -3007,20 +3030,26 @@
     });
     const alertEl = document.getElementById("loanAlert");
     if (dueSoon.length){
-      alertEl.innerHTML = `<div class="kh-loan-alert">⚠ ${dueSoon.map(l => {
-        const days = Math.round(daysBetween(today, l.dueDate));
-        const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
-        return `${l.isEmi ? "EMI: " : ""}${l.person} (${when})`;
-      }).join(" · ")}</div>`;
+      alertEl.innerHTML = `<div class="kh-loan-alert">
+        <div>⚠ ${dueSoon.length} loan${dueSoon.length === 1 ? "" : "s"} due soon</div>
+        ${dueSoon.map(l => {
+          const days = Math.round(daysBetween(today, l.dueDate));
+          const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
+          return `<div class="kh-loan-alert-row">
+            <span>${l.isEmi ? "EMI: " : ""}${l.person} (${when})</span>
+            ${l.isEmi && l.emiAmount ? `<button type="button" class="kh-loan-btn" style="padding:4px 10px; font-size:11px;" onclick="quickPayEmi('${l.id}')">⚡ Pay ${rs(l.emiAmount)}</button>` : ""}
+          </div>`;
+        }).join("")}
+      </div>`;
     } else {
       alertEl.innerHTML = "";
     }
 
     const list = LOANS.filter(l => {
-      if (loanFilter === "lent" || loanFilter === "borrowed") return l.type === loanFilter;
-      if (loanFilter === "loan") return !l.isEmi;
       if (loanFilter === "emi") return !!l.isEmi;
-      return true; // "all"
+      if (l.isEmi) return false; // EMIs only show under the dedicated EMI filter
+      if (loanFilter === "lent" || loanFilter === "borrowed") return l.type === loanFilter;
+      return true; // "all" — all regular (non-EMI) loans
     });
     const el = document.getElementById("loanList");
     if (!list.length){
@@ -3037,6 +3066,8 @@
       const emiMeta = l.isEmi
         ? ` · ${rs(l.emiAmount)}/mo EMI${l.emiTenure ? ` · ${Math.min(paidCount, l.emiTenure)}/${l.emiTenure} paid` : ` · ${paidCount} paid`}${l.dueDate && status !== "Cleared" ? ` · Next ${fmtDate(l.dueDate)}` : ""}`
         : "";
+      const emiProgressPct = l.isEmi && l.emiTenure ? Math.min(100, (paidCount / l.emiTenure) * 100) : null;
+      const payoff = status !== "Cleared" ? emiPayoffDate(l) : null;
       return `<div class="kh-loan-card">
         <div class="kh-loan-card-top">
           <div>
@@ -3045,15 +3076,19 @@
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
         </div>
+        ${emiProgressPct !== null ? `
+          <div class="kh-budget-bar-track" style="margin-top:10px;"><div class="kh-budget-bar-fill" style="width:${emiProgressPct}%; background:${status === "Cleared" ? "var(--in)" : "var(--accent)"};"></div></div>
+        ` : ""}
         <div class="kh-loan-amounts">
           <div><span class="kh-loan-amt-label">Principal</span><span class="kh-loan-amt-val">${rs(l.principal)}</span></div>
           ${interest > 0.5 ? `<div><span class="kh-loan-amt-label">Interest so far</span><span class="kh-loan-amt-val">${rs(interest)}</span></div>` : `<div></div>`}
           <div><span class="kh-loan-amt-label">Paid</span><span class="kh-loan-amt-val">${rs(paid)}</span></div>
           <div><span class="kh-loan-amt-label">Outstanding</span><span class="kh-loan-amt-val" style="color:${outstanding > 0.5 ? typeColor : "var(--in)"}">${rs(outstanding)}</span></div>
         </div>
-        <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}</div>
+        <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}${payoff ? ` · Payoff ~${fmtDate(payoff)}` : ""}</div>
         ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
         <div class="kh-loan-actions">
+          ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#1a1400; border-color:transparent;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay ${rs(l.emiAmount)}</button>` : ""}
           ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
           ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kh-loan-btn" onclick="addLoanReminder('${l.id}')">📅 ${l.isEmi ? "Add monthly reminder" : "Add reminder"}</button>` : ""}
           <button type="button" class="kh-loan-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
@@ -3251,6 +3286,48 @@
     openPanel("loanpay");
   }
 
+  // Shared by the payment form and the one-tap "quick pay" button, so both
+  // paths log a payment, optionally record the matching transaction, and
+  // advance an EMI's due date the same way.
+  function applyLoanPayment(loan, amount, date, note, account, recordTx){
+    const payment = { id: "pay" + Math.random().toString(36).slice(2, 9), date, amount, note: note || "", linkTxId: null };
+    if (recordTx && account){
+      ensureCategory("Loan");
+      const txType = loan.type === "borrowed" ? "out" : "in";
+      const vendor = loan.type === "borrowed" ? `Loan repayment to ${loan.person}` : `Loan repayment from ${loan.person}`;
+      const tx = { date, vendor, category: "Loan", type: txType, amount, account, id: "tx" + (nextTxId++) };
+      TRANSACTIONS.push(tx);
+      payment.linkTxId = tx.id;
+    }
+    loan.payments = loan.payments || [];
+    loan.payments.push(payment);
+
+    let toastMsg = `Logged ${rs(amount)} payment`;
+    if (loan.isEmi){
+      advanceEmiDueDate(loan);
+      const paidCount = emiInstallmentsPaid(loan);
+      if (loan.emiTenure && paidCount >= loan.emiTenure){
+        toastMsg = `Logged ${rs(amount)} — that's all ${loan.emiTenure} EMIs done! 🎉`;
+      } else {
+        toastMsg = `Logged ${rs(amount)} — next EMI due ${fmtDate(loan.dueDate)}`;
+      }
+    }
+    return toastMsg;
+  }
+
+  // One-tap EMI payment: logs this month's exact EMI amount today, to the
+  // loan's usual account, no form to fill in — for when nothing about this
+  // month's payment differs from the plan.
+  function quickPayEmi(id){
+    const l = LOANS.find(x => x.id === id);
+    if (!l || !l.isEmi || !l.emiAmount) return;
+    const account = l.account || ACCOUNT_LIST[0];
+    const toastMsg = applyLoanPayment(l, l.emiAmount, todayStr(), "Quick pay", account, true);
+    saveCurrentUser();
+    renderAll();
+    showToast(toastMsg);
+  }
+
   function saveLoanPayment(){
     const status = document.getElementById("loanPaymentStatus");
     const l = LOANS.find(x => x.id === payingLoanId);
@@ -3264,29 +3341,7 @@
     if (amount === null || amount <= 0){ status.textContent = "Enter a valid amount."; status.className = "kh-manual-status err"; return; }
     if (!date){ status.textContent = "Pick a date."; status.className = "kh-manual-status err"; return; }
 
-    const payment = { id: "pay" + Math.random().toString(36).slice(2, 9), date, amount, note, linkTxId: null };
-    if (recordTx && account){
-      ensureCategory("Loan");
-      const txType = l.type === "borrowed" ? "out" : "in";
-      const vendor = l.type === "borrowed" ? `Loan repayment to ${l.person}` : `Loan repayment from ${l.person}`;
-      const tx = { date, vendor, category: "Loan", type: txType, amount, account, id: "tx" + (nextTxId++) };
-      TRANSACTIONS.push(tx);
-      payment.linkTxId = tx.id;
-    }
-    l.payments = l.payments || [];
-    l.payments.push(payment);
-
-    let toastMsg = `Logged ${rs(amount)} payment`;
-    if (l.isEmi){
-      advanceEmiDueDate(l);
-      const paidCount = emiInstallmentsPaid(l);
-      if (l.emiTenure && paidCount >= l.emiTenure){
-        toastMsg = `Logged ${rs(amount)} — that's all ${l.emiTenure} EMIs done! 🎉`;
-      } else {
-        toastMsg = `Logged ${rs(amount)} — next EMI due ${fmtDate(l.dueDate)}`;
-      }
-    }
-
+    const toastMsg = applyLoanPayment(l, amount, date, note, account, recordTx);
     saveCurrentUser();
     renderAll();
     showToast(toastMsg);
