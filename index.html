@@ -25,7 +25,7 @@
     margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  .kh-app{ max-width:480px; margin:0 auto; padding:20px 16px 50px; }
+  .kh-app{ max-width:480px; margin:0 auto; padding:20px 16px 120px; }
   .kh-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
   .kh-top-brand{display:flex; align-items:center; gap:10px;}
   .kh-top-mark{width:34px; height:34px; flex-shrink:0;}
@@ -64,6 +64,32 @@
   .kh-legend-row.clickable:hover{background:var(--surface2);}
   .kh-legend-row.active{background:rgba(242,169,59,.12);}
   .kh-np-filter-clear{font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; margin-top:8px; font-family:inherit;}
+
+  /* Top-right circular import button */
+  .kh-import-fab{width:44px; height:44px; border-radius:50%; background:var(--accent); border:1px solid rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; color:#1a1400; box-shadow:0 4px 14px rgba(242,169,59,.35), inset 0 1px 0 rgba(255,255,255,.4); transition:transform .12s;}
+  .kh-import-fab:active{transform:scale(.92);}
+  .kh-import-fab svg{width:19px; height:19px; display:block;}
+
+  /* iOS-style glass bottom navigation */
+  .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:500; display:flex; gap:2px; padding:6px; background:rgba(25,28,39,.55); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:24px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
+  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:8px 17px; border-radius:18px; cursor:pointer; transition:color .15s, background .15s;}
+  .kh-nav-btn svg{width:21px; height:21px; display:block;}
+  .kh-nav-btn.active{color:var(--accent); background:rgba(242,169,59,.14);}
+
+  /* Glass slide-up panels (Account / Settings / More) */
+  .kh-panel-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:600; opacity:0; pointer-events:none; transition:opacity .25s;}
+  .kh-panel-backdrop.show{opacity:1; pointer-events:auto;}
+  .kh-panel{position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; max-height:78vh; overflow-y:auto; background:rgba(25,28,39,.86); backdrop-filter:blur(26px) saturate(180%); -webkit-backdrop-filter:blur(26px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-bottom:none; border-radius:22px 22px 0 0; padding:14px 18px calc(18px + 86px); z-index:601; transform:translateY(105%); transition:transform .32s cubic-bezier(.32,.72,0,1); box-shadow:0 -10px 40px rgba(0,0,0,.4);}
+  .kh-panel.show{transform:translateY(0);}
+  .kh-panel-handle{width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 14px;}
+  .kh-panel-title{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; margin:0 0 14px;}
+  .kh-account-panel-row{display:flex; align-items:center; gap:12px;}
+  .kh-account-avatar-lg{width:52px; height:52px; border-radius:50%; object-fit:cover; background:var(--surface2); flex-shrink:0;}
+  .kh-account-panel-name{font-size:15px; font-weight:600;}
+  .kh-account-panel-email{font-size:12px; color:var(--dim); margin-top:2px;}
+  .kh-more-item{display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:13.5px; color:var(--text); cursor:pointer; font-family:inherit; margin-bottom:8px;}
+  .kh-more-item:active{transform:scale(.98);}
+  .kh-more-about{font-size:12px; color:var(--dim); line-height:1.6; margin-top:12px;}
 
   /* Splash screen */
   .kh-splash{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; transition:opacity .5s ease; opacity:1;}
@@ -132,7 +158,7 @@
   /* Laptop / desktop layout */
   @media (min-width:768px){
     body{min-height:100vh;}
-    .kh-app{max-width:1180px;padding:28px 32px 60px;}
+    .kh-app{max-width:1180px;padding:28px 32px 110px;}
     .kh-top{align-items:center;padding-bottom:4px;}
     .kh-title{font-size:30px;}
     .kh-eyebrow{font-size:12px;}
@@ -245,10 +271,9 @@
       </div>
     </div>
     <div class="kh-top-btns">
-      <div class="kh-account-badge" id="accountBadge"></div>
-      <button class="kh-clear-btn" onclick="clearAllData()" title="Delete all data">🗑</button>
-      <button class="kh-upload-btn" onclick="toggleImport()">＋ Import</button>
-      <button class="kh-signout-btn" onclick="signOut()">Sign out</button>
+      <button class="kh-import-fab" onclick="toggleImport()" title="Import statement" aria-label="Import statement">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
     </div>
   </div>
 
@@ -265,16 +290,6 @@
     </div>
   </div>
 
-
-  <div class="kh-cat-manager">
-    <p class="kh-cat-title">Personalized categories</p>
-    <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
-    <div class="kh-cat-form">
-      <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
-      <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
-    </div>
-    <div class="kh-cat-list" id="categoryList"></div>
-  </div>
 
   <div class="kh-main-grid">
     <div class="kh-left-column">
@@ -304,6 +319,57 @@
       </div>
     </div>
   </div>
+
+  <div class="kh-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+
+  <div class="kh-panel" id="panelAccount">
+    <div class="kh-panel-handle"></div>
+    <p class="kh-panel-title">Account</p>
+    <div class="kh-account-panel-row" id="accountPanelInfo"></div>
+    <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
+  </div>
+
+  <div class="kh-panel" id="panelSettings">
+    <div class="kh-panel-handle"></div>
+    <p class="kh-panel-title">Settings</p>
+    <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+      <p class="kh-cat-title">Personalized categories</p>
+      <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
+      <div class="kh-cat-form">
+        <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
+        <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
+      </div>
+      <div class="kh-cat-list" id="categoryList"></div>
+    </div>
+    <button class="kh-clear-btn" style="width:100%; margin-top:20px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+  </div>
+
+  <div class="kh-panel" id="panelMore">
+    <div class="kh-panel-handle"></div>
+    <p class="kh-panel-title">More</p>
+    <button class="kh-more-item" onclick="closePanel(); toggleImport();">📥 Import statement</button>
+    <button class="kh-more-item" onclick="closePanel(); loadDemoData();">🎲 Load demo dataset</button>
+    <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
+  </div>
+
+  <nav class="kh-bottom-nav" id="bottomNav">
+    <button class="kh-nav-btn active" id="navHome" onclick="goHome()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="kh-nav-btn" id="navAccount" onclick="openPanel('account')">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Account</span>
+    </button>
+    <button class="kh-nav-btn" id="navSettings" onclick="openPanel('settings')">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Settings</span>
+    </button>
+    <button class="kh-nav-btn" id="navMore" onclick="openPanel('more')">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      <span>More</span>
+    </button>
+  </nav>
 
 </div>
 
@@ -460,6 +526,42 @@
     const el = document.getElementById("importCard");
     el.style.display = (el.style.display === "none") ? "block" : "none";
     if (el.style.display === "block") document.getElementById("importInput").focus();
+  }
+
+  // ---------------------------------------------------------------------
+  // Bottom navigation + glass slide-up panels (Account / Settings / More).
+  // ---------------------------------------------------------------------
+  let openPanelName = null;
+  const PANEL_IDS = { account: "panelAccount", settings: "panelSettings", more: "panelMore" };
+
+  function openPanel(name){
+    if (openPanelName === name){ closePanel(); return; }
+    document.querySelectorAll(".kh-panel").forEach(p => p.classList.remove("show"));
+    const el = document.getElementById(PANEL_IDS[name]);
+    if (!el) return;
+    el.classList.add("show");
+    document.getElementById("panelBackdrop").classList.add("show");
+    openPanelName = name;
+    setActiveNav(name);
+  }
+
+  function closePanel(){
+    document.querySelectorAll(".kh-panel").forEach(p => p.classList.remove("show"));
+    document.getElementById("panelBackdrop").classList.remove("show");
+    openPanelName = null;
+    setActiveNav("home");
+  }
+
+  function goHome(){
+    closePanel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function setActiveNav(name){
+    ["home", "account", "settings", "more"].forEach(n => {
+      const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
+      if (btn) btn.classList.toggle("active", n === name);
+    });
   }
 
   function deleteTx(id){
@@ -983,9 +1085,9 @@
 
     document.getElementById("authScreen").style.display = "none";
     document.getElementById("appRoot").style.display = "block";
-    const badge = document.getElementById("accountBadge");
-    badge.innerHTML = (user.picture ? `<img class="kh-account-avatar" src="${user.picture}" alt="">` : "") +
-      `<span class="kh-account-name" title="${user.name}">${user.name}</span>`;
+    const info = document.getElementById("accountPanelInfo");
+    info.innerHTML = (user.picture ? `<img class="kh-account-avatar-lg" src="${user.picture}" alt="">` : "") +
+      `<div><div class="kh-account-panel-name">${user.name}</div><div class="kh-account-panel-email">${user.email}</div></div>`;
 
     loadUserData(user.email);
     renderAll();
@@ -996,6 +1098,7 @@
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
     currentUser = null;
     try{ localStorage.removeItem(CURRENT_USER_KEY); }catch(e){}
+    closePanel();
     document.getElementById("appRoot").style.display = "none";
     document.getElementById("authScreen").style.display = "flex";
   }
