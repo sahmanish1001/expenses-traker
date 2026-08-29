@@ -839,7 +839,7 @@
         <div class="kh-about-feature">
           <div class="icon">🧮</div>
           <p class="title">Loans &amp; EMI</p>
-          <p class="desc">Track money lent or borrowed, with a built-in calculator.</p>
+          <p class="desc">Track money lent or borrowed, with a built-in EMI calculator and recurring monthly payment reminders.</p>
         </div>
         <div class="kh-about-feature">
           <div class="icon">📅</div>
@@ -948,6 +948,7 @@
         </div>
       </div>
       <div class="kh-loan-calc-result" id="loanCalcResult"></div>
+      <button type="button" class="kh-loan-btn" id="loanCalcSaveBtn" style="display:none; margin-top:10px; width:100%; justify-content:center;" onclick="saveCalcAsEmiLoan()">📅 Track this &amp; remind me every month</button>
     </div>
   </div>
 
@@ -1036,7 +1037,7 @@
         <input id="loanDateGiven" type="date" />
       </div>
       <div class="kh-manual-field">
-        <label for="loanDueDate">Due date (optional)</label>
+        <label for="loanDueDate" id="loanDueDateLabel">Due date (optional)</label>
         <input id="loanDueDate" type="date" />
       </div>
       <div class="kh-manual-field">
@@ -1054,6 +1055,21 @@
           <option value="flat">Flat rate</option>
           <option value="reducing">Reducing balance</option>
         </select>
+      </div>
+      <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:2px;">
+        <input type="checkbox" id="loanIsEmi" style="width:auto;" onchange="toggleEmiFields()" />
+        <label for="loanIsEmi" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text);">This is an EMI loan — remind me every month, not just once</label>
+      </div>
+      <div class="kh-manual-field" id="loanEmiAmountField" style="display:none;">
+        <label for="loanEmiAmount">EMI amount (Rs / month)</label>
+        <input id="loanEmiAmount" type="number" min="0" step="any" placeholder="e.g. 8500" />
+      </div>
+      <div class="kh-manual-field" id="loanEmiTenureField" style="display:none;">
+        <label for="loanEmiTenure">Total installments (months, optional)</label>
+        <input id="loanEmiTenure" type="number" min="1" step="1" placeholder="e.g. 24" />
+      </div>
+      <div class="kh-manual-field full" id="loanEmiHint" style="display:none;">
+        <p class="kh-cat-hint" style="margin:0;">The due date above is treated as the <b>next</b> EMI date. Each time you log a payment for this loan, it automatically rolls forward one month, and "📅 Add reminder" sets up a repeating monthly reminder instead of a one-off.</p>
       </div>
       <div class="kh-manual-field full">
         <label for="loanNotes">Notes (optional)</label>
@@ -1280,6 +1296,7 @@
   let editingLoanId = null;
   let loanFormType = "borrowed";
   let payingLoanId = null;
+  let lastLoanCalc = null; // last result from the standalone EMI calculator, for "track this" 
   let BUDGETS = {}; // categoryName -> monthly limit (Rs, in whatever currency)
   let BUDGET_OVERALL = null; // number or null
 
@@ -1318,11 +1335,21 @@
     if (!l || !l.dueDate) return;
 
     const dueYMD = l.dueDate.replace(/-/g, "");
-    const verb = l.type === "lent" ? "Collect from" : "Pay back";
-    const title = `Loan due: ${verb} ${l.person} — ${rs(l.principal)}`;
-    const descParts = [
-      `${l.type === "lent" ? "Owed to you by" : "You owe"} ${l.person}: ${rs(l.principal)}.`
-    ];
+    const verb = l.type === "lent" ? "Collect from" : "Pay";
+    const amountForTitle = l.isEmi && l.emiAmount ? l.emiAmount : l.principal;
+    const title = l.isEmi
+      ? `EMI due: ${verb} ${l.person} — ${rs(amountForTitle)}/month`
+      : `Loan due: ${verb} ${l.person} — ${rs(amountForTitle)}`;
+    const descParts = [];
+    if (l.isEmi){
+      descParts.push(`Monthly EMI of ${rs(l.emiAmount)} ${l.type === "lent" ? `owed to you by ${l.person}` : `you owe ${l.person}`}.`);
+      if (l.emiTenure){
+        const remaining = Math.max(0, l.emiTenure - emiInstallmentsPaid(l));
+        descParts.push(`Roughly ${remaining} of ${l.emiTenure} installments remaining.`);
+      }
+    } else {
+      descParts.push(`${l.type === "lent" ? "Owed to you by" : "You owe"} ${l.person}: ${rs(l.principal)}.`);
+    }
     if (l.notes) descParts.push(`Note: ${l.notes}`);
     descParts.push("Logged in Kharcha.");
     const desc = descParts.join(" ");
@@ -1330,6 +1357,19 @@
     const now = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+    // For EMI loans, repeat monthly (optionally capped at the remaining
+    // installment count) so one reminder covers the whole tenure instead
+    // of having to re-export a new .ics every month.
+    let rrule = null;
+    if (l.isEmi){
+      if (l.emiTenure){
+        const remaining = Math.max(1, l.emiTenure - emiInstallmentsPaid(l));
+        rrule = `RRULE:FREQ=MONTHLY;COUNT=${remaining}`;
+      } else {
+        rrule = "RRULE:FREQ=MONTHLY";
+      }
+    }
 
     const lines = [
       "BEGIN:VCALENDAR",
@@ -1342,16 +1382,17 @@
       `DTSTAMP:${dtstamp}`,
       `DTSTART;VALUE=DATE:${dueYMD}`,
       `DTEND;VALUE=DATE:${dueYMD}`,
+      ...(rrule ? [rrule] : []),
       `SUMMARY:${icsEscape(title)}`,
       `DESCRIPTION:${icsEscape(desc)}`,
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
-      "DESCRIPTION:Loan due tomorrow",
+      "DESCRIPTION:Payment due tomorrow",
       "TRIGGER:-P1D",
       "END:VALARM",
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
-      "DESCRIPTION:Loan due today",
+      "DESCRIPTION:Payment due today",
       "TRIGGER:PT9H",
       "END:VALARM",
       "END:VEVENT",
@@ -1363,11 +1404,12 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `loan-reminder-${l.person.replace(/[^a-z0-9]+/gi, "_")}.ics`;
+    a.download = `${l.isEmi ? "emi" : "loan"}-reminder-${l.person.replace(/[^a-z0-9]+/gi, "_")}.ics`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast(l.isEmi ? "Monthly EMI reminder downloaded — import it into your calendar" : "Reminder downloaded — import it into your calendar");
   }
 
   // ---------------------------------------------------------------------
@@ -1790,7 +1832,7 @@
       if (dueSoon){
         const days = Math.round(daysBetween(today, dueSoon.dueDate));
         const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
-        showToast(`⏰ Loan with ${dueSoon.person} ${when}`);
+        showToast(dueSoon.isEmi ? `⏰ EMI to ${dueSoon.person} ${when}` : `⏰ Loan with ${dueSoon.person} ${when}`);
       }
     }
   }
@@ -2959,7 +3001,7 @@
       alertEl.innerHTML = `<div class="kh-loan-alert">⚠ ${dueSoon.map(l => {
         const days = Math.round(daysBetween(today, l.dueDate));
         const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
-        return `${l.person} (${when})`;
+        return `${l.isEmi ? "EMI: " : ""}${l.person} (${when})`;
       }).join(" · ")}</div>`;
     } else {
       alertEl.innerHTML = "";
@@ -2977,11 +3019,15 @@
       const meta = LOAN_STATUS_META[status];
       const typeLabel = l.type === "lent" ? "Owed to me" : "I owe";
       const typeColor = l.type === "lent" ? "var(--in)" : "var(--out)";
+      const paidCount = emiInstallmentsPaid(l);
+      const emiMeta = l.isEmi
+        ? ` · ${rs(l.emiAmount)}/mo EMI${l.emiTenure ? ` · ${Math.min(paidCount, l.emiTenure)}/${l.emiTenure} paid` : ` · ${paidCount} paid`}${l.dueDate && status !== "Cleared" ? ` · Next ${fmtDate(l.dueDate)}` : ""}`
+        : "";
       return `<div class="kh-loan-card">
         <div class="kh-loan-card-top">
           <div>
             <div class="kh-loan-person">${l.person}</div>
-            <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}</div>
+            <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}${l.isEmi ? ` <span class="kh-loan-badge" style="color:#f2a93b;background:rgba(242,169,59,.16); margin-left:4px;">EMI</span>` : ""}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
         </div>
@@ -2991,11 +3037,11 @@
           <div><span class="kh-loan-amt-label">Paid</span><span class="kh-loan-amt-val">${rs(paid)}</span></div>
           <div><span class="kh-loan-amt-label">Outstanding</span><span class="kh-loan-amt-val" style="color:${outstanding > 0.5 ? typeColor : "var(--in)"}">${rs(outstanding)}</span></div>
         </div>
-        <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}</div>
+        <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}</div>
         ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
         <div class="kh-loan-actions">
           ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
-          ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kh-loan-btn" onclick="addLoanReminder('${l.id}')">📅 Add reminder</button>` : ""}
+          ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kh-loan-btn" onclick="addLoanReminder('${l.id}')">📅 ${l.isEmi ? "Add monthly reminder" : "Add reminder"}</button>` : ""}
           <button type="button" class="kh-loan-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
           <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteLoanUI('${l.id}')">✕ Delete</button>
         </div>
@@ -3031,8 +3077,34 @@
     document.getElementById("loanTypeLentBtn").className = "kh-manual-type-btn" + (t === "lent" ? " active-in" : "");
   }
 
+  function toggleEmiFields(){
+    const on = document.getElementById("loanIsEmi").checked;
+    document.getElementById("loanEmiAmountField").style.display = on ? "flex" : "none";
+    document.getElementById("loanEmiTenureField").style.display = on ? "flex" : "none";
+    document.getElementById("loanEmiHint").style.display = on ? "block" : "none";
+    document.getElementById("loanDueDateLabel").textContent = on ? "Next EMI due date" : "Due date (optional)";
+  }
+
+  // Moves an EMI loan's due date forward by one month after an installment
+  // is paid, so the app always shows and reminds about the *next* payment
+  // rather than the one that was just cleared.
+  function advanceEmiDueDate(loan){
+    if (!loan.dueDate) return;
+    const d = new Date(loan.dueDate + "T00:00:00");
+    d.setMonth(d.getMonth() + 1);
+    loan.dueDate = d.toISOString().slice(0, 10);
+  }
+
+  function emiInstallmentsPaid(loan){
+    return (loan.payments || []).length;
+  }
+
   function openLoanForm(id){
     openPanel("loanform"); // resets the form to a blank "new loan" state
+    document.getElementById("loanIsEmi").checked = false;
+    document.getElementById("loanEmiAmount").value = "";
+    document.getElementById("loanEmiTenure").value = "";
+    toggleEmiFields();
     if (!id) return;
     const l = LOANS.find(x => x.id === id);
     if (!l) return;
@@ -3045,6 +3117,10 @@
     document.getElementById("loanInterestRate").value = l.interestRate || "";
     document.getElementById("loanInterestType").value = l.interestType || "none";
     document.getElementById("loanNotes").value = l.notes || "";
+    document.getElementById("loanIsEmi").checked = !!l.isEmi;
+    document.getElementById("loanEmiAmount").value = l.emiAmount || "";
+    document.getElementById("loanEmiTenure").value = l.emiTenure || "";
+    toggleEmiFields();
     const accSel = document.getElementById("loanAccount");
     accSel.value = l.account || ACCOUNT_LIST[0];
     // Editing changes the loan record itself, not the transaction already
@@ -3066,19 +3142,25 @@
     const notes = document.getElementById("loanNotes").value.trim();
     const account = document.getElementById("loanAccount").value;
     const recordTx = document.getElementById("loanRecordTx").checked;
+    const isEmi = document.getElementById("loanIsEmi").checked;
+    const emiAmount = isEmi ? parseAmount(document.getElementById("loanEmiAmount").value) : null;
+    const emiTenure = isEmi && document.getElementById("loanEmiTenure").value ? parseInt(document.getElementById("loanEmiTenure").value, 10) : null;
 
     if (!person){ status.textContent = "Enter a person's name."; status.className = "kh-manual-status err"; return; }
     if (principal === null || principal <= 0){ status.textContent = "Enter a valid amount."; status.className = "kh-manual-status err"; return; }
     if (!dateGiven){ status.textContent = "Pick the date given."; status.className = "kh-manual-status err"; return; }
+    if (isEmi && (!emiAmount || emiAmount <= 0)){ status.textContent = "Enter the monthly EMI amount."; status.className = "kh-manual-status err"; return; }
+    if (isEmi && !dueDate){ status.textContent = "Pick the next EMI due date."; status.className = "kh-manual-status err"; return; }
 
     if (editingLoanId){
       const l = LOANS.find(x => x.id === editingLoanId);
-      if (l) Object.assign(l, { person, principal, dateGiven, dueDate, interestRate, interestType, notes, account });
+      if (l) Object.assign(l, { person, principal, dateGiven, dueDate, interestRate, interestType, notes, account, isEmi, emiAmount, emiTenure });
       showToast(`Updated loan with ${person}`);
     } else {
       const loan = {
         id: "loan" + (nextLoanId++), type: loanFormType, person, principal, dateGiven, dueDate,
         interestRate, interestType, notes, account, payments: [], linkTxId: null,
+        isEmi, emiAmount, emiTenure,
       };
       if (recordTx && account){
         ensureCategory("Loan");
@@ -3116,7 +3198,7 @@
     payingLoanId = id;
     const { outstanding } = loanTotals(l);
     document.getElementById("loanPaymentContext").textContent = `${l.person} · ${l.type === "lent" ? "owes you" : "you owe"} ${rs(outstanding)} outstanding.`;
-    document.getElementById("loanPaymentAmount").value = "";
+    document.getElementById("loanPaymentAmount").value = l.isEmi && l.emiAmount ? l.emiAmount : "";
     document.getElementById("loanPaymentDate").value = todayStr();
     document.getElementById("loanPaymentNote").value = "";
     const accSel = document.getElementById("loanPaymentAccount");
@@ -3153,9 +3235,20 @@
     l.payments = l.payments || [];
     l.payments.push(payment);
 
+    let toastMsg = `Logged ${rs(amount)} payment`;
+    if (l.isEmi){
+      advanceEmiDueDate(l);
+      const paidCount = emiInstallmentsPaid(l);
+      if (l.emiTenure && paidCount >= l.emiTenure){
+        toastMsg = `Logged ${rs(amount)} — that's all ${l.emiTenure} EMIs done! 🎉`;
+      } else {
+        toastMsg = `Logged ${rs(amount)} — next EMI due ${fmtDate(l.dueDate)}`;
+      }
+    }
+
     saveCurrentUser();
     renderAll();
-    showToast(`Logged ${rs(amount)} payment`);
+    showToast(toastMsg);
     showLoanPage();
   }
 
@@ -3171,8 +3264,11 @@
     const n = parseInt(document.getElementById("calcTenure").value, 10) || 0;
     const type = document.getElementById("calcType").value;
     const resEl = document.getElementById("loanCalcResult");
+    const saveBtn = document.getElementById("loanCalcSaveBtn");
     if (!P || !n){
       resEl.innerHTML = `<div class="kh-empty">Enter the loan amount and tenure.</div>`;
+      saveBtn.style.display = "none";
+      lastLoanCalc = null;
       return;
     }
 
@@ -3195,6 +3291,31 @@
         <div><span class="kh-loan-amt-label">Total payment</span><span class="kh-loan-amt-val">${rs(totalPayment)}</span></div>
       </div>
     `;
+    lastLoanCalc = { principal: P, annualRate, tenure: n, type, emi };
+    saveBtn.style.display = "flex";
+  }
+
+  // Carries the last EMI-calculator result into the loan form so the user
+  // can turn a "what would my EMI be" calculation directly into a tracked,
+  // recurring-reminder loan without retyping the numbers.
+  function saveCalcAsEmiLoan(){
+    if (!lastLoanCalc) return;
+    openLoanForm();
+    setLoanType("borrowed");
+    document.getElementById("loanPrincipal").value = Math.round(lastLoanCalc.principal);
+    document.getElementById("loanDateGiven").value = todayStr();
+    const next = new Date();
+    next.setMonth(next.getMonth() + 1);
+    document.getElementById("loanDueDate").value = next.toISOString().slice(0, 10);
+    document.getElementById("loanInterestRate").value = lastLoanCalc.annualRate || "";
+    document.getElementById("loanInterestType").value = lastLoanCalc.type === "reducing" ? "reducing" : "flat";
+    document.getElementById("loanNotes").value = "EMI loan set up from the calculator";
+    document.getElementById("loanIsEmi").checked = true;
+    toggleEmiFields();
+    document.getElementById("loanEmiAmount").value = Math.round(lastLoanCalc.emi);
+    document.getElementById("loanEmiTenure").value = lastLoanCalc.tenure;
+    document.getElementById("loanPerson").focus();
+    showToast("Fill in who it's with, then save to start monthly reminders");
   }
 
   // ---------------------------------------------------------------------
