@@ -71,7 +71,7 @@
   .kh-import-fab svg{width:19px; height:19px; display:block;}
 
   /* iOS-style glass bottom navigation */
-  .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:500; display:flex; gap:2px; padding:6px; background:rgba(25,28,39,.55); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:24px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
+  .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:700; display:flex; gap:2px; padding:6px; background:rgba(25,28,39,.7); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:24px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
   .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:8px 17px; border-radius:18px; cursor:pointer; transition:color .15s, background .15s;}
   .kh-nav-btn svg{width:21px; height:21px; display:block;}
   .kh-nav-btn.active{color:var(--accent); background:rgba(242,169,59,.14);}
@@ -79,7 +79,7 @@
   /* Glass slide-up panels (Account / Settings / More) */
   .kh-panel-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:600; opacity:0; pointer-events:none; transition:opacity .25s;}
   .kh-panel-backdrop.show{opacity:1; pointer-events:auto;}
-  .kh-panel{position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; max-height:78vh; overflow-y:auto; background:rgba(25,28,39,.86); backdrop-filter:blur(26px) saturate(180%); -webkit-backdrop-filter:blur(26px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-bottom:none; border-radius:22px 22px 0 0; padding:14px 18px calc(18px + 86px); z-index:601; transform:translateY(105%); transition:transform .32s cubic-bezier(.32,.72,0,1); box-shadow:0 -10px 40px rgba(0,0,0,.4);}
+  .kh-panel{position:fixed; left:0; right:0; bottom:92px; max-width:480px; margin:0 auto; max-height:64vh; overflow-y:auto; background:rgba(25,28,39,.86); backdrop-filter:blur(26px) saturate(180%); -webkit-backdrop-filter:blur(26px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:22px; padding:14px 18px 20px; z-index:601; transform:translateY(130%); transition:transform .32s cubic-bezier(.32,.72,0,1); box-shadow:0 16px 44px rgba(0,0,0,.45);}
   .kh-panel.show{transform:translateY(0);}
   .kh-panel-handle{width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 14px;}
   .kh-panel-title{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; margin:0 0 14px;}
@@ -102,7 +102,7 @@
   .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
 
   /* Settings opens larger, with its own internal tabs */
-  .kh-panel-large{max-height:92vh; top:0; padding-top:16px;}
+  .kh-panel-large{max-height:80vh;}
   .kh-settings-tabs{display:flex; gap:5px; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
   .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12.5px; font-weight:600; padding:9px 6px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
