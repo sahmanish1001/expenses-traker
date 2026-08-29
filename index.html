@@ -104,7 +104,7 @@
   /* Settings opens larger, with its own internal tabs */
   .kh-panel-large{max-height:80vh;}
   .kh-settings-tabs{display:flex; gap:5px; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
-  .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12.5px; font-weight:600; padding:9px 6px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
+  .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11.5px; font-weight:600; padding:9px 3px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
   .kh-settings-section{display:none;}
   .kh-settings-section.active{display:block;}
@@ -168,6 +168,7 @@
   .kh-cat-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-family:inherit;font-size:12.5px;}
   .kh-cat-input:focus{outline:none;border-color:var(--accent);}
   .kh-cat-add{background:var(--accent);color:#1a1400;border:none;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .kh-cat-add:disabled{background:var(--surface2);color:var(--dim);cursor:not-allowed;}
   .kh-cat-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
   .kh-cat-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:12px;}
@@ -346,6 +347,7 @@
 
     <div class="kh-settings-tabs">
       <button class="kh-settings-tab active" id="settingsTabBtnProfile" onclick="setSettingsTab('profile')">Profile</button>
+      <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="setSettingsTab('wallets')">Wallets</button>
       <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
       <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')">Categories</button>
       <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')">Data</button>
@@ -388,6 +390,18 @@
       </div>
     </div>
 
+    <div class="kh-settings-section" id="settingsSectionWallets">
+      <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+        <p class="kh-cat-title">Your accounts</p>
+        <p class="kh-cat-hint">A new sign-in starts with just eSewa. Add whatever else you actually use — Nabil Bank, Khalti, cash, anything — up to 6 total (<span id="accountCount">1 of 6 used</span>).</p>
+        <div class="kh-cat-form">
+          <input id="accountInput" class="kh-cat-input" placeholder="e.g. Nabil Bank, Khalti, Cash" onkeydown="if(event.key==='Enter') addAccountManual()" />
+          <button class="kh-cat-add" id="accountAddBtn" onclick="addAccountManual()">＋ Add</button>
+        </div>
+        <div class="kh-cat-list" id="accountList"></div>
+      </div>
+    </div>
+
     <div class="kh-settings-section" id="settingsSectionAccount">
       <p class="kh-cat-title">Signed in with Google</p>
       <p class="kh-cat-hint">Every Google account that signs in gets its own private tracker on this device — transactions, categories, and this profile are never shared between accounts.</p>
@@ -395,6 +409,7 @@
       <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
       <p class="kh-cat-hint" style="margin-top:12px;">To switch to a different Google account, sign out and sign back in with the account you want — it'll pick up right where that account left off, or start fresh if it's new.</p>
     </div>
+
 
     <div class="kh-settings-section" id="settingsSectionCategories">
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
@@ -450,7 +465,12 @@
     "Khalti":      { color: "#5c2d91", icon: "👛" },
     "Other":       { color: "#9aa0ac", icon: "❔" },
   };
-  const DEFAULT_ACCOUNTS = Object.keys(ACCOUNTS);
+  // Keep metadata (color/icon) for these known names always available, so
+  // typing "Nabil Bank" gets its familiar look — but a brand-new sign-in
+  // only starts with eSewa; everything else is added by the person.
+  const KNOWN_ACCOUNT_TEMPLATES = Object.keys(ACCOUNTS);
+  const DEFAULT_ACCOUNTS = ["eSewa"];
+  const MAX_ACCOUNTS = 6;
   let ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
 
   const CAT = {
@@ -622,7 +642,7 @@
   }
 
   function setSettingsTab(tab){
-    ["profile", "account", "categories", "data"].forEach(t => {
+    ["profile", "wallets", "account", "categories", "data"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
@@ -671,9 +691,20 @@
   let paletteIdx = 0;
   function nextColor(){ return PALETTE[(paletteIdx++) % PALETTE.length]; }
 
+  function accountIcon(name){
+    const n = String(name).toLowerCase();
+    if (/esewa|khalti|wallet|pay/.test(n)) return "👛";
+    if (/bank|finance/.test(n)) return "🏦";
+    if (/cash/.test(n)) return "💵";
+    if (/card|credit|debit/.test(n)) return "💳";
+    return "👛";
+  }
+
   function ensureAccount(name){
     if (!ACCOUNTS[name]) {
-      ACCOUNTS[name] = { color: nextColor(), icon: "👛" };
+      ACCOUNTS[name] = { color: nextColor(), icon: accountIcon(name) };
+    }
+    if (!ACCOUNT_LIST.includes(name)) {
       ACCOUNT_LIST.push(name);
     }
   }
@@ -715,7 +746,7 @@
   const dataKeyFor = (email) => `kharcha_userdata_${email}`;
 
   function resetAccountsAndCategoriesToDefault(){
-    Object.keys(ACCOUNTS).forEach(k => { if (!DEFAULT_ACCOUNTS.includes(k)) delete ACCOUNTS[k]; });
+    Object.keys(ACCOUNTS).forEach(k => { if (!KNOWN_ACCOUNT_TEMPLATES.includes(k)) delete ACCOUNTS[k]; });
     ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
   }
@@ -743,12 +774,16 @@
     const noteEl = document.getElementById("demoNote");
 
     if (data){
-      (data.customAccounts || []).forEach(a => { ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; ACCOUNT_LIST.push(a.name); });
+      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
       (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
       nextTxId = data.nextTxId || 1;
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
+      // Make sure every account any saved transaction refers to is present
+      // in the wallet list — covers older saved data from before wallets
+      // were user-managed.
+      TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
       noteEl.innerHTML = "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows.";
     } else {
       TRANSACTIONS = [];
@@ -837,6 +872,63 @@
         ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${JSON.stringify(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
+  }
+
+  function addAccountManual(){
+    const input = document.getElementById("accountInput");
+    const name = input.value.trim();
+    if (!name) return;
+    if (ACCOUNT_LIST.includes(name)){
+      showToast("That account is already in your list");
+      input.focus();
+      return;
+    }
+    if (ACCOUNT_LIST.length >= MAX_ACCOUNTS){
+      showToast(`You can have up to ${MAX_ACCOUNTS} accounts`);
+      return;
+    }
+    ensureAccount(name);
+    saveCurrentUser();
+    input.value = "";
+    renderAccountManager();
+    renderAll();
+    showToast(`Added ${name}`);
+  }
+
+  function removeAccountManual(name){
+    if (DEFAULT_ACCOUNTS.includes(name)){
+      showToast("eSewa is your default account and can't be removed");
+      return;
+    }
+    const used = TRANSACTIONS.some(t => t.account === name);
+    if (used){
+      if (!confirm(`"${name}" has transactions on it. Remove it from your wallet list anyway? The transactions stay, just without this filter.`)) return;
+    }
+    delete ACCOUNTS[name];
+    ACCOUNT_LIST = ACCOUNT_LIST.filter(n => n !== name);
+    if (activeAccount === name) activeAccount = "All";
+    saveCurrentUser();
+    renderAccountManager();
+    renderAll();
+    showToast(`Removed ${name}`);
+  }
+
+  function renderAccountManager(){
+    const el = document.getElementById("accountList");
+    const countEl = document.getElementById("accountCount");
+    if (!el) return;
+    el.innerHTML = ACCOUNT_LIST.map(name => {
+      const isDefault = DEFAULT_ACCOUNTS.includes(name);
+      const meta = ACCOUNTS[name] || { color: "#9aa0ac", icon: "👛" };
+      return `<span class="kh-cat-tag">
+        <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${meta.color}"></span>
+        ${meta.icon} ${name}
+        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeAccountManual(${JSON.stringify(name)})" title="Remove">✕</button>`}
+      </span>`;
+    }).join("");
+    if (countEl) countEl.textContent = `${ACCOUNT_LIST.length} of ${MAX_ACCOUNTS} used`;
+    const addBtn = document.getElementById("accountAddBtn");
+    if (addBtn) addBtn.disabled = ACCOUNT_LIST.length >= MAX_ACCOUNTS;
   }
 
   function parseAmount(val){
@@ -932,6 +1024,7 @@
     saveCurrentUser();
     renderAll();
     renderCategoryManager();
+    renderAccountManager();
 
     if (added || balanceSet){
       let msg = [];
@@ -1203,6 +1296,7 @@
     loadUserData(user.email);
     renderAll();
     renderCategoryManager();
+    renderAccountManager();
   }
 
   function signOut(){
