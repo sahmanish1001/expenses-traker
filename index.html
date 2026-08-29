@@ -163,7 +163,7 @@
   .kh-loan-page-head{margin:0 0 16px;}
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
-  .kh-settings-tabs{display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
+  .kh-settings-tabs{display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px;}
   .kh-settings-tabs::-webkit-scrollbar{display:none;}
   .kh-settings-tab{flex:0 0 auto; white-space:nowrap; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12px; font-weight:600; padding:9px 14px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
@@ -475,7 +475,7 @@
       </div>
     </div>
     <div class="kh-top-btns">
-      <button class="kh-header-avatar-btn" id="headerAvatarBtn" onclick="openPanel('settings'); setSettingsTab('account');" title="Account" aria-label="Account">
+      <button class="kh-header-avatar-btn" id="headerAvatarBtn" onclick="showSettingsPage('account')" title="Account" aria-label="Account">
         <img id="headerAvatarImg" alt="" style="display:none;" />
         <span id="headerAvatarFallback">👤</span>
       </button>
@@ -528,10 +528,11 @@
 
   <div class="kh-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
 
-  <div class="kh-panel kh-panel-large" id="panelSettings" onclick="event.stopPropagation()">
-    <div class="kh-panel-handle"></div>
-    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
-    <p class="kh-panel-title">Settings</p>
+  <div class="kh-page" id="settingsPage">
+    <div class="kh-loan-page-head">
+      <p class="kh-eyebrow">Manage</p>
+      <h2>Settings</h2>
+    </div>
 
     <div class="kh-settings-tabs">
       <button class="kh-settings-tab active" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
@@ -774,7 +775,7 @@
       <div class="kh-budget-overall-set">
         <input id="budgetOverallInput" type="number" min="0" step="any" placeholder="e.g. 20000" />
         <button type="button" class="kh-loan-btn" onclick="setOverallBudget()">Save limit</button>
-        <button type="button" class="kh-loan-btn" onclick="useIncomeAsBudget()" title="Fill in from your Monthly Income in Settings → Profile">Use my income</button>
+        <button type="button" class="kh-loan-btn" onclick="useIncomeAsBudget()" title="Fill in from your Monthly Income in Settings → Account">Use my income</button>
       </div>
     </div>
 
@@ -979,7 +980,7 @@
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 12V4.5A7.5 7.5 0 0 1 19.5 12H12Z" fill="currentColor"/></svg>
       <span>Budget</span>
     </button>
-    <button class="kh-nav-btn" id="navSettings" onclick="openPanel('settings')">
+    <button class="kh-nav-btn" id="navSettings" onclick="showSettingsPage()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <span>Settings</span>
     </button>
@@ -1372,7 +1373,7 @@
   // ---------------------------------------------------------------------
   let openPanelName = null;
   let currentPage = "home";
-  const PANEL_IDS = { settings: "panelSettings", manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
+  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -1383,7 +1384,6 @@
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
     setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : name);
-    if (name === "settings"){ setSettingsTab("account"); populateAppearanceNotifCalendarUI(); }
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
       document.getElementById("manualStatus").className = "kh-manual-status";
@@ -1504,13 +1504,14 @@
     document.getElementById("loanPage").classList.toggle("active", name === "loans");
     document.getElementById("budgetPage").classList.toggle("active", name === "budget");
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
+    document.getElementById("settingsPage").classList.toggle("active", name === "settings");
     currentPage = name;
     const fab = document.getElementById("manualFab");
     if (fab){
       const label = name === "loans" ? "Add loan" : "Add transaction manually";
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = (name === "budget" || name === "insights") ? "none" : "";
+      fab.style.display = (name === "budget" || name === "insights" || name === "settings") ? "none" : "";
     }
   }
 
@@ -1542,6 +1543,17 @@
     showPage("insights");
     setActiveNav("insights");
     renderInsightsPage();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showSettingsPage(tab){
+    closePanel();
+    showPage("settings");
+    setActiveNav("settings");
+    setSettingsTab(tab || "account");
+    populateAppearanceNotifCalendarUI();
+    renderCategoryManager();
+    renderAccountManager();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2086,7 +2098,7 @@
       hiddenBtn.style.color = "var(--dim)";
       hiddenBtn.textContent = `${HIDDEN_ACCOUNTS.length} hidden`;
       hiddenBtn.title = "Manage hidden accounts in Settings → Wallets";
-      hiddenBtn.onclick = () => { openPanel("settings"); setSettingsTab("wallets"); };
+      hiddenBtn.onclick = () => { showSettingsPage("wallets"); };
       el.appendChild(hiddenBtn);
     }
 
@@ -2638,7 +2650,7 @@
   function useIncomeAsBudget(){
     const income = parseFloat(PROFILE.monthlyIncome);
     if (!income || income <= 0){
-      showToast("Add your Monthly Income in Settings → Profile first");
+      showToast("Add your Monthly Income in Settings → Account first");
       return;
     }
     BUDGET_OVERALL = income;
