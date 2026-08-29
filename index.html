@@ -2322,14 +2322,30 @@
 
   // Reads one transaction object and normalizes it into {date, vendor, category, type, amount}.
   // Tolerates a few different key names/shapes so JSON pasted from different statement photos still works.
+  // Guesses a category from a shop name / bank remark / narration string —
+  // used when the JSON import doesn't supply an explicit category, so a
+  // raw statement remark like "POS PURCHASE CHAI TOWN KTM NP" still lands
+  // somewhere sensible instead of always falling into "Other". Falls back
+  // to a direction-based default (Transfer In/Out) when nothing matches,
+  // since an unrecognized remark is more likely a transfer than "Other".
+  function guessCategoryFromText(text, type){
+    const n = String(text || "").toLowerCase();
+    if (/chai|coffee|cafe|restaurant|dining|momo|nasta|snack|hotel|bakery|sweet/.test(n)) return "Food & Drink";
+    if (/grocer|vegetable|tarkari|kirana|dairy|meat|fruit|provision/.test(n)) return "Groceries";
+    if (/esewa\s*load|khalti\s*load|wallet\s*top|top[- ]?up|recharge|mobile\s*banking\s*load/.test(n)) return "Wallet Top-up";
+    if (/electric|water\s*bill|ntc\b|ncell|internet|wifi|rent\b|utility|insurance|bill\s*payment|school\s*fee|tuition/.test(n)) return "Bills & Payments";
+    if (/fuel|petrol|diesel|\btaxi\b|\bbus\b|\bride\b|transport|parking|pathao|indrive/.test(n)) return "Transport";
+    if (/shopping|mart\b|store\b|clothes|fashion|electronics|pasal|garment|footwear/.test(n)) return "Shopping";
+    if (/transfer|remit|fund\s*transfer|payment\s*received|ach\b|cips\b|connectips/.test(n)) return type === "in" ? "Transfer In" : "Transfer Out";
+    return type === "in" ? "Transfer In" : "Transfer Out";
+  }
+
   function parseTxObject(tx, i, errors){
     const date = normalizeDate(tx.date || tx.dateTime || tx.datetime);
     if (!date){ errors.push(`Item ${i+1}: bad or missing date`); return null; }
 
     const vendor = tx.vendor || tx.description || tx.desc || tx.merchant || tx.narration;
     if (!vendor){ errors.push(`Item ${i+1}: missing vendor/description`); return null; }
-
-    const category = tx.category || "Other";
 
     let type = null, amount = null;
     if (tx.type){
@@ -2347,6 +2363,12 @@
     }
 
     if (amount === null || amount === 0){ errors.push(`Item ${i+1}: missing/bad amount`); return null; }
+
+    // Trust an explicit category (e.g. one Claude already worked out from
+    // the statement photo); only guess from the remark/vendor when it's
+    // genuinely missing.
+    const category = tx.category || guessCategoryFromText(vendor, type);
+
     return { date, vendor, category, type, amount };
   }
 
@@ -2554,7 +2576,7 @@
     const date = smsDetectDate(clean) || todayStr();
     const vendor = smsDetectVendor(clean, direction);
     const account = smsDetectAccount(clean);
-    const category = direction === "in" ? "Transfer In" : "Transfer Out";
+    const category = guessCategoryFromText(vendor, direction);
 
     return { date, vendor, category, type: direction, amount, account, balance };
   }
