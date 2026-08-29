@@ -313,11 +313,12 @@
   .kh-loan-summary-item{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center;}
   .kh-loan-summary-label{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
   .kh-loan-summary-val{font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:700; margin-top:4px;}
-  .kh-loan-filter{display:flex; gap:8px; margin-bottom:14px;}
+  .kh-loan-filter{display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+  .kh-loan-filter::-webkit-scrollbar{display:none;}
   .kh-loan-toolbar{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
   .kh-loan-toolbar .kh-loan-filter{margin-bottom:0; flex:1;}
   .kh-loan-toolbar #newLoanBtn{width:100%;}
-  .kh-loan-chip{flex:1; text-align:center; padding:8px 6px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-loan-chip{flex:0 0 auto; white-space:nowrap; text-align:center; padding:8px 13px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-loan-chip.active{background:var(--accent2); color:#12141c; border-color:transparent;}
   .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
   .kh-loan-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
@@ -916,6 +917,8 @@
         <button type="button" class="kh-loan-chip active" data-f="all" onclick="setLoanFilter('all')">All</button>
         <button type="button" class="kh-loan-chip" data-f="lent" onclick="setLoanFilter('lent')">Owed to me</button>
         <button type="button" class="kh-loan-chip" data-f="borrowed" onclick="setLoanFilter('borrowed')">I owe</button>
+        <button type="button" class="kh-loan-chip" data-f="loan" onclick="setLoanFilter('loan')">Loan</button>
+        <button type="button" class="kh-loan-chip" data-f="emi" onclick="setLoanFilter('emi')">EMI</button>
       </div>
 
       <button type="button" class="kh-manual-btn" id="newLoanBtn" onclick="openLoanForm()">＋ New loan</button>
@@ -1297,7 +1300,7 @@
   let nextTxId = 1;
   let LOANS = [];
   let nextLoanId = 1;
-  let loanFilter = "all"; // "all" | "lent" | "borrowed"
+  let loanFilter = "all"; // "all" | "lent" | "borrowed" | "loan" | "emi"
   let editingLoanId = null;
   let loanFormType = "borrowed";
   let payingLoanId = null;
@@ -3013,7 +3016,12 @@
       alertEl.innerHTML = "";
     }
 
-    const list = loanFilter === "all" ? LOANS : LOANS.filter(l => l.type === loanFilter);
+    const list = LOANS.filter(l => {
+      if (loanFilter === "lent" || loanFilter === "borrowed") return l.type === loanFilter;
+      if (loanFilter === "loan") return !l.isEmi;
+      if (loanFilter === "emi") return !!l.isEmi;
+      return true; // "all"
+    });
     const el = document.getElementById("loanList");
     if (!list.length){
       el.innerHTML = `<div class="kh-empty">No loans here yet. Tap "＋ New loan" to track one.</div>`;
