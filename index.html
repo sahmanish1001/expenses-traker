@@ -305,6 +305,8 @@
   .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
   .kh-cat-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:12px;}
   .kh-cat-remove:hover{color:var(--out);}
+  .kh-cat-edit{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:11px;}
+  .kh-cat-edit:hover{color:var(--accent);}
 
   /* Loans tab */
   .kh-loan-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
@@ -2201,6 +2203,43 @@
     showToast(`Added ${name}`);
   }
 
+  // Renaming is allowed even for default categories (Food & Drink, Groceries,
+  // etc.) — being "default" only protects a category from deletion, not from
+  // being renamed to whatever the person actually calls it. "Other" is the
+  // one exception: it's used throughout the app as the fallback category
+  // (e.g. when another category is removed, or when nothing else matches),
+  // so renaming it away would leave that fallback logic pointing at a
+  // category that no longer exists.
+  function renameCategory(oldName){
+    if (oldName === "Other"){
+      showToast('"Other" can\'t be renamed — it\'s used as the fallback category.');
+      return;
+    }
+    const input = prompt(`Rename "${oldName}" to:`, oldName);
+    if (input === null) return;
+    const newName = input.trim();
+    if (!newName || newName === oldName) return;
+    if (CAT[newName]){
+      showToast(`"${newName}" already exists`);
+      return;
+    }
+
+    CAT[newName] = CAT[oldName];
+    delete CAT[oldName];
+    TRANSACTIONS.forEach(t => { if (t.category === oldName) t.category = newName; });
+    if (BUDGETS[oldName] !== undefined){
+      BUDGETS[newName] = BUDGETS[oldName];
+      delete BUDGETS[oldName];
+    }
+    const idx = DEFAULT_CATEGORIES.indexOf(oldName);
+    if (idx !== -1) DEFAULT_CATEGORIES[idx] = newName;
+
+    saveCurrentUser();
+    renderAll();
+    renderCategoryManager();
+    showToast(`Renamed to ${newName}`);
+  }
+
   function removeCategory(name){
     if (DEFAULT_CATEGORIES.includes(name)){
       showToast("Default categories can't be removed");
@@ -2222,9 +2261,11 @@
     if (!el) return;
     el.innerHTML = Object.keys(CAT).map(name => {
       const isDefault = DEFAULT_CATEGORIES.includes(name);
+      const canRename = name !== "Other";
       return `<span class="kh-cat-tag">
         <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${CAT[name].color}"></span>
         ${name}
+        ${canRename ? `<button class="kh-cat-edit" onclick="renameCategory(${attrJson(name)})" title="Rename">✎</button>` : ""}
         ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
