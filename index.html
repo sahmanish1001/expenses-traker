@@ -72,9 +72,9 @@
   .kh-import-fab:active{transform:scale(.92);}
   .kh-import-fab svg{width:19px; height:19px; display:block;}
 
-  .kh-manual-fab{width:44px; height:44px; border-radius:50%; background:var(--accent2); border:1px solid rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; color:#12141c; box-shadow:0 4px 14px rgba(127,156,245,.35), inset 0 1px 0 rgba(255,255,255,.4); transition:transform .12s;}
+  .kh-manual-fab{position:fixed; right:18px; bottom:92px; width:56px; height:56px; border-radius:50%; background:var(--accent2); border:1px solid rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:590; color:#12141c; box-shadow:0 6px 18px rgba(127,156,245,.45), inset 0 1px 0 rgba(255,255,255,.4); transition:transform .12s;}
   .kh-manual-fab:active{transform:scale(.92);}
-  .kh-manual-fab svg{width:19px; height:19px; display:block;}
+  .kh-manual-fab svg{width:24px; height:24px; display:block;}
 
   .kh-manual-card{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
   .kh-manual-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 4px;}
@@ -315,14 +315,15 @@
       </div>
     </div>
     <div class="kh-top-btns">
-      <button class="kh-manual-fab" onclick="toggleManualAdd()" title="Add transaction manually" aria-label="Add transaction manually">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11l2 2 4-4M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
       <button class="kh-import-fab" onclick="toggleImport()" title="Import statement (paste AI-parsed JSON from chat)" aria-label="Import statement">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
     </div>
   </div>
+
+  <button class="kh-manual-fab" onclick="toggleManualAdd()" title="Add transaction manually" aria-label="Add transaction manually">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11l2 2 4-4M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
 
   <div class="kh-demo-note" id="demoNote"></div>
 
