@@ -342,6 +342,7 @@
       <div class="kh-stats" id="stats"></div>
 
       <p class="kh-section-title">Transactions</p>
+      <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
       <div id="txList"></div>
     </div>
 
@@ -461,7 +462,7 @@
 
   <div class="kh-panel kh-panel-large" id="panelManual" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
-    <p class="kh-panel-title">Add transaction manually</p>
+    <p class="kh-panel-title" id="panelManualTitle">Add transaction manually</p>
     <p class="kh-manual-hint">Log a purchase or transfer in a few taps — no need to paste anything.</p>
     <div class="kh-manual-type">
       <button type="button" class="kh-manual-type-btn active-out" id="manualTypeOutBtn" onclick="setManualType('out')">− Money out</button>
@@ -490,7 +491,7 @@
       </div>
     </div>
     <div class="kh-manual-actions">
-      <button type="button" class="kh-manual-btn" onclick="addManualTransaction()">Add transaction</button>
+      <button type="button" class="kh-manual-btn" id="manualSaveBtn" onclick="addManualTransaction()">Add transaction</button>
       <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       <span class="kh-manual-status" id="manualStatus"></span>
     </div>
@@ -697,6 +698,7 @@
   }
 
   let manualType = "out";
+  let editingTxId = null;
 
   function toggleManualAdd(){
     openPanel("manual");
@@ -706,6 +708,22 @@
     manualType = type;
     document.getElementById("manualTypeOutBtn").className = "kh-manual-type-btn" + (type === "out" ? " active-out" : "");
     document.getElementById("manualTypeInBtn").className = "kh-manual-type-btn" + (type === "in" ? " active-in" : "");
+  }
+
+  function editTx(id){
+    const t = TRANSACTIONS.find(x => x.id === id);
+    if (!t) return;
+    openPanel("manual");
+    editingTxId = id;
+    setManualType(t.type);
+    document.getElementById("manualVendor").value = t.vendor;
+    document.getElementById("manualAmount").value = t.amount;
+    document.getElementById("manualDate").value = t.date;
+    populateManualForm();
+    document.getElementById("manualAccount").value = t.account;
+    document.getElementById("manualCategory").value = t.category;
+    document.getElementById("panelManualTitle").textContent = "Edit transaction";
+    document.getElementById("manualSaveBtn").textContent = "Save changes";
   }
 
   function populateManualForm(){
@@ -757,6 +775,22 @@
 
     ensureAccount(account);
     ensureCategory(category);
+
+    if (editingTxId){
+      const t = TRANSACTIONS.find(x => x.id === editingTxId);
+      if (t){
+        t.date = date; t.vendor = vendor; t.category = category || "Other"; t.type = manualType; t.amount = amount; t.account = account;
+      }
+      editingTxId = null;
+      saveCurrentUser();
+      renderAll();
+      renderAccountManager();
+      renderCategoryManager();
+      showToast(`Updated ${vendor}`);
+      closePanel();
+      return;
+    }
+
     TRANSACTIONS.push({
       date, vendor, category: category || "Other", type: manualType, amount, account,
       id: "tx" + (nextTxId++),
@@ -789,6 +823,9 @@
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
       document.getElementById("manualStatus").className = "kh-manual-status";
+      editingTxId = null;
+      document.getElementById("panelManualTitle").textContent = "Add transaction manually";
+      document.getElementById("manualSaveBtn").textContent = "Add transaction";
       setManualType("out");
       populateManualForm();
       setTimeout(() => document.getElementById("manualVendor").focus(), 300);
@@ -1424,12 +1461,26 @@
     body.innerHTML = html;
   }
 
+  let txSearchQuery = "";
+  function setTxSearch(val){
+    txSearchQuery = val.trim().toLowerCase();
+    renderTx();
+  }
+
   function renderTx(){
-    const scoped = getScoped();
+    let scoped = getScoped();
     const el = document.getElementById("txList");
     if (scoped.length === 0){
       el.innerHTML = `<div class="kh-empty">No statements yet for this account.</div>`;
       return;
+    }
+    if (txSearchQuery){
+      scoped = scoped.filter(t =>
+        t.vendor.toLowerCase().includes(txSearchQuery) || t.category.toLowerCase().includes(txSearchQuery));
+      if (scoped.length === 0){
+        el.innerHTML = `<div class="kh-empty">No transactions match "${txSearchQuery}".</div>`;
+        return;
+      }
     }
     const groups = {};
     [...scoped].sort((a,b) => a.date < b.date ? 1 : -1).forEach(t => {
@@ -1452,6 +1503,7 @@
             <div class="kh-row-cat">${sub}</div>
           </div>
           <div class="kh-row-amt" style="color:${t.type === "in" ? "var(--in)" : "var(--out)"}">${t.type === "in" ? "+" : "−"}${rs(t.amount)}</div>
+          <button class="kh-row-del" onclick="editTx('${t.id}')" title="Edit">✎</button>
           <button class="kh-row-del" onclick="deleteTx('${t.id}')" title="Delete">✕</button>
         </div>`;
       });
