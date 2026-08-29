@@ -135,8 +135,7 @@
 
   /* Full pages (Home / Loans) that swap in the main content area, as
      opposed to the slide-up overlay panels used for Settings/More/forms. */
-  .kh-page{display:none;}
-  .kh-page.active{display:block;}
+  .kh-page:not(.active){display:none !important;}
   .kh-loan-page-head{margin:0 0 16px;}
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
