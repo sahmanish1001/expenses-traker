@@ -2189,7 +2189,7 @@
       return `<span class="kh-cat-tag">
         <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${CAT[name].color}"></span>
         ${name}
-        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${JSON.stringify(name)})" title="Remove">✕</button>`}
+        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
   }
@@ -2258,8 +2258,8 @@
       return `<span class="kh-cat-tag" style="${isHidden ? "opacity:.55" : ""}">
         <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${meta.color}"></span>
         ${meta.icon} ${name}${isHidden ? " (hidden)" : ""}
-        <button class="kh-cat-remove" onclick="toggleAccountHidden(${JSON.stringify(name)})" title="${isHidden ? "Unhide" : "Hide"}">${isHidden ? "👁️" : "🙈"}</button>
-        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeAccountManual(${JSON.stringify(name)})" title="Remove">✕</button>`}
+        <button class="kh-cat-remove" onclick="toggleAccountHidden(${attrJson(name)})" title="${isHidden ? "Unhide" : "Hide"}">${isHidden ? "👁️" : "🙈"}</button>
+        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeAccountManual(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
     if (countEl) countEl.textContent = `${ACCOUNT_LIST.length} of ${MAX_ACCOUNTS} used`;
@@ -2986,6 +2986,16 @@
     return String(s).replace(/[^a-zA-Z0-9]/g, "_");
   }
 
+  // JSON.stringify() always wraps a string in literal double quotes, which
+  // breaks it out of a double-quoted HTML attribute (onclick="fn(\"x\")"
+  // gets cut off at that inner quote — the attribute silently ends early
+  // and the button does nothing). HTML-escape the JSON text before it goes
+  // into an attribute so the browser un-escapes it back to the exact JS
+  // source when the handler runs.
+  function attrJson(v){
+    return JSON.stringify(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  }
+
   function renderBudgetPage(){
     const monthLabelEl = document.getElementById("budgetMonthLabel");
     if (monthLabelEl) monthLabelEl.textContent = currentBsMonthLabel() + " BS";
@@ -3030,8 +3040,8 @@
         <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${limit ? pct : 0}%; background:${color};"></div></div>
         <div class="kh-budget-row-set">
           <input id="budgetCatInput_${safe}" type="number" min="0" step="any" placeholder="${limit ? "Update limit" : "Set a monthly limit"}" value="${limit || ""}" />
-          <button type="button" class="kh-loan-btn" onclick="setCategoryBudget(${JSON.stringify(name)})">Save</button>
-          ${limit ? `<button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="clearCategoryBudget(${JSON.stringify(name)})">Clear</button>` : ""}
+          <button type="button" class="kh-loan-btn" onclick="setCategoryBudget(${attrJson(name)})">Save</button>
+          ${limit ? `<button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="clearCategoryBudget(${attrJson(name)})">Clear</button>` : ""}
         </div>
       </div>`;
     }).join("");
