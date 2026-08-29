@@ -100,8 +100,8 @@
 
   /* iOS-style glass bottom navigation */
   .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:700; display:flex; gap:2px; padding:6px; background:rgba(25,28,39,.7); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:24px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
-  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:8px 17px; border-radius:18px; cursor:pointer; transition:color .15s, background .15s;}
-  .kh-nav-btn svg{width:21px; height:21px; display:block;}
+  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:9.5px; font-weight:500; padding:8px 13px; border-radius:16px; cursor:pointer; transition:color .15s, background .15s;}
+  .kh-nav-btn svg{width:19px; height:19px; display:block;}
   .kh-nav-btn.active{color:var(--accent); background:rgba(242,169,59,.14);}
 
   /* Glass slide-up panels (Account / Settings / More) */
@@ -202,6 +202,39 @@
   .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
   .kh-cat-remove{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:12px;}
   .kh-cat-remove:hover{color:var(--out);}
+
+  /* Loans tab */
+  .kh-loan-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
+  .kh-loan-summary-item{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center;}
+  .kh-loan-summary-label{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
+  .kh-loan-summary-val{font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:700; margin-top:4px;}
+  .kh-loan-filter{display:flex; gap:8px; margin-bottom:14px;}
+  .kh-loan-chip{flex:1; text-align:center; padding:8px 6px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-loan-chip.active{background:var(--accent2); color:#12141c; border-color:transparent;}
+  .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
+  .kh-loan-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
+  .kh-loan-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  .kh-loan-person{font-size:14.5px; font-weight:600;}
+  .kh-loan-type{font-size:11px; font-weight:600; margin-top:2px;}
+  .kh-loan-badge{font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0;}
+  .kh-loan-amounts{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-top:12px;}
+  .kh-loan-amt-label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim);}
+  .kh-loan-amt-val{display:block; font-family:'Space Grotesk',sans-serif; font-size:13.5px; font-weight:700; margin-top:2px;}
+  .kh-loan-meta{font-size:11px; color:var(--dim); margin-top:10px;}
+  .kh-loan-notes{font-size:11.5px; color:var(--dim); margin-top:6px; font-style:italic;}
+  .kh-loan-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .kh-loan-btn{background:var(--surface2); border:1px solid var(--border); color:var(--text); font-size:11.5px; font-weight:600; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:inherit;}
+  .kh-loan-btn-danger{color:var(--out);}
+  .kh-loan-calc{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
+  .kh-loan-calc-result{margin-top:12px;}
+  .kh-loan-dash-card{margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
+  .kh-loan-dash-top{display:flex; align-items:center; justify-content:space-between;}
+  .kh-loan-dash-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
+  .kh-loan-dash-link{background:none; border:none; color:var(--accent2); font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; padding:0;}
+  .kh-loan-dash-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+  .kh-loan-dash-label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim);}
+  .kh-loan-dash-val{display:block; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; margin-top:4px;}
+  .kh-loan-dash-empty{font-size:12.5px; color:var(--dim); line-height:1.6;}
 
   /* Laptop / desktop layout */
   @media (min-width:768px){
@@ -362,6 +395,8 @@
 
       <div class="kh-stats" id="stats"></div>
 
+      <div class="kh-loan-dash-card" id="loanDashCard"></div>
+
       <p class="kh-section-title">Transactions</p>
       <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
       <div id="txList"></div>
@@ -480,6 +515,162 @@
     </div>
   </div>
 
+  <div class="kh-panel kh-panel-large" id="panelLoans" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title">Loans</p>
+
+    <div class="kh-loan-summary">
+      <div class="kh-loan-summary-item">
+        <div class="kh-loan-summary-label">Owed to you</div>
+        <div class="kh-loan-summary-val" style="color:var(--in)" id="loanSummaryLent">Rs 0</div>
+      </div>
+      <div class="kh-loan-summary-item">
+        <div class="kh-loan-summary-label">You owe</div>
+        <div class="kh-loan-summary-val" style="color:var(--out)" id="loanSummaryBorrowed">Rs 0</div>
+      </div>
+      <div class="kh-loan-summary-item">
+        <div class="kh-loan-summary-label">Net position</div>
+        <div class="kh-loan-summary-val" id="loanSummaryNet">Rs 0</div>
+      </div>
+    </div>
+
+    <div id="loanAlert"></div>
+
+    <div class="kh-loan-filter" id="loanFilterChips">
+      <button type="button" class="kh-loan-chip active" data-f="all" onclick="setLoanFilter('all')">All</button>
+      <button type="button" class="kh-loan-chip" data-f="lent" onclick="setLoanFilter('lent')">Owed to me</button>
+      <button type="button" class="kh-loan-chip" data-f="borrowed" onclick="setLoanFilter('borrowed')">I owe</button>
+    </div>
+
+    <button type="button" class="kh-manual-btn" style="width:100%;" onclick="openLoanForm()">＋ New loan</button>
+
+    <div id="loanList" style="margin-top:14px;"></div>
+
+    <button type="button" class="kh-more-item" style="margin-top:6px;" onclick="toggleLoanCalc()">🧮 Loan / EMI calculator</button>
+    <div class="kh-loan-calc" id="loanCalc" style="display:none;">
+      <p class="kh-cat-hint" style="margin:0 0 10px;">For a bank-style loan with fixed monthly payments — not tied to a saved loan above.</p>
+      <div class="kh-manual-form">
+        <div class="kh-manual-field">
+          <label for="calcPrincipal">Loan amount (Rs)</label>
+          <input id="calcPrincipal" type="number" min="0" step="any" placeholder="100000" oninput="runLoanCalc()" />
+        </div>
+        <div class="kh-manual-field">
+          <label for="calcRate">Annual interest rate (%)</label>
+          <input id="calcRate" type="number" min="0" step="any" placeholder="12" oninput="runLoanCalc()" />
+        </div>
+        <div class="kh-manual-field">
+          <label for="calcTenure">Tenure (months)</label>
+          <input id="calcTenure" type="number" min="1" step="1" placeholder="12" oninput="runLoanCalc()" />
+        </div>
+        <div class="kh-manual-field">
+          <label for="calcType">Interest type</label>
+          <select id="calcType" onchange="runLoanCalc()">
+            <option value="reducing">Reducing balance (EMI)</option>
+            <option value="flat">Flat rate</option>
+          </select>
+        </div>
+      </div>
+      <div class="kh-loan-calc-result" id="loanCalcResult"></div>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="openPanel('loans')" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title" id="loanFormTitle">New loan</p>
+
+    <div class="kh-manual-type">
+      <button type="button" class="kh-manual-type-btn active-out" id="loanTypeBorrowedBtn" onclick="setLoanType('borrowed')">− I owe (borrowed)</button>
+      <button type="button" class="kh-manual-type-btn" id="loanTypeLentBtn" onclick="setLoanType('lent')">+ Owed to me (lent)</button>
+    </div>
+
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full">
+        <label for="loanPerson">Person</label>
+        <input id="loanPerson" placeholder="e.g. Rita Sharma" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanPrincipal">Amount (Rs)</label>
+        <input id="loanPrincipal" type="number" min="0" step="any" placeholder="0" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanDateGiven">Date given</label>
+        <input id="loanDateGiven" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanDueDate">Due date (optional)</label>
+        <input id="loanDueDate" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanAccount">Account</label>
+        <select id="loanAccount"></select>
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanInterestRate">Interest % / yr (optional)</label>
+        <input id="loanInterestRate" type="number" min="0" step="any" placeholder="0" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanInterestType">Interest type</label>
+        <select id="loanInterestType">
+          <option value="none">No interest</option>
+          <option value="flat">Flat rate</option>
+          <option value="reducing">Reducing balance</option>
+        </select>
+      </div>
+      <div class="kh-manual-field full">
+        <label for="loanNotes">Notes (optional)</label>
+        <input id="loanNotes" placeholder="e.g. for motorbike repair" />
+      </div>
+      <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px;">
+        <input type="checkbox" id="loanRecordTx" checked style="width:auto;" />
+        <label for="loanRecordTx" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--dim);">Also record as a transaction, so it shows in your cash flow charts</label>
+      </div>
+    </div>
+
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="saveLoan()" id="loanSaveBtn">Save loan</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="openPanel('loans')">Cancel</button>
+      <span class="kh-manual-status" id="loanFormStatus"></span>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelLoanPayment" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="openPanel('loans')" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title">Log a payment</p>
+    <p class="kh-import-hint" id="loanPaymentContext"></p>
+
+    <div class="kh-manual-form">
+      <div class="kh-manual-field">
+        <label for="loanPaymentAmount">Amount (Rs)</label>
+        <input id="loanPaymentAmount" type="number" min="0" step="any" placeholder="0" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanPaymentDate">Date</label>
+        <input id="loanPaymentDate" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanPaymentAccount">Account</label>
+        <select id="loanPaymentAccount"></select>
+      </div>
+      <div class="kh-manual-field">
+        <label for="loanPaymentNote">Note (optional)</label>
+        <input id="loanPaymentNote" placeholder="e.g. partial cash payment" />
+      </div>
+      <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px;">
+        <input type="checkbox" id="loanPaymentRecordTx" checked style="width:auto;" />
+        <label for="loanPaymentRecordTx" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--dim);">Also record as a transaction, so it shows in your cash flow charts</label>
+      </div>
+    </div>
+
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="saveLoanPayment()">Log payment</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="openPanel('loans')">Cancel</button>
+      <span class="kh-manual-status" id="loanPaymentStatus"></span>
+    </div>
+  </div>
+
   <div class="kh-panel" id="panelMore" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
@@ -545,6 +736,10 @@
     <button class="kh-nav-btn active" id="navHome" onclick="goHome()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
+    </button>
+    <button class="kh-nav-btn" id="navLoans" onclick="openPanel('loans')">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="6" width="19" height="12" rx="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 9v0M18.5 15v0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <span>Loans</span>
     </button>
     <button class="kh-nav-btn" id="navSettings" onclick="openPanel('settings')">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -630,6 +825,12 @@
   let TRANSACTIONS = [];
   let BALANCES = {};
   let nextTxId = 1;
+  let LOANS = [];
+  let nextLoanId = 1;
+  let loanFilter = "all"; // "all" | "lent" | "borrowed"
+  let editingLoanId = null;
+  let loanFormType = "borrowed";
+  let payingLoanId = null;
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
   const CURRENCY_LOCALES = { NPR: "en-IN", INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
@@ -645,6 +846,92 @@
 
   function fmtDate(d){
     return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" });
+  }
+
+  // ---------------------------------------------------------------------
+  // Loans — track money lent to or borrowed from people, separate from
+  // regular expense/income transactions. Each loan optionally mirrors its
+  // principal and repayments into TRANSACTIONS (see saveLoan/saveLoanPayment)
+  // so cash flow stays accurate; the linkTxId fields let us clean those up
+  // again if the loan itself is deleted.
+  // ---------------------------------------------------------------------
+  function todayStr(){
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function daysBetween(d1, d2){
+    return (new Date(d2 + "T00:00:00Z") - new Date(d1 + "T00:00:00Z")) / 86400000;
+  }
+
+  function loanPaid(loan){
+    return (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+  }
+
+  // Interest accrued as of `asOf` (defaults to today).
+  // "flat": simple interest on the original principal for the whole
+  //         elapsed period — the rate a lot of informal loans in Nepal
+  //         are quoted at.
+  // "reducing": interest is recalculated on the balance still outstanding
+  //         after each payment, so it shrinks as the loan gets paid down
+  //         — the bank-style method, and the usual source of confusion
+  //         with "flat" rates that quote the same-looking % per year.
+  function loanInterestAccrued(loan, asOf){
+    asOf = asOf || todayStr();
+    const rate = Number(loan.interestRate) || 0;
+    if (!rate || !loan.interestType || loan.interestType === "none") return 0;
+    if (loan.interestType === "flat"){
+      const years = Math.max(0, daysBetween(loan.dateGiven, asOf) / 365);
+      return loan.principal * (rate / 100) * years;
+    }
+    // reducing balance
+    const events = [...(loan.payments || [])].sort((a, b) => a.date < b.date ? -1 : 1);
+    let balance = loan.principal;
+    let cursor = loan.dateGiven;
+    let interestAccrued = 0;
+    events.forEach(ev => {
+      const yrs = Math.max(0, daysBetween(cursor, ev.date) / 365);
+      const periodInterest = balance * (rate / 100) * yrs;
+      interestAccrued += periodInterest;
+      balance = Math.max(0, balance + periodInterest - ev.amount);
+      cursor = ev.date;
+    });
+    const yrsToAsOf = Math.max(0, daysBetween(cursor, asOf) / 365);
+    interestAccrued += balance * (rate / 100) * yrsToAsOf;
+    return interestAccrued;
+  }
+
+  function loanTotals(loan){
+    const paid = loanPaid(loan);
+    const interest = loanInterestAccrued(loan);
+    const totalOwed = loan.principal + interest;
+    const outstanding = Math.max(0, totalOwed - paid);
+    return { paid, interest, totalOwed, outstanding };
+  }
+
+  const LOAN_STATUS_META = {
+    "Pending":         { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
+    "Partially Paid":  { color: "#f2a93b", bg: "rgba(242,169,59,.16)" },
+    "Cleared":         { color: "#5fd1a4", bg: "rgba(95,209,164,.16)" },
+    "Overdue":         { color: "#ef6f6c", bg: "rgba(239,111,108,.16)" },
+  };
+
+  function loanStatus(loan){
+    const { outstanding } = loanTotals(loan);
+    if (outstanding <= 0.5) return "Cleared";
+    if (loan.dueDate && loan.dueDate < todayStr()) return "Overdue";
+    return loanPaid(loan) > 0 ? "Partially Paid" : "Pending";
+  }
+
+  function netLoanPosition(){
+    let lentOutstanding = 0, borrowedOutstanding = 0;
+    LOANS.forEach(l => {
+      const { outstanding } = loanTotals(l);
+      if (l.type === "lent") lentOutstanding += outstanding;
+      else borrowedOutstanding += outstanding;
+    });
+    return { lentOutstanding, borrowedOutstanding, net: lentOutstanding - borrowedOutstanding };
   }
 
   // ---------------------------------------------------------------------
@@ -840,7 +1127,7 @@
   // Bottom navigation + glass slide-up panels (Account / Settings / More).
   // ---------------------------------------------------------------------
   let openPanelName = null;
-  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport" };
+  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport", loans: "panelLoans", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -850,7 +1137,7 @@
     el.classList.add("show");
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
-    setActiveNav(name);
+    setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : name);
     if (name === "settings") setSettingsTab("profile");
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
@@ -866,6 +1153,27 @@
       document.getElementById("importStatus").textContent = "";
       document.getElementById("importStatus").className = "kh-import-status";
       setTimeout(() => document.getElementById("importInput").focus(), 300);
+    }
+    if (name === "loans") renderLoans();
+    if (name === "loanform"){
+      editingLoanId = null;
+      document.getElementById("loanFormStatus").textContent = "";
+      document.getElementById("loanFormStatus").className = "kh-manual-status";
+      document.getElementById("loanFormTitle").textContent = "New loan";
+      document.getElementById("loanSaveBtn").textContent = "Save loan";
+      setLoanType("borrowed");
+      document.getElementById("loanPerson").value = "";
+      document.getElementById("loanPrincipal").value = "";
+      document.getElementById("loanDateGiven").value = todayStr();
+      document.getElementById("loanDueDate").value = "";
+      document.getElementById("loanInterestRate").value = "";
+      document.getElementById("loanInterestType").value = "none";
+      document.getElementById("loanNotes").value = "";
+      const accSel = document.getElementById("loanAccount");
+      accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${n}">${n}</option>`).join("");
+      document.getElementById("loanRecordTx").checked = true;
+      document.getElementById("loanRecordTx").disabled = false;
+      setTimeout(() => document.getElementById("loanPerson").focus(), 300);
     }
   }
 
@@ -889,7 +1197,7 @@
   }
 
   function setActiveNav(name){
-    ["home", "settings", "more"].forEach(n => {
+    ["home", "loans", "settings", "more"].forEach(n => {
       const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
       if (btn) btn.classList.toggle("active", n === name);
     });
@@ -905,11 +1213,13 @@
   }
 
   function clearAllData(){
-    if (!confirm("Delete all transactions and balances? This can't be undone.")) return;
+    if (!confirm("Delete all transactions, balances, and loans? This can't be undone.")) return;
     TRANSACTIONS.length = 0;
     Object.keys(BALANCES).forEach(k => delete BALANCES[k]);
+    LOANS.length = 0;
     activeAccount = "All";
     activeNepaliMonth = "All";
+    loanFilter = "all";
     saveCurrentUser();
     renderAll();
     showToast("All data cleared");
@@ -922,6 +1232,8 @@
       transactions: TRANSACTIONS,
       balances: BALANCES,
       nextTxId,
+      loans: LOANS,
+      nextLoanId,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -990,10 +1302,13 @@
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
       nextTxId = data.nextTxId || (TRANSACTIONS.length + 1);
+      LOANS = data.loans || [];
+      nextLoanId = data.nextLoanId || (LOANS.length + 1);
       PROFILE = data.profile || PROFILE;
       TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
       activeAccount = "All";
       activeNepaliMonth = "All";
+      loanFilter = "all";
       saveCurrentUser();
       renderAll();
       renderAccountManager();
@@ -1039,6 +1354,7 @@
     if (/entertainment|movie|cinema|game/.test(n)) return "🎬";
     if (/salary|income|earning/.test(n)) return "💰";
     if (/transfer/.test(n)) return name.toLowerCase().includes("in") ? "↙️" : "↗️";
+    if (/loan|karja|udhaaro|udharo/.test(n)) return "🤝";
     return "🏷️";
   }
 
@@ -1076,6 +1392,8 @@
       transactions: TRANSACTIONS,
       balances: BALANCES,
       nextTxId,
+      loans: LOANS,
+      nextLoanId,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -1091,6 +1409,7 @@
 
     activeAccount = "All";
     activeNepaliMonth = "All";
+    loanFilter = "all";
     const noteEl = document.getElementById("demoNote");
 
     if (data){
@@ -1100,6 +1419,8 @@
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
       nextTxId = data.nextTxId || 1;
+      LOANS = data.loans || [];
+      nextLoanId = data.nextLoanId || 1;
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -1110,6 +1431,8 @@
       TRANSACTIONS = [];
       BALANCES = {};
       nextTxId = 1;
+      LOANS = [];
+      nextLoanId = 1;
       PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
     }
@@ -1634,6 +1957,272 @@
     el.innerHTML = html;
   }
 
+  // ---------------------------------------------------------------------
+  // Loans — panel rendering & form handlers.
+  // ---------------------------------------------------------------------
+  function setLoanFilter(f){
+    loanFilter = f;
+    renderLoans();
+  }
+
+  function renderLoans(){
+    document.querySelectorAll("#loanFilterChips .kh-loan-chip").forEach(b => b.classList.toggle("active", b.dataset.f === loanFilter));
+
+    const pos = netLoanPosition();
+    document.getElementById("loanSummaryLent").textContent = rs(pos.lentOutstanding);
+    document.getElementById("loanSummaryBorrowed").textContent = rs(pos.borrowedOutstanding);
+    const netEl = document.getElementById("loanSummaryNet");
+    netEl.textContent = (pos.net >= 0 ? "+" : "−") + rs(Math.abs(pos.net));
+    netEl.style.color = pos.net >= 0 ? "var(--in)" : "var(--out)";
+
+    const today = todayStr();
+    const dueSoon = LOANS.filter(l => {
+      if (!l.dueDate || loanStatus(l) === "Cleared") return false;
+      const days = daysBetween(today, l.dueDate);
+      return days <= 7;
+    });
+    const alertEl = document.getElementById("loanAlert");
+    if (dueSoon.length){
+      alertEl.innerHTML = `<div class="kh-loan-alert">⚠ ${dueSoon.map(l => {
+        const days = Math.round(daysBetween(today, l.dueDate));
+        const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
+        return `${l.person} (${when})`;
+      }).join(" · ")}</div>`;
+    } else {
+      alertEl.innerHTML = "";
+    }
+
+    const list = loanFilter === "all" ? LOANS : LOANS.filter(l => l.type === loanFilter);
+    const el = document.getElementById("loanList");
+    if (!list.length){
+      el.innerHTML = `<div class="kh-empty">No loans here yet. Tap "＋ New loan" to track one.</div>`;
+      return;
+    }
+    el.innerHTML = [...list].sort((a, b) => (a.dueDate || "9999-99") < (b.dueDate || "9999-99") ? -1 : 1).map(l => {
+      const { paid, interest, outstanding } = loanTotals(l);
+      const status = loanStatus(l);
+      const meta = LOAN_STATUS_META[status];
+      const typeLabel = l.type === "lent" ? "Owed to me" : "I owe";
+      const typeColor = l.type === "lent" ? "var(--in)" : "var(--out)";
+      return `<div class="kh-loan-card">
+        <div class="kh-loan-card-top">
+          <div>
+            <div class="kh-loan-person">${l.person}</div>
+            <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}</div>
+          </div>
+          <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
+        </div>
+        <div class="kh-loan-amounts">
+          <div><span class="kh-loan-amt-label">Principal</span><span class="kh-loan-amt-val">${rs(l.principal)}</span></div>
+          ${interest > 0.5 ? `<div><span class="kh-loan-amt-label">Interest so far</span><span class="kh-loan-amt-val">${rs(interest)}</span></div>` : `<div></div>`}
+          <div><span class="kh-loan-amt-label">Paid</span><span class="kh-loan-amt-val">${rs(paid)}</span></div>
+          <div><span class="kh-loan-amt-label">Outstanding</span><span class="kh-loan-amt-val" style="color:${outstanding > 0.5 ? typeColor : "var(--in)"}">${rs(outstanding)}</span></div>
+        </div>
+        <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}</div>
+        ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
+        <div class="kh-loan-actions">
+          ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
+          <button type="button" class="kh-loan-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
+          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteLoanUI('${l.id}')">✕ Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderLoanDashCard(){
+    const el = document.getElementById("loanDashCard");
+    if (!el) return;
+    if (!LOANS.length){
+      el.innerHTML = `<div class="kh-loan-dash-empty">No loans tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="openPanel('loans')">Track a loan →</button></div>`;
+      return;
+    }
+    const pos = netLoanPosition();
+    const netColor = pos.net >= 0 ? "var(--in)" : "var(--out)";
+    el.innerHTML = `
+      <div class="kh-loan-dash-top">
+        <span class="kh-loan-dash-title">Net loan position</span>
+        <button type="button" class="kh-loan-dash-link" onclick="openPanel('loans')">View all →</button>
+      </div>
+      <div class="kh-loan-dash-row">
+        <div><span class="kh-loan-dash-label">Owed to you</span><span class="kh-loan-dash-val" style="color:var(--in)">${rs(pos.lentOutstanding)}</span></div>
+        <div><span class="kh-loan-dash-label">You owe</span><span class="kh-loan-dash-val" style="color:var(--out)">${rs(pos.borrowedOutstanding)}</span></div>
+        <div><span class="kh-loan-dash-label">Net</span><span class="kh-loan-dash-val" style="color:${netColor}">${pos.net >= 0 ? "+" : "−"}${rs(Math.abs(pos.net))}</span></div>
+      </div>
+    `;
+  }
+
+  function setLoanType(t){
+    loanFormType = t;
+    document.getElementById("loanTypeBorrowedBtn").className = "kh-manual-type-btn" + (t === "borrowed" ? " active-out" : "");
+    document.getElementById("loanTypeLentBtn").className = "kh-manual-type-btn" + (t === "lent" ? " active-in" : "");
+  }
+
+  function openLoanForm(id){
+    openPanel("loanform"); // resets the form to a blank "new loan" state
+    if (!id) return;
+    const l = LOANS.find(x => x.id === id);
+    if (!l) return;
+    editingLoanId = id;
+    setLoanType(l.type);
+    document.getElementById("loanPerson").value = l.person;
+    document.getElementById("loanPrincipal").value = l.principal;
+    document.getElementById("loanDateGiven").value = l.dateGiven;
+    document.getElementById("loanDueDate").value = l.dueDate || "";
+    document.getElementById("loanInterestRate").value = l.interestRate || "";
+    document.getElementById("loanInterestType").value = l.interestType || "none";
+    document.getElementById("loanNotes").value = l.notes || "";
+    const accSel = document.getElementById("loanAccount");
+    accSel.value = l.account || ACCOUNT_LIST[0];
+    // Editing changes the loan record itself, not the transaction already
+    // recorded for it — re-checking this would double count the amount.
+    document.getElementById("loanRecordTx").checked = false;
+    document.getElementById("loanRecordTx").disabled = true;
+    document.getElementById("loanFormTitle").textContent = "Edit loan";
+    document.getElementById("loanSaveBtn").textContent = "Save changes";
+  }
+
+  function saveLoan(){
+    const status = document.getElementById("loanFormStatus");
+    const person = document.getElementById("loanPerson").value.trim();
+    const principal = parseAmount(document.getElementById("loanPrincipal").value);
+    const dateGiven = document.getElementById("loanDateGiven").value || null;
+    const dueDate = document.getElementById("loanDueDate").value || null;
+    const interestRate = document.getElementById("loanInterestRate").value ? parseAmount(document.getElementById("loanInterestRate").value) : 0;
+    const interestType = document.getElementById("loanInterestType").value;
+    const notes = document.getElementById("loanNotes").value.trim();
+    const account = document.getElementById("loanAccount").value;
+    const recordTx = document.getElementById("loanRecordTx").checked;
+
+    if (!person){ status.textContent = "Enter a person's name."; status.className = "kh-manual-status err"; return; }
+    if (principal === null || principal <= 0){ status.textContent = "Enter a valid amount."; status.className = "kh-manual-status err"; return; }
+    if (!dateGiven){ status.textContent = "Pick the date given."; status.className = "kh-manual-status err"; return; }
+
+    if (editingLoanId){
+      const l = LOANS.find(x => x.id === editingLoanId);
+      if (l) Object.assign(l, { person, principal, dateGiven, dueDate, interestRate, interestType, notes, account });
+      showToast(`Updated loan with ${person}`);
+    } else {
+      const loan = {
+        id: "loan" + (nextLoanId++), type: loanFormType, person, principal, dateGiven, dueDate,
+        interestRate, interestType, notes, account, payments: [], linkTxId: null,
+      };
+      if (recordTx && account){
+        ensureCategory("Loan");
+        const txType = loanFormType === "borrowed" ? "in" : "out";
+        const vendor = loanFormType === "borrowed" ? `Loan from ${person}` : `Loan to ${person}`;
+        const tx = { date: dateGiven, vendor, category: "Loan", type: txType, amount: principal, account, id: "tx" + (nextTxId++) };
+        TRANSACTIONS.push(tx);
+        loan.linkTxId = tx.id;
+      }
+      LOANS.push(loan);
+      showToast(`Added loan with ${person}`);
+    }
+
+    saveCurrentUser();
+    renderAll();
+    openPanel("loans");
+  }
+
+  function deleteLoanUI(id){
+    const l = LOANS.find(x => x.id === id);
+    if (!l) return;
+    if (!confirm(`Delete the loan with ${l.person}? This also removes any transactions recorded for it.`)) return;
+    const linkedIds = [l.linkTxId, ...(l.payments || []).map(p => p.linkTxId)].filter(Boolean);
+    if (linkedIds.length) TRANSACTIONS = TRANSACTIONS.filter(t => !linkedIds.includes(t.id));
+    LOANS = LOANS.filter(x => x.id !== id);
+    saveCurrentUser();
+    renderAll();
+    renderLoans();
+    showToast(`Deleted loan with ${l.person}`);
+  }
+
+  function openLoanPayment(id){
+    const l = LOANS.find(x => x.id === id);
+    if (!l) return;
+    payingLoanId = id;
+    const { outstanding } = loanTotals(l);
+    document.getElementById("loanPaymentContext").textContent = `${l.person} · ${l.type === "lent" ? "owes you" : "you owe"} ${rs(outstanding)} outstanding.`;
+    document.getElementById("loanPaymentAmount").value = "";
+    document.getElementById("loanPaymentDate").value = todayStr();
+    document.getElementById("loanPaymentNote").value = "";
+    const accSel = document.getElementById("loanPaymentAccount");
+    accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${n}">${n}</option>`).join("");
+    accSel.value = l.account || ACCOUNT_LIST[0];
+    document.getElementById("loanPaymentRecordTx").checked = true;
+    document.getElementById("loanPaymentStatus").textContent = "";
+    document.getElementById("loanPaymentStatus").className = "kh-manual-status";
+    openPanel("loanpay");
+  }
+
+  function saveLoanPayment(){
+    const status = document.getElementById("loanPaymentStatus");
+    const l = LOANS.find(x => x.id === payingLoanId);
+    if (!l){ status.textContent = "Loan not found."; status.className = "kh-manual-status err"; return; }
+    const amount = parseAmount(document.getElementById("loanPaymentAmount").value);
+    const date = document.getElementById("loanPaymentDate").value || null;
+    const account = document.getElementById("loanPaymentAccount").value;
+    const note = document.getElementById("loanPaymentNote").value.trim();
+    const recordTx = document.getElementById("loanPaymentRecordTx").checked;
+
+    if (amount === null || amount <= 0){ status.textContent = "Enter a valid amount."; status.className = "kh-manual-status err"; return; }
+    if (!date){ status.textContent = "Pick a date."; status.className = "kh-manual-status err"; return; }
+
+    const payment = { id: "pay" + Math.random().toString(36).slice(2, 9), date, amount, note, linkTxId: null };
+    if (recordTx && account){
+      ensureCategory("Loan");
+      const txType = l.type === "borrowed" ? "out" : "in";
+      const vendor = l.type === "borrowed" ? `Loan repayment to ${l.person}` : `Loan repayment from ${l.person}`;
+      const tx = { date, vendor, category: "Loan", type: txType, amount, account, id: "tx" + (nextTxId++) };
+      TRANSACTIONS.push(tx);
+      payment.linkTxId = tx.id;
+    }
+    l.payments = l.payments || [];
+    l.payments.push(payment);
+
+    saveCurrentUser();
+    renderAll();
+    showToast(`Logged ${rs(amount)} payment`);
+    openPanel("loans");
+  }
+
+  function toggleLoanCalc(){
+    const el = document.getElementById("loanCalc");
+    el.style.display = el.style.display === "none" ? "block" : "none";
+    if (el.style.display === "block") runLoanCalc();
+  }
+
+  function runLoanCalc(){
+    const P = parseAmount(document.getElementById("calcPrincipal").value) || 0;
+    const annualRate = parseAmount(document.getElementById("calcRate").value) || 0;
+    const n = parseInt(document.getElementById("calcTenure").value, 10) || 0;
+    const type = document.getElementById("calcType").value;
+    const resEl = document.getElementById("loanCalcResult");
+    if (!P || !n){
+      resEl.innerHTML = `<div class="kh-empty">Enter the loan amount and tenure.</div>`;
+      return;
+    }
+
+    let emi, totalPayment, totalInterest;
+    if (type === "reducing"){
+      const r = annualRate / 12 / 100;
+      emi = r === 0 ? P / n : P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+      totalPayment = emi * n;
+      totalInterest = totalPayment - P;
+    } else {
+      totalInterest = P * (annualRate / 100) * (n / 12);
+      totalPayment = P + totalInterest;
+      emi = totalPayment / n;
+    }
+
+    resEl.innerHTML = `
+      <div class="kh-loan-amounts">
+        <div><span class="kh-loan-amt-label">Monthly payment</span><span class="kh-loan-amt-val">${rs(emi)}</span></div>
+        <div><span class="kh-loan-amt-label">Total interest</span><span class="kh-loan-amt-val">${rs(totalInterest)}</span></div>
+        <div><span class="kh-loan-amt-label">Total payment</span><span class="kh-loan-amt-val">${rs(totalPayment)}</span></div>
+      </div>
+    `;
+  }
+
   function renderAll(){
     renderChips();
     renderNepaliMonthFilter();
@@ -1641,6 +2230,7 @@
     renderPie();
     renderNepaliPie();
     renderTx();
+    renderLoanDashCard();
   }
 
   // ---------------------------------------------------------------------
