@@ -758,13 +758,8 @@
     renderAccountManager();
     renderCategoryManager();
 
-    status.textContent = `Added ${manualType === "in" ? "+" : "−"}${rs(amount)} for ${account}.`;
-    status.className = "kh-manual-status ok";
     showToast(`Added ${vendor}`);
-
-    document.getElementById("manualVendor").value = "";
-    document.getElementById("manualAmount").value = "";
-    document.getElementById("manualVendor").focus();
+    closePanel();
   }
 
   // ---------------------------------------------------------------------
@@ -1186,10 +1181,9 @@
       let msg = [];
       if (added) msg.push(`${added} transaction${added === 1 ? "" : "s"}`);
       if (balanceSet) msg.push("balance updated");
-      status.textContent = `Imported ${msg.join(", ")} for ${account}.` + (errors.length ? ` ${errors.length} item(s) skipped.` : "");
-      status.className = "kh-import-status " + (errors.length ? "err" : "ok");
       showToast(`Imported ${msg.join(", ")}`);
       document.getElementById("importInput").value = "";
+      closePanel();
     } else {
       status.textContent = errors.length ? errors.join(" · ") : "Nothing to import.";
       status.className = "kh-import-status err";
