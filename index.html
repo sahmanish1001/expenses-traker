@@ -327,54 +327,6 @@
 
   <div class="kh-demo-note" id="demoNote"></div>
 
-  <div class="kh-manual-card" id="manualCard" style="display:none;">
-    <p class="kh-manual-title">Add transaction manually</p>
-    <p class="kh-manual-hint">Log a purchase or transfer in a few taps — no need to paste anything.</p>
-    <div class="kh-manual-type">
-      <button type="button" class="kh-manual-type-btn active-out" id="manualTypeOutBtn" onclick="setManualType('out')">− Money out</button>
-      <button type="button" class="kh-manual-type-btn" id="manualTypeInBtn" onclick="setManualType('in')">+ Money in</button>
-    </div>
-    <div class="kh-manual-form">
-      <div class="kh-manual-field full">
-        <label for="manualVendor">Vendor / description</label>
-        <input id="manualVendor" placeholder="e.g. Chai Town" onkeydown="if(event.key==='Enter') addManualTransaction()" />
-      </div>
-      <div class="kh-manual-field">
-        <label for="manualAmount">Amount (Rs)</label>
-        <input id="manualAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" onkeydown="if(event.key==='Enter') addManualTransaction()" />
-      </div>
-      <div class="kh-manual-field">
-        <label for="manualDate">Date</label>
-        <input id="manualDate" type="date" />
-      </div>
-      <div class="kh-manual-field">
-        <label for="manualAccount">Account</label>
-        <select id="manualAccount"></select>
-      </div>
-      <div class="kh-manual-field">
-        <label for="manualCategory">Category</label>
-        <select id="manualCategory"></select>
-      </div>
-    </div>
-    <div class="kh-manual-actions">
-      <button class="kh-manual-btn" onclick="addManualTransaction()">Add transaction</button>
-      <button class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="toggleManualAdd()">Cancel</button>
-      <span class="kh-manual-status" id="manualStatus"></span>
-    </div>
-  </div>
-
-  <div class="kh-import-card" id="importCard" style="display:none;">
-    <p class="kh-import-title">Paste statement data</p>
-    <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" above instead.)</p>
-    <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
-    <div class="kh-import-actions">
-      <button class="kh-import-btn" onclick="importData()">Import</button>
-      <button class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="toggleImport()">Cancel</button>
-      <span class="kh-import-status" id="importStatus"></span>
-    </div>
-  </div>
-
-
   <div class="kh-main-grid">
     <div class="kh-left-column">
       <div class="kh-chips" id="chips"></div>
@@ -498,10 +450,59 @@
   <div class="kh-panel" id="panelMore">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">More</p>
-    <button class="kh-more-item" onclick="closePanel(); toggleManualAdd();">➕ Add transaction manually</button>
-    <button class="kh-more-item" onclick="closePanel(); toggleImport();">📥 Import statement (paste AI-parsed JSON)</button>
+    <button class="kh-more-item" onclick="openPanel('manual')">➕ Add transaction manually</button>
+    <button class="kh-more-item" onclick="openPanel('import')">📥 Import statement (paste AI-parsed JSON)</button>
     <button class="kh-more-item" onclick="closePanel(); loadDemoData();">🎲 Load demo dataset</button>
     <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelManual">
+    <div class="kh-panel-handle"></div>
+    <p class="kh-panel-title">Add transaction manually</p>
+    <p class="kh-manual-hint">Log a purchase or transfer in a few taps — no need to paste anything.</p>
+    <div class="kh-manual-type">
+      <button type="button" class="kh-manual-type-btn active-out" id="manualTypeOutBtn" onclick="setManualType('out')">− Money out</button>
+      <button type="button" class="kh-manual-type-btn" id="manualTypeInBtn" onclick="setManualType('in')">+ Money in</button>
+    </div>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full">
+        <label for="manualVendor">Vendor / description</label>
+        <input id="manualVendor" placeholder="e.g. Chai Town" onkeydown="if(event.key==='Enter') addManualTransaction()" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="manualAmount">Amount (Rs)</label>
+        <input id="manualAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" onkeydown="if(event.key==='Enter') addManualTransaction()" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="manualDate">Date</label>
+        <input id="manualDate" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="manualAccount">Account</label>
+        <select id="manualAccount"></select>
+      </div>
+      <div class="kh-manual-field">
+        <label for="manualCategory">Category</label>
+        <select id="manualCategory"></select>
+      </div>
+    </div>
+    <div class="kh-manual-actions">
+      <button class="kh-manual-btn" onclick="addManualTransaction()">Add transaction</button>
+      <button class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      <span class="kh-manual-status" id="manualStatus"></span>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelImport">
+    <div class="kh-panel-handle"></div>
+    <p class="kh-panel-title">Import statement</p>
+    <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
+    <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
+    <div class="kh-import-actions">
+      <button class="kh-import-btn" onclick="importData()">Import</button>
+      <button class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      <span class="kh-import-status" id="importStatus"></span>
+    </div>
   </div>
 
   <nav class="kh-bottom-nav" id="bottomNav">
@@ -684,29 +685,13 @@
   }
 
   function toggleImport(){
-    const el = document.getElementById("importCard");
-    const wasHidden = el.style.display === "none";
-    el.style.display = wasHidden ? "block" : "none";
-    if (wasHidden){
-      document.getElementById("manualCard").style.display = "none";
-      document.getElementById("importInput").focus();
-    }
+    openPanel("import");
   }
 
   let manualType = "out";
 
   function toggleManualAdd(){
-    const el = document.getElementById("manualCard");
-    const wasHidden = el.style.display === "none";
-    el.style.display = wasHidden ? "block" : "none";
-    if (wasHidden){
-      document.getElementById("importCard").style.display = "none";
-      document.getElementById("manualStatus").textContent = "";
-      document.getElementById("manualStatus").className = "kh-manual-status";
-      setManualType("out");
-      populateManualForm();
-      document.getElementById("manualVendor").focus();
-    }
+    openPanel("manual");
   }
 
   function setManualType(type){
@@ -786,7 +771,7 @@
   // Bottom navigation + glass slide-up panels (Account / Settings / More).
   // ---------------------------------------------------------------------
   let openPanelName = null;
-  const PANEL_IDS = { settings: "panelSettings", more: "panelMore" };
+  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -798,6 +783,18 @@
     openPanelName = name;
     setActiveNav(name);
     if (name === "settings") setSettingsTab("profile");
+    if (name === "manual"){
+      document.getElementById("manualStatus").textContent = "";
+      document.getElementById("manualStatus").className = "kh-manual-status";
+      setManualType("out");
+      populateManualForm();
+      setTimeout(() => document.getElementById("manualVendor").focus(), 300);
+    }
+    if (name === "import"){
+      document.getElementById("importStatus").textContent = "";
+      document.getElementById("importStatus").className = "kh-import-status";
+      setTimeout(() => document.getElementById("importInput").focus(), 300);
+    }
   }
 
   function setSettingsTab(tab){
