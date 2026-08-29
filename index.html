@@ -132,6 +132,14 @@
 
   /* Settings opens larger, with its own internal tabs */
   .kh-panel-large{max-height:80vh;}
+
+  /* Full pages (Home / Loans) that swap in the main content area, as
+     opposed to the slide-up overlay panels used for Settings/More/forms. */
+  .kh-page{display:none;}
+  .kh-page.active{display:block;}
+  .kh-loan-page-head{margin:0 0 16px;}
+  .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
+  .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
   .kh-settings-tabs{display:flex; gap:5px; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px; position:sticky; top:0; z-index:2;}
   .kh-settings-tab{flex:1; background:none; border:none; color:var(--dim); font-family:inherit; font-size:11.5px; font-weight:600; padding:9px 3px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
@@ -287,6 +295,11 @@
     .kh-row-cat{font-size:11.5px;}
     .kh-row-amt{font-size:14px;}
     .kh-import-card{max-width:760px;}
+
+    /* Loans page reads as a centered column on wider screens, same idea
+       as the panels above — full width would look sparse. */
+    #loanPage{margin-top:18px;}
+    #loanPage > *{max-width:720px; margin-left:auto; margin-right:auto;}
   }
   @media (min-width:1100px){
     .kh-app{padding-left:40px;padding-right:40px;}
@@ -384,7 +397,7 @@
 
   <div class="kh-demo-note" id="demoNote"></div>
 
-  <div class="kh-main-grid">
+  <div class="kh-main-grid kh-page active" id="homePage">
     <div class="kh-left-column">
       <div class="kh-chips" id="chips"></div>
 
@@ -515,10 +528,11 @@
     </div>
   </div>
 
-  <div class="kh-panel kh-panel-large" id="panelLoans" onclick="event.stopPropagation()">
-    <div class="kh-panel-handle"></div>
-    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
-    <p class="kh-panel-title">Loans</p>
+  <div class="kh-page" id="loanPage">
+    <div class="kh-loan-page-head">
+      <p class="kh-eyebrow">Track it</p>
+      <h2>Loans</h2>
+    </div>
 
     <div class="kh-loan-summary">
       <div class="kh-loan-summary-item">
@@ -577,7 +591,7 @@
 
   <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
-    <button type="button" class="kh-panel-close" onclick="openPanel('loans')" aria-label="Close">&#10005;</button>
+    <button type="button" class="kh-panel-close" onclick="showLoanPage()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title" id="loanFormTitle">New loan</p>
 
     <div class="kh-manual-type">
@@ -630,14 +644,14 @@
 
     <div class="kh-manual-actions">
       <button type="button" class="kh-manual-btn" onclick="saveLoan()" id="loanSaveBtn">Save loan</button>
-      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="openPanel('loans')">Cancel</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="showLoanPage()">Cancel</button>
       <span class="kh-manual-status" id="loanFormStatus"></span>
     </div>
   </div>
 
   <div class="kh-panel kh-panel-large" id="panelLoanPayment" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
-    <button type="button" class="kh-panel-close" onclick="openPanel('loans')" aria-label="Close">&#10005;</button>
+    <button type="button" class="kh-panel-close" onclick="showLoanPage()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">Log a payment</p>
     <p class="kh-import-hint" id="loanPaymentContext"></p>
 
@@ -666,7 +680,7 @@
 
     <div class="kh-manual-actions">
       <button type="button" class="kh-manual-btn" onclick="saveLoanPayment()">Log payment</button>
-      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="openPanel('loans')">Cancel</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="showLoanPage()">Cancel</button>
       <span class="kh-manual-status" id="loanPaymentStatus"></span>
     </div>
   </div>
@@ -737,7 +751,7 @@
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
     </button>
-    <button class="kh-nav-btn" id="navLoans" onclick="openPanel('loans')">
+    <button class="kh-nav-btn" id="navLoans" onclick="showLoanPage()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="6" width="19" height="12" rx="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 9v0M18.5 15v0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       <span>Loans</span>
     </button>
@@ -1127,7 +1141,8 @@
   // Bottom navigation + glass slide-up panels (Account / Settings / More).
   // ---------------------------------------------------------------------
   let openPanelName = null;
-  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport", loans: "panelLoans", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
+  let currentPage = "home";
+  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -1154,7 +1169,6 @@
       document.getElementById("importStatus").className = "kh-import-status";
       setTimeout(() => document.getElementById("importInput").focus(), 300);
     }
-    if (name === "loans") renderLoans();
     if (name === "loanform"){
       editingLoanId = null;
       document.getElementById("loanFormStatus").textContent = "";
@@ -1188,11 +1202,27 @@
     document.querySelectorAll(".kh-panel").forEach(p => p.classList.remove("show"));
     document.getElementById("panelBackdrop").classList.remove("show");
     openPanelName = null;
-    setActiveNav("home");
+    setActiveNav(currentPage);
+  }
+
+  function showPage(name){
+    document.getElementById("homePage").classList.toggle("active", name === "home");
+    document.getElementById("loanPage").classList.toggle("active", name === "loans");
+    currentPage = name;
   }
 
   function goHome(){
     closePanel();
+    showPage("home");
+    setActiveNav("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showLoanPage(){
+    closePanel();
+    showPage("loans");
+    setActiveNav("loans");
+    renderLoans();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2033,7 +2063,7 @@
     const el = document.getElementById("loanDashCard");
     if (!el) return;
     if (!LOANS.length){
-      el.innerHTML = `<div class="kh-loan-dash-empty">No loans tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="openPanel('loans')">Track a loan →</button></div>`;
+      el.innerHTML = `<div class="kh-loan-dash-empty">No loans tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showLoanPage()">Track a loan →</button></div>`;
       return;
     }
     const pos = netLoanPosition();
@@ -2041,7 +2071,7 @@
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">Net loan position</span>
-        <button type="button" class="kh-loan-dash-link" onclick="openPanel('loans')">View all →</button>
+        <button type="button" class="kh-loan-dash-link" onclick="showLoanPage()">View all →</button>
       </div>
       <div class="kh-loan-dash-row">
         <div><span class="kh-loan-dash-label">Owed to you</span><span class="kh-loan-dash-val" style="color:var(--in)">${rs(pos.lentOutstanding)}</span></div>
@@ -2120,7 +2150,7 @@
 
     saveCurrentUser();
     renderAll();
-    openPanel("loans");
+    showLoanPage();
   }
 
   function deleteLoanUI(id){
@@ -2182,7 +2212,7 @@
     saveCurrentUser();
     renderAll();
     showToast(`Logged ${rs(amount)} payment`);
-    openPanel("loans");
+    showLoanPage();
   }
 
   function toggleLoanCalc(){
