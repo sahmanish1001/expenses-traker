@@ -2372,7 +2372,7 @@
     if (/grocer|vegetable|tarkari|kirana|dairy|meat|fruit|provision/.test(n)) return "Groceries";
     if (/electric|water\s*bill|ntc\b|ncell|internet|wifi|rent\b|utility|insurance|bill\s*payment|school\s*fee|tuition/.test(n)) return "Bills & Payments";
     if (/fuel|petrol|diesel|\btaxi\b|\bbus\b|\bride\b|transport|parking|pathao|indrive/.test(n)) return "Transport";
-    if (/shopping|mart\b|store\b|clothes|fashion|electronics|pasal|garment|footwear/.test(n)) return "Shopping";
+    if (/shopping|mart\b|store\b|clothes|fashion|electronics|pasal|garment|footwear|\bsales\b/.test(n)) return "Shopping";
     return "Other";
   }
 
