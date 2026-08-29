@@ -281,6 +281,9 @@
   .kh-toast.show{opacity:1;}
   .kh-import-card{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
   .kh-import-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 4px;}
+  .kh-import-tabs{display:flex; gap:8px; margin:10px 0 12px;}
+  .kh-import-tab{flex:1; padding:8px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-import-tab.active{background:rgba(242,169,59,.16); border-color:var(--accent); color:var(--accent);}
   .kh-import-hint{font-size:11.5px; color:var(--dim); margin:0 0 10px; line-height:1.5;}
   .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Inter',sans-serif; font-size:16px; padding:10px 12px; line-height:1.5;}
   .kh-import-textarea:focus{outline:none; border-color:var(--accent);}
@@ -1145,13 +1148,30 @@
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">Import statement</p>
-    <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
-    <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
-    <div class="kh-import-actions">
-      <button type="button" class="kh-import-btn" onclick="importData()">Import</button>
-      <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
-      <span class="kh-import-status" id="importStatus"></span>
+    <div class="kh-import-tabs">
+      <button type="button" class="kh-import-tab active" id="importTabJson" onclick="setImportMode('json')">Paste JSON</button>
+      <button type="button" class="kh-import-tab" id="importTabSms" onclick="setImportMode('sms')">Paste SMS</button>
     </div>
+
+    <div id="importModeJson">
+      <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
+      <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
+      <div class="kh-import-actions">
+        <button type="button" class="kh-import-btn" onclick="importData()">Import</button>
+        <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      </div>
+    </div>
+
+    <div id="importModeSms" style="display:none;">
+      <p class="kh-import-hint">Paste one or more eSewa, Khalti, or bank SMS notifications — one per line, or separated by a blank line. Amount, date, merchant, and account are picked out automatically; review your transactions afterwards to fix anything that looks off.</p>
+      <textarea id="importSmsInput" class="kh-import-textarea" placeholder="Rs. 500.00 has been deducted from your eSewa a/c for Chai Town. Available balance Rs. 1,200.00"></textarea>
+      <div class="kh-import-actions">
+        <button type="button" class="kh-import-btn" onclick="importSms()">Import</button>
+        <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      </div>
+    </div>
+
+    <span class="kh-import-status" id="importStatus"></span>
   </div>
 
   <nav class="kh-bottom-nav" id="bottomNav">
@@ -1632,6 +1652,24 @@
   // ---------------------------------------------------------------------
   let openPanelName = null;
   let currentPage = "home";
+  // Import panel has two tabs sharing one status line: "Paste JSON" (the
+  // original AI-parsed-photo flow) and "Paste SMS" (regex-parsed bank/
+  // wallet notification text, no AI round-trip needed).
+  let importMode = "json";
+  function setImportMode(mode){
+    importMode = mode;
+    document.getElementById("importTabJson").classList.toggle("active", mode === "json");
+    document.getElementById("importTabSms").classList.toggle("active", mode === "sms");
+    document.getElementById("importModeJson").style.display = mode === "json" ? "" : "none";
+    document.getElementById("importModeSms").style.display = mode === "sms" ? "" : "none";
+    document.getElementById("importStatus").textContent = "";
+    document.getElementById("importStatus").className = "kh-import-status";
+    setTimeout(() => {
+      const el = document.getElementById(mode === "json" ? "importInput" : "importSmsInput");
+      if (el) el.focus();
+    }, 300);
+  }
+
   const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
 
   function openPanel(name){
@@ -1654,9 +1692,7 @@
       setTimeout(() => document.getElementById("manualVendor").focus(), 300);
     }
     if (name === "import"){
-      document.getElementById("importStatus").textContent = "";
-      document.getElementById("importStatus").className = "kh-import-status";
-      setTimeout(() => document.getElementById("importInput").focus(), 300);
+      setImportMode("json");
     }
     if (name === "loanform"){
       editingLoanId = null;
@@ -2371,6 +2407,202 @@
       closePanel();
     } else {
       status.textContent = errors.length ? errors.join(" · ") : "Nothing to import.";
+      status.className = "kh-import-status err";
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // "Paste SMS" import — pure client-side regex parsing of eSewa/Khalti/
+  // bank transaction notification texts. No AI round-trip, no network
+  // call: everything below runs entirely in the browser.
+  // ---------------------------------------------------------------------
+
+  // Known Nepali bank/wallet names we can recognize inside SMS text and
+  // map to a friendly account name. First match wins, so more specific
+  // patterns (e.g. "nic asia") come before generic ones.
+  const SMS_ACCOUNT_PATTERNS = [
+    [/e-?sewa/i, "eSewa"],
+    [/khalti/i, "Khalti"],
+    [/nic\s*asia/i, "NIC Asia Bank"],
+    [/global\s*ime/i, "Global IME Bank"],
+    [/machhapuchhre/i, "Machhapuchhre Bank"],
+    [/siddhartha/i, "Siddhartha Bank"],
+    [/standard\s*chartered/i, "Standard Chartered"],
+    [/himalayan/i, "Himalayan Bank"],
+    [/everest/i, "Everest Bank"],
+    [/prime\s*commercial/i, "Prime Commercial Bank"],
+    [/citizens/i, "Citizens Bank"],
+    [/sanima/i, "Sanima Bank"],
+    [/nepal\s*investment/i, "Nepal Investment Mega Bank"],
+    [/rastriya\s*banijya/i, "Rastriya Banijya Bank"],
+    [/agricultural?\s*development/i, "Agricultural Development Bank"],
+    [/nepal\s*sbi/i, "Nepal SBI Bank"],
+    [/prabhu/i, "Prabhu Bank"],
+    [/sunrise/i, "Sunrise Bank"],
+    [/laxmi/i, "Laxmi Sunrise Bank"],
+    [/\bnmb\b/i, "NMB Bank"],
+    [/nabil/i, "Nabil Bank"],
+    [/kumari/i, "Kumari Bank"],
+  ];
+
+  const SMS_OUT_WORDS = /debit(?:ed)?|deduct(?:ed)?|\bsent\b|\bpaid\b|purchase[d]?|withdraw(?:n|al)?|\bspent\b|payment\s+of|charged/i;
+  const SMS_IN_WORDS = /credit(?:ed)?|received|deposit(?:ed)?|\badded\b|top[- ]?up|refund(?:ed)?/i;
+  const SMS_BALANCE_RE = /(?:avl\.?\s*bal(?:ance)?|available\s*balance|current\s*balance|closing\s*bal(?:ance)?|balance\s*is|\bbal\.?)\s*:?\s*(?:is)?\s*(?:rs\.?|npr|nrs\.?)?\s*\.?\s*([\d,]+(?:\.\d{1,2})?)/i;
+  const SMS_VENDOR_STOP = "(?=\\s*(?:[.,]|\\bon\\b|\\bavl\\b|\\bavailable\\b|\\bbal\\b|\\bbalance\\b|\\bfor\\b|\\bat\\b|\\bto\\b|\\bref\\b|\\btxn\\b|$))";
+  const SMS_MONTHS = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+
+  function smsFindAmounts(text){
+    const re = /(?:rs\.?|npr|nrs\.?)\s*\.?\s*([\d,]+(?:\.\d{1,2})?)/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(text))) out.push(parseFloat(m[1].replace(/,/g, "")));
+    return out;
+  }
+
+  function smsDetectDirection(text){
+    const outM = SMS_OUT_WORDS.exec(text);
+    const inM = SMS_IN_WORDS.exec(text);
+    if (outM && inM) return outM.index <= inM.index ? "out" : "in";
+    if (outM) return "out";
+    if (inM) return "in";
+    return null;
+  }
+
+  function smsDetectBalance(text){
+    const m = SMS_BALANCE_RE.exec(text);
+    return m ? parseFloat(m[1].replace(/,/g, "")) : null;
+  }
+
+  function smsDetectDate(text){
+    let m = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/);
+    if (m){
+      let d = +m[1], mo = +m[2], y = +m[3];
+      if (y < 100) y += 2000;
+      if (mo > 12 && d <= 12){ const t = d; d = mo; mo = t; }
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31){
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${y}-${pad(mo)}-${pad(d)}`;
+      }
+    }
+    m = text.match(/\b(\d{1,2})[\s\-]([A-Za-z]{3,9})[\s\-,]*(\d{2,4})?\b/);
+    if (m){
+      const mon = SMS_MONTHS[m[2].slice(0, 3).toLowerCase()];
+      if (mon){
+        let y = m[3] ? +m[3] : new Date().getFullYear();
+        if (y < 100) y += 2000;
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${y}-${pad(mon)}-${pad(+m[1])}`;
+      }
+    }
+    return null;
+  }
+
+  // "for"/"to X" usually names the merchant or recipient; "from" after a
+  // debit usually just names the person's own account/wallet, and "to"
+  // after a credit is the same trap in reverse — so which preposition to
+  // trust first depends on whether money left or arrived.
+  function smsDetectVendor(text, direction){
+    const order = direction === "out" ? ["for", "to", "at", "by", "from"] : ["from", "for", "by", "at", "to"];
+    for (const kw of order){
+      const re = new RegExp("\\b" + kw + "\\s+([A-Za-z0-9&.,'\\/\\- ]{2,40}?)" + SMS_VENDOR_STOP, "i");
+      const m = re.exec(text);
+      if (!m) continue;
+      const v = m[1].trim().replace(/\s{2,}/g, " ");
+      if (v.length >= 2 && !/^your\b/i.test(v) && !/\baccount\b$/i.test(v)) return v;
+    }
+    return direction === "in" ? "SMS transfer received" : "SMS transaction";
+  }
+
+  function smsDetectAccount(text){
+    for (const [re, name] of SMS_ACCOUNT_PATTERNS){ if (re.test(text)) return name; }
+    return "Other";
+  }
+
+  // Splits pasted text into one chunk per SMS. Prefers blank-line-separated
+  // paragraphs (how most apps paste multi-message selections); falls back
+  // to one message per line if there's no blank line in the paste.
+  function splitSmsBlocks(raw){
+    let blocks = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+    if (blocks.length <= 1){
+      const lines = raw.split(/\n/).map((s) => s.trim()).filter(Boolean);
+      if (lines.length > 1) blocks = lines;
+    }
+    if (!blocks.length && raw.trim()) blocks = [raw.trim()];
+    return blocks;
+  }
+
+  // Reads one SMS message and normalizes it into the same shape parseTxObject
+  // produces, plus a detected account name and an optional balance reading.
+  function parseSmsBlock(text, i, errors){
+    const clean = text.replace(/\s+/g, " ").trim();
+    if (!clean) return null;
+
+    const amounts = smsFindAmounts(clean);
+    if (!amounts.length){ errors.push(`Message ${i + 1}: couldn't find a Rs./NPR amount`); return null; }
+
+    const direction = smsDetectDirection(clean);
+    if (!direction){ errors.push(`Message ${i + 1}: couldn't tell if money was sent or received`); return null; }
+
+    const balance = smsDetectBalance(clean);
+    let amount = amounts[0];
+    if (balance !== null && amounts.length > 1){
+      const nonBalance = amounts.find((a) => a !== balance);
+      if (nonBalance !== undefined) amount = nonBalance;
+    }
+    if (!amount){ errors.push(`Message ${i + 1}: missing/bad amount`); return null; }
+
+    const date = smsDetectDate(clean) || todayStr();
+    const vendor = smsDetectVendor(clean, direction);
+    const account = smsDetectAccount(clean);
+    const category = direction === "in" ? "Transfer In" : "Transfer Out";
+
+    return { date, vendor, category, type: direction, amount, account, balance };
+  }
+
+  function importSms(){
+    const raw = document.getElementById("importSmsInput").value.trim();
+    const status = document.getElementById("importStatus");
+
+    if (!raw){
+      status.textContent = "Paste one or more SMS messages first.";
+      status.className = "kh-import-status err";
+      return;
+    }
+
+    const blocks = splitSmsBlocks(raw);
+    const errors = [];
+    const balancesByAccount = {};
+    let added = 0;
+
+    blocks.forEach((block, i) => {
+      const parsed = parseSmsBlock(block, i, errors);
+      if (!parsed) return;
+      ensureAccount(parsed.account);
+      ensureCategory(parsed.category);
+      TRANSACTIONS.push({
+        date: parsed.date, vendor: parsed.vendor, category: parsed.category,
+        type: parsed.type, amount: parsed.amount, account: parsed.account,
+        id: "tx" + (nextTxId++),
+      });
+      added++;
+      if (parsed.balance !== null) balancesByAccount[parsed.account] = parsed.balance;
+    });
+
+    const balanceAccounts = Object.keys(balancesByAccount);
+    balanceAccounts.forEach((acc) => { BALANCES[acc] = balancesByAccount[acc]; });
+
+    if (added){
+      saveCurrentUser();
+      renderAll();
+      renderCategoryManager();
+      renderAccountManager();
+      const msg = [`${added} transaction${added === 1 ? "" : "s"}`];
+      if (balanceAccounts.length) msg.push(`balance updated for ${balanceAccounts.length} account${balanceAccounts.length === 1 ? "" : "s"}`);
+      showToast(`Imported ${msg.join(", ")}`);
+      document.getElementById("importSmsInput").value = "";
+      closePanel();
+    } else {
+      status.textContent = errors.length ? errors.join(" · ") : "Couldn't parse any messages.";
       status.className = "kh-import-status err";
     }
   }
