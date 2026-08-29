@@ -205,6 +205,12 @@
   .kh-about-block p{margin:0; font-size:12.5px; line-height:1.6; color:var(--text);}
   .kh-about-block p + p{margin-top:8px;}
   .kh-about-links{display:flex; flex-direction:column; gap:6px;}
+  .kh-about-dev-row{display:flex; align-items:center; gap:12px;}
+  .kh-about-dev-avatar{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#1a1400; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; flex-shrink:0;}
+  .kh-about-dev-text{min-width:0;}
+  .kh-about-dev-text .name{margin:0; font-size:13.5px; font-weight:600; color:var(--text);}
+  .kh-about-dev-text .email{display:inline-block; margin-top:2px; font-size:12px; color:var(--accent2); text-decoration:none; word-break:break-all;}
+  .kh-about-dev-text .email:hover{text-decoration:underline;}
   .kh-about-link-row{display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px dashed var(--border); font-size:12.5px;}
   .kh-about-link-row:last-child{border-bottom:none;}
   .kh-about-link-row span:first-child{color:var(--dim);}
@@ -845,6 +851,17 @@
       <div class="kh-about-block">
         <h4>Data &amp; privacy</h4>
         <p>All transaction data is stored locally in your browser, scoped to your signed-in Google account — nothing is ever sent to a server. Clearing your browser data or switching devices won't carry your data over unless you export/import a backup manually from Backup &amp; Sync.</p>
+      </div>
+
+      <div class="kh-about-block">
+        <h4>Developer</h4>
+        <div class="kh-about-dev-row">
+          <div class="kh-about-dev-avatar">MS</div>
+          <div class="kh-about-dev-text">
+            <p class="name">Manish Kumar Sah</p>
+            <a class="email" href="mailto:sah.manish868@gmail.com">sah.manish868@gmail.com</a>
+          </div>
+        </div>
       </div>
 
       <div class="kh-about-block">
