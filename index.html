@@ -80,6 +80,8 @@
   .kh-legend-row.active{background:rgba(242,169,59,.12);}
   .kh-np-filter-clear{font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; margin-top:8px; font-family:inherit;}
 
+  .kh-welcome-greeting{margin:14px 2px 0; font-size:14.5px; color:var(--text); font-weight:500;}
+  .kh-welcome-greeting span{color:var(--dim); font-weight:400;}
   .kh-header-avatar-btn{width:38px; height:38px; border-radius:50%; padding:0; border:1px solid rgba(255,255,255,.18); background:var(--surface2); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; color:var(--dim); font-size:17px;}
   .kh-header-avatar-btn:active{transform:scale(.94);}
   .kh-header-avatar-btn img{width:100%; height:100%; object-fit:cover; display:block;}
@@ -417,6 +419,8 @@
       </button>
     </div>
   </div>
+
+  <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
 
   <button class="kh-manual-fab" id="manualFab" onclick="toggleManualAdd()" title="Add transaction manually" aria-label="Add transaction manually">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -2356,6 +2360,9 @@
       headerImg.style.display = "none";
       headerFallback.style.display = "block";
     }
+
+    const firstName = (user.name || user.email.split("@")[0]).split(" ")[0];
+    document.getElementById("welcomeGreeting").innerHTML = `Welcome, ${firstName} <span>· ${user.email}</span>`;
 
     loadUserData(user.email);
     renderAll();
