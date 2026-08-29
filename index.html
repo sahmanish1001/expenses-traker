@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Kharchā" />
 <meta name="theme-color" content="#12141c" />
+<script>(function(){try{var t=localStorage.getItem("kh_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
@@ -20,6 +21,13 @@
     --bg:#12141c; --surface:#191c27; --surface2:#20232f; --border:rgba(255,255,255,.08);
     --text:#f2f0ea; --dim:#9396a8; --accent:#f2a93b; --accent2:#7f9cf5; --in:#5fd1a4; --out:#ef6f6c;
   }
+  html[data-theme="light"]{
+    --bg:#f4f2ec; --surface:#ffffff; --surface2:#eeece4; --border:rgba(20,20,30,.1);
+    --text:#1c1e27; --dim:#6b6e7c; --accent:#c67f1c; --accent2:#4d63c4; --in:#218a63; --out:#c0453f;
+  }
+  html[data-theme="light"] .kh-panel{background:rgba(255,255,255,.92);}
+  html[data-theme="light"] .kh-panel-backdrop{background:rgba(20,20,30,.25);}
+  html[data-theme="light"] .kh-bottom-nav{background:rgba(255,255,255,.82); border-color:rgba(20,20,30,.1); box-shadow:0 10px 34px rgba(20,20,30,.14), inset 0 1px 0 rgba(255,255,255,.4);}
   *{box-sizing:border-box;}
   /* Keeps iOS Safari from auto-zooming the page when a form field is
      focused — any input smaller than 16px triggers that zoom. */
@@ -161,6 +169,23 @@
   .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
   .kh-settings-section{display:none;}
   .kh-settings-section.active{display:block;}
+
+  /* Settings: toggle rows (Appearance / Notifications / Calendar) */
+  .kh-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .kh-toggle-row-text{min-width:0;}
+  .kh-toggle-row-title{font-size:13px; font-weight:600;}
+  .kh-toggle-row-sub{font-size:11.5px; color:var(--dim); margin-top:2px; line-height:1.4;}
+  .kh-toggle-switch{position:relative; flex-shrink:0; width:42px; height:24px;}
+  .kh-toggle-switch input{opacity:0; width:0; height:0;}
+  .kh-toggle-slider{position:absolute; inset:0; background:var(--border); border-radius:999px; cursor:pointer; transition:background .15s;}
+  .kh-toggle-slider::before{content:""; position:absolute; left:3px; top:3px; width:18px; height:18px; background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.3); border-radius:50%; transition:transform .15s;}
+  .kh-toggle-switch input:checked + .kh-toggle-slider{background:var(--accent);}
+  .kh-toggle-switch input:checked + .kh-toggle-slider::before{transform:translateX(18px);}
+  .kh-theme-options{display:flex; gap:8px; margin-top:10px;}
+  .kh-theme-opt{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 8px; cursor:pointer; color:var(--dim); font-size:12px; font-weight:600; font-family:inherit;}
+  .kh-theme-opt.active{border-color:var(--accent); color:var(--text); background:rgba(242,169,59,.1);}
+  .kh-theme-opt-swatch{width:100%; height:34px; border-radius:8px; border:1px solid var(--border);}
+  .kh-danger-zone{margin-top:16px; background:var(--surface); border:1px solid rgba(239,111,108,.28); border-radius:14px; padding:14px;}
 
   /* Splash screen */
   .kh-splash{position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:9999; transition:opacity .5s ease; opacity:1;}
@@ -509,15 +534,25 @@
     <p class="kh-panel-title">Settings</p>
 
     <div class="kh-settings-tabs">
-      <button class="kh-settings-tab active" id="settingsTabBtnProfile" onclick="setSettingsTab('profile')">Profile</button>
+      <button class="kh-settings-tab active" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
+      <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="setSettingsTab('appearance')">Appearance</button>
+      <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="setSettingsTab('notifications')">Notifications</button>
+      <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="setSettingsTab('backup')">Backup &amp; Sync</button>
+      <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="setSettingsTab('calendar')">Nepali Calendar</button>
       <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="setSettingsTab('wallets')">Wallets</button>
-      <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
       <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')">Categories</button>
       <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')">Data</button>
     </div>
 
-    <div class="kh-settings-section active" id="settingsSectionProfile">
-      <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
+    <!-- ===================== ACCOUNT (profile + Google sign-in, first) ===================== -->
+    <div class="kh-settings-section active" id="settingsSectionAccount">
+      <p class="kh-cat-title">Signed in with Google</p>
+      <p class="kh-cat-hint">Every Google account that signs in gets its own private tracker on this device — transactions, categories, and this profile are never shared between accounts.</p>
+      <div class="kh-account-panel-row" id="accountPanelInfo" style="margin-top:10px;"></div>
+      <button class="kh-signout-btn" style="width:100%; margin-top:14px; padding:11px;" onclick="signOut()">Sign out</button>
+      <p class="kh-cat-hint" style="margin-top:12px;">To switch to a different Google account, sign out and sign back in with the account you want.</p>
+
+      <div class="kh-cat-manager" style="margin-top:18px; padding:0; background:none; border:none;">
         <p class="kh-cat-title">Edit profile</p>
         <p class="kh-cat-hint">This is saved to your account only — no one else can see it.</p>
         <div class="kh-profile-form">
@@ -553,6 +588,76 @@
       </div>
     </div>
 
+    <!-- ===================== APPEARANCE ===================== -->
+    <div class="kh-settings-section" id="settingsSectionAppearance">
+      <p class="kh-cat-title">Theme</p>
+      <p class="kh-cat-hint">Choose how Kharchā looks on this device. This is saved to your browser, not your account.</p>
+      <div class="kh-theme-options">
+        <button type="button" class="kh-theme-opt" id="themeOptDark" onclick="setTheme('dark')">
+          <span class="kh-theme-opt-swatch" style="background:#12141c; border-color:#2a2d3a;"></span>
+          🌙 Dark
+        </button>
+        <button type="button" class="kh-theme-opt" id="themeOptLight" onclick="setTheme('light')">
+          <span class="kh-theme-opt-swatch" style="background:#f4f2ec; border-color:#dcd9cf;"></span>
+          ☀️ Light
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================== NOTIFICATIONS ===================== -->
+    <div class="kh-settings-section" id="settingsSectionNotifications">
+      <p class="kh-cat-title">Notifications</p>
+      <p class="kh-cat-hint">Kharchā has no server, so these are on-device alerts shown when you open the app — not push notifications.</p>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">Budget alerts</div>
+          <div class="kh-toggle-row-sub">Warn when a category or your overall budget is close to or over its limit.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="notifBudgetToggle" onchange="setNotifPref('budget', this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
+      </div>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">Loan due reminders</div>
+          <div class="kh-toggle-row-sub">Flag loans that are due soon or overdue on the Loans page.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="notifLoansToggle" onchange="setNotifPref('loans', this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ===================== BACKUP & SYNC ===================== -->
+    <div class="kh-settings-section" id="settingsSectionBackup">
+      <p class="kh-cat-title">Backup &amp; sync</p>
+      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account — there's no automatic cloud sync yet, so back up manually and regularly. Clearing your browser data or switching devices wipes everything with no recovery otherwise. The .json backup can restore your data here later; the .csv opens in Excel or Google Sheets for viewing/analysis but can't be restored from.</p>
+      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="exportData()">⬇ Download backup (.json)</button>
+      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:var(--in); color:#0f2a20;" onclick="exportCSV()">⬇ Export to Excel (.csv)</button>
+      <label class="kh-manual-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:transparent; border:1px solid var(--border); color:var(--text); cursor:pointer; display:flex;">
+        ⬆ Restore from backup
+        <input type="file" accept="application/json" style="display:none" onchange="restoreDataFile(this)" />
+      </label>
+    </div>
+
+    <!-- ===================== NEPALI CALENDAR ===================== -->
+    <div class="kh-settings-section" id="settingsSectionCalendar">
+      <p class="kh-cat-title">Nepali calendar</p>
+      <p class="kh-cat-hint">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically — no manual entry needed.</p>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">Show BS date first</div>
+          <div class="kh-toggle-row-sub">Lead with the Bikram Sambat date in the transaction list, with the AD date alongside it.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="calendarBsFirstToggle" onchange="setCalendarBsFirst(this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <div class="kh-settings-section" id="settingsSectionWallets">
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
         <p class="kh-cat-title">Your accounts</p>
@@ -564,15 +669,6 @@
         <div class="kh-cat-list" id="accountList"></div>
       </div>
     </div>
-
-    <div class="kh-settings-section" id="settingsSectionAccount">
-      <p class="kh-cat-title">Signed in with Google</p>
-      <p class="kh-cat-hint">Every Google account that signs in gets its own private tracker on this device — transactions, categories, and this profile are never shared between accounts.</p>
-      <div class="kh-account-panel-row" id="accountPanelInfo" style="margin-top:10px;"></div>
-      <button class="kh-signout-btn" style="width:100%; margin-top:18px; padding:11px;" onclick="signOut()">Sign out</button>
-      <p class="kh-cat-hint" style="margin-top:12px;">To switch to a different Google account, sign out and sign back in with the account you want — it'll pick up right where that account left off, or start fresh if it's new.</p>
-    </div>
-
 
     <div class="kh-settings-section" id="settingsSectionCategories">
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
@@ -588,17 +684,14 @@
 
     <div class="kh-settings-section" id="settingsSectionData">
       <p class="kh-cat-title">Data</p>
-      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account. Download a backup regularly — clearing your browser data or switching devices wipes everything with no recovery otherwise. The .json backup can restore your data here later; the .csv opens in Excel or Google Sheets for viewing/analysis but can't be restored from.</p>
-      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="exportData()">⬇ Download backup (.json)</button>
-      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:var(--in); color:#0f2a20;" onclick="exportCSV()">⬇ Export to Excel (.csv)</button>
-      <label class="kh-manual-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:transparent; border:1px solid var(--border); color:var(--text); cursor:pointer; display:flex;">
-        ⬆ Restore from backup
-        <input type="file" accept="application/json" style="display:none" onchange="restoreDataFile(this)" />
-      </label>
-      <button class="kh-more-item" style="margin-top:16px;" onclick="goHome(); loadDemoData();">🎲 Load demo dataset</button>
-      <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
-      <p class="kh-cat-hint" style="margin-top:16px;">Danger zone</p>
-      <button class="kh-clear-btn" style="width:100%; margin-top:0; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+      <p class="kh-cat-hint">Each Google account's transactions, balances, and categories are saved only on this device.</p>
+      <button class="kh-more-item" style="margin-top:8px;" onclick="goHome(); loadDemoData();">🎲 Load demo dataset</button>
+      <p class="kh-more-about">Need to back up or restore your data instead? That's under the Backup &amp; Sync tab.</p>
+      <div class="kh-danger-zone">
+        <p class="kh-cat-title">Danger zone</p>
+        <p class="kh-cat-hint">Permanently delete every transaction and balance for this account. This can't be undone.</p>
+        <button class="kh-clear-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+      </div>
     </div>
   </div>
 
@@ -1290,7 +1383,7 @@
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
     setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : name);
-    if (name === "settings") setSettingsTab("profile");
+    if (name === "settings"){ setSettingsTab("account"); populateAppearanceNotifCalendarUI(); }
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
       document.getElementById("manualStatus").className = "kh-manual-status";
@@ -1329,10 +1422,74 @@
   }
 
   function setSettingsTab(tab){
-    ["profile", "wallets", "account", "categories", "data"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "data"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Appearance (theme), Notifications, and Nepali Calendar display prefs.
+  // These are on-device browser preferences (not per-Google-account data),
+  // so they're stored directly in localStorage rather than in the synced
+  // per-user snapshot.
+  // ---------------------------------------------------------------------
+  function setTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    try{ localStorage.setItem("kh_theme", theme); }catch(e){}
+    applyThemeUI();
+  }
+
+  function applyThemeUI(){
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const darkBtn = document.getElementById("themeOptDark");
+    const lightBtn = document.getElementById("themeOptLight");
+    if (darkBtn) darkBtn.classList.toggle("active", current === "dark");
+    if (lightBtn) lightBtn.classList.toggle("active", current === "light");
+  }
+
+  function getNotifPref(key){
+    try{ return localStorage.getItem("kh_notif_" + key) !== "0"; }catch(e){ return true; }
+  }
+  function setNotifPref(key, enabled){
+    try{ localStorage.setItem("kh_notif_" + key, enabled ? "1" : "0"); }catch(e){}
+  }
+
+  function getCalendarBsFirst(){
+    try{ return localStorage.getItem("kh_calendar_bs_first") === "1"; }catch(e){ return false; }
+  }
+  function setCalendarBsFirst(enabled){
+    try{ localStorage.setItem("kh_calendar_bs_first", enabled ? "1" : "0"); }catch(e){}
+    renderTx();
+  }
+
+  function checkAlerts(){
+    if (getNotifPref("budget") && BUDGET_OVERALL){
+      const overallSpent = spendThisMonth(null);
+      if (overallSpent >= BUDGET_OVERALL){
+        showToast(`⚠ Over your overall budget by ${rs(overallSpent - BUDGET_OVERALL)}`);
+        return;
+      }
+    }
+    if (getNotifPref("loans")){
+      const today = todayStr();
+      const dueSoon = LOANS.find(l => l.dueDate && loanStatus(l) !== "Cleared" && daysBetween(today, l.dueDate) <= 3);
+      if (dueSoon){
+        const days = Math.round(daysBetween(today, dueSoon.dueDate));
+        const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
+        showToast(`⏰ Loan with ${dueSoon.person} ${when}`);
+      }
+    }
+  }
+
+  function populateAppearanceNotifCalendarUI(){
+    applyThemeUI();
+    const budgetToggle = document.getElementById("notifBudgetToggle");
+    const loansToggle = document.getElementById("notifLoansToggle");
+    if (budgetToggle) budgetToggle.checked = getNotifPref("budget");
+    if (loansToggle) loansToggle.checked = getNotifPref("loans");
+    const calToggle = document.getElementById("calendarBsFirstToggle");
+    if (calToggle) calToggle.checked = getCalendarBsFirst();
   }
 
   function closePanel(){
@@ -2139,7 +2296,9 @@
     let html = "";
     Object.entries(groups).forEach(([day, rows]) => {
       html += `<div class="kh-day">
-        <div class="kh-day-label">${fmtDate(day)} <span class="kh-day-np">· ${bsLabel(day)} BS</span><div class="kh-day-line"></div></div>
+        <div class="kh-day-label">${getCalendarBsFirst()
+            ? `${bsLabel(day)} BS <span class="kh-day-np">· ${fmtDate(day)}</span>`
+            : `${fmtDate(day)} <span class="kh-day-np">· ${bsLabel(day)} BS</span>`}<div class="kh-day-line"></div></div>
         <div class="kh-card">`;
       rows.forEach(t => {
         const meta = CAT[t.category] || CAT.Other;
@@ -2739,6 +2898,7 @@
     renderAll();
     renderCategoryManager();
     renderAccountManager();
+    setTimeout(checkAlerts, 600);
   }
 
   function signOut(){
