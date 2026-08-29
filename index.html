@@ -468,8 +468,15 @@
 
     <div class="kh-settings-section" id="settingsSectionData">
       <p class="kh-cat-title">Data</p>
-      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account.</p>
-      <button class="kh-clear-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
+      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account. Download a backup regularly — clearing your browser data or switching devices wipes everything with no recovery otherwise. The .json backup can restore your data here later; the .csv opens in Excel or Google Sheets for viewing/analysis but can't be restored from.</p>
+      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="exportData()">⬇ Download backup (.json)</button>
+      <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:var(--in); color:#0f2a20;" onclick="exportCSV()">⬇ Export to Excel (.csv)</button>
+      <label class="kh-manual-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:transparent; border:1px solid var(--border); color:var(--text); cursor:pointer; display:flex;">
+        ⬆ Restore from backup
+        <input type="file" accept="application/json" style="display:none" onchange="restoreDataFile(this)" />
+      </label>
+      <p class="kh-cat-hint" style="margin-top:16px;">Danger zone</p>
+      <button class="kh-clear-btn" style="width:100%; margin-top:0; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
     </div>
   </div>
 
@@ -906,6 +913,96 @@
     saveCurrentUser();
     renderAll();
     showToast("All data cleared");
+  }
+
+  function exportData(){
+    const snapshot = {
+      app: "Kharcha",
+      exportedAt: new Date().toISOString(),
+      transactions: TRANSACTIONS,
+      balances: BALANCES,
+      nextTxId,
+      profile: PROFILE,
+      customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
+      customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
+      hiddenAccounts: HIDDEN_ACCOUNTS,
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kharcha-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Backup downloaded");
+  }
+
+  function csvEscape(val){
+    const s = String(val ?? "");
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportCSV(){
+    if (TRANSACTIONS.length === 0){
+      showToast("No transactions to export yet");
+      return;
+    }
+    const rows = [["Date (AD)", "Date (BS)", "Vendor", "Category", "Account", "Type", "Amount (Rs)"]];
+    [...TRANSACTIONS].sort((a,b) => a.date < b.date ? -1 : 1).forEach(t => {
+      rows.push([t.date, bsLabel(t.date), t.vendor, t.category, t.account, t.type === "in" ? "Money in" : "Money out", t.amount]);
+    });
+    const csv = rows.map(r => r.map(csvEscape).join(",")).join("\r\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kharcha-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("CSV downloaded");
+  }
+
+  function restoreDataFile(input){
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      let data;
+      try { data = JSON.parse(e.target.result); }
+      catch(err){ showToast("That file isn't a valid backup"); input.value = ""; return; }
+      if (!data || !Array.isArray(data.transactions)){
+        showToast("That file isn't a valid Kharchā backup");
+        input.value = "";
+        return;
+      }
+      if (!confirm("Restore this backup? This replaces everything currently in your tracker.")){
+        input.value = "";
+        return;
+      }
+      resetAccountsAndCategoriesToDefault();
+      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
+      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
+      TRANSACTIONS = data.transactions || [];
+      BALANCES = data.balances || {};
+      nextTxId = data.nextTxId || (TRANSACTIONS.length + 1);
+      PROFILE = data.profile || PROFILE;
+      TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
+      activeAccount = "All";
+      activeNepaliMonth = "All";
+      saveCurrentUser();
+      renderAll();
+      renderAccountManager();
+      renderCategoryManager();
+      populateProfileForm();
+      input.value = "";
+      showToast("Backup restored");
+    };
+    reader.readAsText(file);
   }
 
   const PALETTE = ["#f2a93b","#5fd1a4","#ef6f6c","#7f9cf5","#c792ea","#e8a87c","#6ec6dc","#8fd19e","#e0473e","#3aa655"];
