@@ -283,6 +283,26 @@
   .kh-budget-row-set{display:flex; gap:8px; margin-top:10px; align-items:center;}
   .kh-budget-row-set input{flex:1; min-width:0; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:7px 9px; font-size:12px; font-family:inherit;}
 
+  .kh-insight-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px;}
+  .kh-insight-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 12px;}
+  .kh-mom-row{display:flex; gap:12px;}
+  .kh-mom-item{flex:1; text-align:center;}
+  .kh-mom-label{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.05em;}
+  .kh-mom-amt{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; margin-top:5px;}
+  .kh-mom-delta{margin-top:12px; text-align:center; font-size:12.5px; font-weight:600;}
+  .kh-trend-chart{display:flex; align-items:flex-end; gap:8px; height:140px;}
+  .kh-trend-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .kh-trend-amt{font-size:9px; color:var(--dim); margin-bottom:4px; white-space:nowrap;}
+  .kh-trend-bar{width:100%; border-radius:6px 6px 0 0; background:var(--accent); min-height:3px;}
+  .kh-trend-label{font-size:9.5px; color:var(--dim); margin-top:6px; text-align:center;}
+  .kh-rank-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--border);}
+  .kh-rank-row:last-child{border-bottom:none;}
+  .kh-rank-num{width:18px; text-align:center; font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--dim); font-size:12px; flex-shrink:0;}
+  .kh-rank-mid{flex:1; min-width:0;}
+  .kh-rank-name{font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .kh-rank-sub{font-size:11px; color:var(--dim); margin-top:1px;}
+  .kh-rank-amt{font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; flex-shrink:0;}
+
   /* Laptop / desktop layout */
   @media (min-width:768px){
     body{min-height:100vh;}
@@ -575,6 +595,8 @@
         ⬆ Restore from backup
         <input type="file" accept="application/json" style="display:none" onchange="restoreDataFile(this)" />
       </label>
+      <button class="kh-more-item" style="margin-top:16px;" onclick="goHome(); loadDemoData();">🎲 Load demo dataset</button>
+      <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
       <p class="kh-cat-hint" style="margin-top:16px;">Danger zone</p>
       <button class="kh-clear-btn" style="width:100%; margin-top:0; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
     </div>
@@ -665,6 +687,43 @@
 
     <p class="kh-section-title">By category</p>
     <div id="budgetCatList"></div>
+  </div>
+
+  <div class="kh-page" id="insightsPage">
+    <div class="kh-budget-page-head">
+      <p class="kh-eyebrow">Patterns & trends</p>
+      <h2>Insights</h2>
+    </div>
+
+    <div class="kh-insight-card">
+      <p class="kh-insight-title">This month vs last month</p>
+      <div class="kh-mom-row">
+        <div class="kh-mom-item">
+          <div class="kh-mom-label" id="momCurLabel">This month</div>
+          <div class="kh-mom-amt" id="momCurAmt">Rs 0</div>
+        </div>
+        <div class="kh-mom-item">
+          <div class="kh-mom-label" id="momPrevLabel">Last month</div>
+          <div class="kh-mom-amt" style="color:var(--dim)" id="momPrevAmt">Rs 0</div>
+        </div>
+      </div>
+      <div id="momDelta"></div>
+    </div>
+
+    <div class="kh-insight-card">
+      <p class="kh-insight-title">Last 6 months</p>
+      <div class="kh-trend-chart" id="trendChart"></div>
+    </div>
+
+    <div class="kh-insight-card">
+      <p class="kh-insight-title">Biggest categories this month</p>
+      <div id="topCategories"></div>
+    </div>
+
+    <div class="kh-insight-card">
+      <p class="kh-insight-title">Top vendors (all time)</p>
+      <div id="topVendors"></div>
+    </div>
   </div>
 
   <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
@@ -763,16 +822,6 @@
     </div>
   </div>
 
-  <div class="kh-panel" id="panelMore" onclick="event.stopPropagation()">
-    <div class="kh-panel-handle"></div>
-    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
-    <p class="kh-panel-title">More</p>
-    <button class="kh-more-item" onclick="openPanel('manual')">➕ Add transaction manually</button>
-    <button class="kh-more-item" onclick="openPanel('import')">📥 Import statement (paste AI-parsed JSON)</button>
-    <button class="kh-more-item" onclick="closePanel(); loadDemoData();">🎲 Load demo dataset</button>
-    <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
-  </div>
-
   <div class="kh-panel kh-panel-large" id="panelManual" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
@@ -841,9 +890,9 @@
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <span>Settings</span>
     </button>
-    <button class="kh-nav-btn" id="navMore" onclick="openPanel('more')">
-      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-      <span>More</span>
+    <button class="kh-nav-btn" id="navInsights" onclick="showInsightsPage()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V10M10 19V5M16 19v-7M20 19V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Insights</span>
     </button>
   </nav>
 
@@ -1230,7 +1279,7 @@
   // ---------------------------------------------------------------------
   let openPanelName = null;
   let currentPage = "home";
-  const PANEL_IDS = { settings: "panelSettings", more: "panelMore", manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
+  const PANEL_IDS = { settings: "panelSettings", manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -1297,13 +1346,14 @@
     document.getElementById("homePage").classList.toggle("active", name === "home");
     document.getElementById("loanPage").classList.toggle("active", name === "loans");
     document.getElementById("budgetPage").classList.toggle("active", name === "budget");
+    document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     currentPage = name;
     const fab = document.getElementById("manualFab");
     if (fab){
       const label = name === "loans" ? "Add loan" : "Add transaction manually";
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = name === "budget" ? "none" : "";
+      fab.style.display = (name === "budget" || name === "insights") ? "none" : "";
     }
   }
 
@@ -1330,8 +1380,16 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showInsightsPage(){
+    closePanel();
+    showPage("insights");
+    setActiveNav("insights");
+    renderInsightsPage();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function setActiveNav(name){
-    ["home", "loans", "budget", "settings", "more"].forEach(n => {
+    ["home", "loans", "budget", "insights", "settings"].forEach(n => {
       const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
       if (btn) btn.classList.toggle("active", n === name);
     });
@@ -2382,11 +2440,22 @@
     return `${NEPALI_MONTHS[bs.month - 1].name} ${bs.year}`;
   }
 
-  function spendThisMonth(category){
-    const key = currentBsMonthKey();
+  // Shifts a BS year/month by `delta` months (can be negative), wrapping the
+  // year correctly. Only used for bucketing transactions by month, so exact
+  // day counts per BS month don't matter here.
+  function shiftBsMonth(year, month, delta){
+    const total = (year * 12 + (month - 1)) + delta;
+    return { year: Math.floor(total / 12), month: (((total % 12) + 12) % 12) + 1 };
+  }
+
+  function spendForMonthKey(key, category){
     return TRANSACTIONS
       .filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === key && (category ? t.category === category : true))
       .reduce((s,t) => s + t.amount, 0);
+  }
+
+  function spendThisMonth(category){
+    return spendForMonthKey(currentBsMonthKey(), category);
   }
 
   function budgetBarColor(spent, limit){
@@ -2511,6 +2580,89 @@
       <div style="margin-top:10px; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700;">${amtText}</div>
       <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${pct}%; background:${color};"></div></div>
     `;
+  }
+
+  function renderInsightsPage(){
+    const cur = adToBs(new Date().toISOString().slice(0,10));
+    const curKey = `${cur.year}-${cur.month}`;
+    const prev = shiftBsMonth(cur.year, cur.month, -1);
+    const prevKey = `${prev.year}-${prev.month}`;
+    const curSpend = spendForMonthKey(curKey);
+    const prevSpend = spendForMonthKey(prevKey);
+
+    document.getElementById("momCurLabel").textContent = NEPALI_MONTHS[cur.month - 1].name + " " + cur.year;
+    document.getElementById("momPrevLabel").textContent = NEPALI_MONTHS[prev.month - 1].name + " " + prev.year;
+    document.getElementById("momCurAmt").textContent = rs(curSpend);
+    document.getElementById("momPrevAmt").textContent = rs(prevSpend);
+
+    const deltaEl = document.getElementById("momDelta");
+    if (prevSpend === 0){
+      deltaEl.innerHTML = curSpend === 0
+        ? `<div class="kh-mom-delta" style="color:var(--dim)">No spending recorded yet</div>`
+        : `<div class="kh-mom-delta" style="color:var(--dim)">No spending last month to compare against</div>`;
+    } else {
+      const pctChange = ((curSpend - prevSpend) / prevSpend) * 100;
+      const up = pctChange > 0;
+      const color = Math.abs(pctChange) < 1 ? "var(--dim)" : (up ? "var(--out)" : "var(--in)");
+      const arrow = Math.abs(pctChange) < 1 ? "→" : (up ? "↑" : "↓");
+      deltaEl.innerHTML = `<div class="kh-mom-delta" style="color:${color}">${arrow} ${Math.abs(pctChange).toFixed(0)}% ${up ? "more" : "less"} than last month</div>`;
+    }
+
+    // Last 6 real BS months, oldest to newest, so trends don't skip months
+    // that happen to have no transactions.
+    const months = [];
+    for (let i = 5; i >= 0; i--){
+      const m = shiftBsMonth(cur.year, cur.month, -i);
+      const key = `${m.year}-${m.month}`;
+      months.push({ key, label: NEPALI_MONTHS[m.month - 1].name.slice(0,3) + " " + String(m.year).slice(-2), amt: spendForMonthKey(key) });
+    }
+    const maxAmt = Math.max(1, ...months.map(m => m.amt));
+    document.getElementById("trendChart").innerHTML = months.map(m => `
+      <div class="kh-trend-col">
+        <div class="kh-trend-amt">${m.amt > 0 ? rs(m.amt) : ""}</div>
+        <div class="kh-trend-bar" style="height:${Math.max(2, (m.amt / maxAmt) * 100)}%; background:${m.key === curKey ? "var(--accent)" : "var(--surface2)"};"></div>
+        <div class="kh-trend-label">${m.label}</div>
+      </div>
+    `).join("");
+
+    // Biggest categories this month.
+    const catTotals = {};
+    TRANSACTIONS.filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === curKey)
+      .forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
+    const catRanked = Object.entries(catTotals).sort((a,b) => b[1] - a[1]).slice(0, 6);
+    const catTotal = catRanked.reduce((s,[,v]) => s + v, 0) || 1;
+    const catEl = document.getElementById("topCategories");
+    catEl.innerHTML = catRanked.length ? catRanked.map(([name, amt], i) => `
+      <div class="kh-rank-row">
+        <span class="kh-rank-num">${i + 1}</span>
+        <div class="kh-rank-mid">
+          <div class="kh-rank-name">${name}</div>
+          <div class="kh-rank-sub">${Math.round((amt / catTotal) * 100)}% of this month's spending</div>
+        </div>
+        <span class="kh-rank-amt">${rs(amt)}</span>
+      </div>
+    `).join("") : `<div class="kh-empty">No spending recorded this month yet.</div>`;
+
+    // Top vendors, all time.
+    const vendorTotals = {};
+    TRANSACTIONS.filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account))
+      .forEach(t => {
+        if (!vendorTotals[t.vendor]) vendorTotals[t.vendor] = { amt: 0, count: 0 };
+        vendorTotals[t.vendor].amt += t.amount;
+        vendorTotals[t.vendor].count += 1;
+      });
+    const vendorRanked = Object.entries(vendorTotals).sort((a,b) => b[1].amt - a[1].amt).slice(0, 6);
+    const vendorEl = document.getElementById("topVendors");
+    vendorEl.innerHTML = vendorRanked.length ? vendorRanked.map(([name, v], i) => `
+      <div class="kh-rank-row">
+        <span class="kh-rank-num">${i + 1}</span>
+        <div class="kh-rank-mid">
+          <div class="kh-rank-name">${name}</div>
+          <div class="kh-rank-sub">${v.count} transaction${v.count === 1 ? "" : "s"}</div>
+        </div>
+        <span class="kh-rank-amt">${rs(v.amt)}</span>
+      </div>
+    `).join("") : `<div class="kh-empty">No transactions recorded yet.</div>`;
   }
 
 
