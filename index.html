@@ -116,8 +116,8 @@
 
   /* iOS-style glass bottom navigation */
   .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:700; display:flex; gap:2px; padding:6px; background:rgba(25,28,39,.7); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:24px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
-  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:9.5px; font-weight:500; padding:8px 13px; border-radius:16px; cursor:pointer; transition:color .15s, background .15s;}
-  .kh-nav-btn svg{width:19px; height:19px; display:block;}
+  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:9px; font-weight:500; padding:7px 10px; border-radius:16px; cursor:pointer; transition:color .15s, background .15s;}
+  .kh-nav-btn svg{width:18px; height:18px; display:block;}
   .kh-nav-btn.active{color:var(--accent); background:rgba(242,169,59,.14);}
 
   /* Glass slide-up panels (Account / Settings / More) */
@@ -262,6 +262,26 @@
   .kh-loan-dash-label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim);}
   .kh-loan-dash-val{display:block; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; margin-top:4px;}
   .kh-loan-dash-empty{font-size:12.5px; color:var(--dim); line-height:1.6;}
+
+  .kh-budget-page-head{margin:0 0 16px;}
+  .kh-budget-page-head .kh-eyebrow{margin:0 0 2px;}
+  .kh-budget-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
+  .kh-budget-bar-track{height:8px; border-radius:5px; background:var(--surface2); overflow:hidden; margin-top:9px;}
+  .kh-budget-bar-fill{height:100%; border-radius:5px; transition:width .3s;}
+  .kh-budget-overall{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:18px;}
+  .kh-budget-overall-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px 12px;}
+  .kh-budget-overall-label{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
+  .kh-budget-overall-amt{font-family:'Space Grotesk',sans-serif; font-size:19px; font-weight:700;}
+  .kh-budget-overall-set{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;}
+  .kh-budget-overall-set input{flex:1; min-width:110px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:8px 10px; font-size:12.5px; font-family:inherit;}
+  .kh-budget-warn{font-size:11px; margin-top:8px; font-weight:600;}
+  .kh-budget-row{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:10px;}
+  .kh-budget-row-top{display:flex; align-items:center; gap:9px;}
+  .kh-budget-row-icon{width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;}
+  .kh-budget-row-name{flex:1; font-size:13.5px; font-weight:600; min-width:0;}
+  .kh-budget-row-amt{font-size:11.5px; color:var(--dim); white-space:nowrap;}
+  .kh-budget-row-set{display:flex; gap:8px; margin-top:10px; align-items:center;}
+  .kh-budget-row-set input{flex:1; min-width:0; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:7px 9px; font-size:12px; font-family:inherit;}
 
   /* Laptop / desktop layout */
   @media (min-width:768px){
@@ -440,6 +460,7 @@
       <div class="kh-stats" id="stats"></div>
 
       <div class="kh-loan-dash-card" id="loanDashCard"></div>
+      <div class="kh-loan-dash-card" id="budgetDashCard" style="margin-top:12px;"></div>
 
       <p class="kh-section-title">Transactions</p>
       <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
@@ -622,6 +643,30 @@
     </div>
   </div>
 
+  <div class="kh-page" id="budgetPage">
+    <div class="kh-budget-page-head">
+      <p class="kh-eyebrow" id="budgetMonthLabel">This month</p>
+      <h2>Budget</h2>
+    </div>
+
+    <div class="kh-budget-overall">
+      <div class="kh-budget-overall-top">
+        <span class="kh-budget-overall-label">Overall spending</span>
+        <span class="kh-budget-overall-amt" id="budgetOverallAmt">Rs 0</span>
+      </div>
+      <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" id="budgetOverallBar" style="width:0%; background:var(--in);"></div></div>
+      <div id="budgetOverallWarn"></div>
+      <div class="kh-budget-overall-set">
+        <input id="budgetOverallInput" type="number" min="0" step="any" placeholder="e.g. 20000" />
+        <button type="button" class="kh-loan-btn" onclick="setOverallBudget()">Save limit</button>
+        <button type="button" class="kh-loan-btn" onclick="useIncomeAsBudget()" title="Fill in from your Monthly Income in Settings → Profile">Use my income</button>
+      </div>
+    </div>
+
+    <p class="kh-section-title">By category</p>
+    <div id="budgetCatList"></div>
+  </div>
+
   <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="showLoanPage()" aria-label="Close">&#10005;</button>
@@ -788,6 +833,10 @@
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="6" width="19" height="12" rx="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 9v0M18.5 15v0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       <span>Loans</span>
     </button>
+    <button class="kh-nav-btn" id="navBudget" onclick="showBudgetPage()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 12V4.5A7.5 7.5 0 0 1 19.5 12H12Z" fill="currentColor"/></svg>
+      <span>Budget</span>
+    </button>
     <button class="kh-nav-btn" id="navSettings" onclick="openPanel('settings')">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <span>Settings</span>
@@ -878,6 +927,8 @@
   let editingLoanId = null;
   let loanFormType = "borrowed";
   let payingLoanId = null;
+  let BUDGETS = {}; // categoryName -> monthly limit (Rs, in whatever currency)
+  let BUDGET_OVERALL = null; // number or null
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
   const CURRENCY_LOCALES = { NPR: "en-IN", INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
@@ -1245,12 +1296,14 @@
   function showPage(name){
     document.getElementById("homePage").classList.toggle("active", name === "home");
     document.getElementById("loanPage").classList.toggle("active", name === "loans");
+    document.getElementById("budgetPage").classList.toggle("active", name === "budget");
     currentPage = name;
     const fab = document.getElementById("manualFab");
     if (fab){
       const label = name === "loans" ? "Add loan" : "Add transaction manually";
       fab.title = label;
       fab.setAttribute("aria-label", label);
+      fab.style.display = name === "budget" ? "none" : "";
     }
   }
 
@@ -1269,8 +1322,16 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showBudgetPage(){
+    closePanel();
+    showPage("budget");
+    setActiveNav("budget");
+    renderBudgetPage();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function setActiveNav(name){
-    ["home", "loans", "settings", "more"].forEach(n => {
+    ["home", "loans", "budget", "settings", "more"].forEach(n => {
       const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
       if (btn) btn.classList.toggle("active", n === name);
     });
@@ -1307,6 +1368,8 @@
       nextTxId,
       loans: LOANS,
       nextLoanId,
+      budgets: BUDGETS,
+      budgetOverall: BUDGET_OVERALL,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -1377,6 +1440,8 @@
       nextTxId = data.nextTxId || (TRANSACTIONS.length + 1);
       LOANS = data.loans || [];
       nextLoanId = data.nextLoanId || (LOANS.length + 1);
+      BUDGETS = data.budgets || {};
+      BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
       PROFILE = data.profile || PROFILE;
       TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
       activeAccount = "All";
@@ -1386,6 +1451,7 @@
       renderAll();
       renderAccountManager();
       renderCategoryManager();
+      renderBudgetPage();
       populateProfileForm();
       input.value = "";
       showToast("Backup restored");
@@ -1467,6 +1533,8 @@
       nextTxId,
       loans: LOANS,
       nextLoanId,
+      budgets: BUDGETS,
+      budgetOverall: BUDGET_OVERALL,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -1494,6 +1562,8 @@
       nextTxId = data.nextTxId || 1;
       LOANS = data.loans || [];
       nextLoanId = data.nextLoanId || 1;
+      BUDGETS = data.budgets || {};
+      BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -1506,6 +1576,8 @@
       nextTxId = 1;
       LOANS = [];
       nextLoanId = 1;
+      BUDGETS = {};
+      BUDGET_OVERALL = null;
       PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
     }
@@ -2296,6 +2368,152 @@
     `;
   }
 
+  // ---------------------------------------------------------------------
+  // Budget — a monthly limit overall and/or per category, checked against
+  // spending in the current Nepali (BS) month, matching how the rest of
+  // the app already groups things by BS month.
+  // ---------------------------------------------------------------------
+  function currentBsMonthKey(){
+    return bsMonthKey(new Date().toISOString().slice(0,10));
+  }
+
+  function currentBsMonthLabel(){
+    const bs = adToBs(new Date().toISOString().slice(0,10));
+    return `${NEPALI_MONTHS[bs.month - 1].name} ${bs.year}`;
+  }
+
+  function spendThisMonth(category){
+    const key = currentBsMonthKey();
+    return TRANSACTIONS
+      .filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === key && (category ? t.category === category : true))
+      .reduce((s,t) => s + t.amount, 0);
+  }
+
+  function budgetBarColor(spent, limit){
+    if (!limit || limit <= 0) return "var(--dim)";
+    const pct = spent / limit;
+    if (pct >= 1) return "var(--out)";
+    if (pct >= 0.7) return "var(--accent)";
+    return "var(--in)";
+  }
+
+  function setOverallBudget(){
+    const val = parseFloat(document.getElementById("budgetOverallInput").value);
+    if (!val || val <= 0){ showToast("Enter an amount first"); return; }
+    BUDGET_OVERALL = val;
+    saveCurrentUser();
+    renderBudgetPage();
+    renderBudgetDashCard();
+    showToast("Overall budget saved");
+  }
+
+  function useIncomeAsBudget(){
+    const income = parseFloat(PROFILE.monthlyIncome);
+    if (!income || income <= 0){
+      showToast("Add your Monthly Income in Settings → Profile first");
+      return;
+    }
+    BUDGET_OVERALL = income;
+    document.getElementById("budgetOverallInput").value = income;
+    saveCurrentUser();
+    renderBudgetPage();
+    renderBudgetDashCard();
+    showToast("Using your monthly income as the overall budget");
+  }
+
+  function setCategoryBudget(name){
+    const input = document.getElementById("budgetCatInput_" + cssSafe(name));
+    const val = parseFloat(input.value);
+    if (!val || val <= 0){ showToast("Enter an amount first"); return; }
+    BUDGETS[name] = val;
+    saveCurrentUser();
+    renderBudgetPage();
+    showToast(`Limit set for ${name}`);
+  }
+
+  function clearCategoryBudget(name){
+    delete BUDGETS[name];
+    saveCurrentUser();
+    renderBudgetPage();
+  }
+
+  function cssSafe(s){
+    return String(s).replace(/[^a-zA-Z0-9]/g, "_");
+  }
+
+  function renderBudgetPage(){
+    const monthLabelEl = document.getElementById("budgetMonthLabel");
+    if (monthLabelEl) monthLabelEl.textContent = currentBsMonthLabel() + " BS";
+
+    const overallSpent = spendThisMonth(null);
+    document.getElementById("budgetOverallAmt").textContent =
+      BUDGET_OVERALL ? `${rs(overallSpent)} / ${rs(BUDGET_OVERALL)}` : rs(overallSpent);
+    const overallBar = document.getElementById("budgetOverallBar");
+    const overallPct = BUDGET_OVERALL ? Math.min(100, (overallSpent / BUDGET_OVERALL) * 100) : 0;
+    overallBar.style.width = overallPct + "%";
+    overallBar.style.background = budgetBarColor(overallSpent, BUDGET_OVERALL);
+    document.getElementById("budgetOverallInput").value = BUDGET_OVERALL || "";
+    const warnEl = document.getElementById("budgetOverallWarn");
+    if (BUDGET_OVERALL && overallSpent >= BUDGET_OVERALL){
+      warnEl.innerHTML = `<div class="kh-budget-warn" style="color:var(--out)">Over your overall budget by ${rs(overallSpent - BUDGET_OVERALL)}</div>`;
+    } else if (BUDGET_OVERALL && overallSpent / BUDGET_OVERALL >= 0.7){
+      warnEl.innerHTML = `<div class="kh-budget-warn" style="color:var(--accent)">Getting close — ${rs(BUDGET_OVERALL - overallSpent)} left this month</div>`;
+    } else {
+      warnEl.innerHTML = "";
+    }
+
+    const listEl = document.getElementById("budgetCatList");
+    const cats = Object.keys(CAT);
+    if (!cats.length){
+      listEl.innerHTML = `<div class="kh-empty">No categories yet.</div>`;
+      return;
+    }
+    listEl.innerHTML = cats.map(name => {
+      const meta = CAT[name];
+      const spent = spendThisMonth(name);
+      const limit = BUDGETS[name];
+      const pct = limit ? Math.min(100, (spent / limit) * 100) : 0;
+      const color = budgetBarColor(spent, limit);
+      const amtText = limit ? `${rs(spent)} / ${rs(limit)}` : `${rs(spent)} spent · no limit set`;
+      const safe = cssSafe(name);
+      return `<div class="kh-budget-row">
+        <div class="kh-budget-row-top">
+          <span class="kh-budget-row-icon" style="background:${meta.color}26">${meta.icon}</span>
+          <span class="kh-budget-row-name">${name}</span>
+          <span class="kh-budget-row-amt">${amtText}</span>
+        </div>
+        <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${limit ? pct : 0}%; background:${color};"></div></div>
+        <div class="kh-budget-row-set">
+          <input id="budgetCatInput_${safe}" type="number" min="0" step="any" placeholder="${limit ? "Update limit" : "Set a monthly limit"}" value="${limit || ""}" />
+          <button type="button" class="kh-loan-btn" onclick="setCategoryBudget(${JSON.stringify(name)})">Save</button>
+          ${limit ? `<button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="clearCategoryBudget(${JSON.stringify(name)})">Clear</button>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderBudgetDashCard(){
+    const el = document.getElementById("budgetDashCard");
+    if (!el) return;
+    if (!BUDGET_OVERALL && !Object.keys(BUDGETS).length){
+      el.innerHTML = `<div class="kh-loan-dash-empty">No budget set yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showBudgetPage()">Set a budget →</button></div>`;
+      return;
+    }
+    const spent = spendThisMonth(null);
+    const color = budgetBarColor(spent, BUDGET_OVERALL);
+    const amtText = BUDGET_OVERALL ? `${rs(spent)} / ${rs(BUDGET_OVERALL)}` : `${rs(spent)} spent this month`;
+    const pct = BUDGET_OVERALL ? Math.min(100, (spent / BUDGET_OVERALL) * 100) : 0;
+    el.innerHTML = `
+      <div class="kh-loan-dash-top">
+        <span class="kh-loan-dash-title">${currentBsMonthLabel()} budget</span>
+        <button type="button" class="kh-loan-dash-link" onclick="showBudgetPage()">View all →</button>
+      </div>
+      <div style="margin-top:10px; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700;">${amtText}</div>
+      <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+    `;
+  }
+
+
   function renderAll(){
     renderChips();
     renderNepaliMonthFilter();
@@ -2304,6 +2522,7 @@
     renderNepaliPie();
     renderTx();
     renderLoanDashCard();
+    renderBudgetDashCard();
   }
 
   // ---------------------------------------------------------------------
