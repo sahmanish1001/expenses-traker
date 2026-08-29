@@ -2362,7 +2362,7 @@
     }
 
     const firstName = (user.name || user.email.split("@")[0]).split(" ")[0];
-    document.getElementById("welcomeGreeting").innerHTML = `Welcome, ${firstName} <span>· ${user.email}</span>`;
+    document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${firstName}</strong>`;
 
     loadUserData(user.email);
     renderAll();
