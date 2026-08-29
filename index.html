@@ -216,6 +216,9 @@
   .kh-loan-summary-label{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
   .kh-loan-summary-val{font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:700; margin-top:4px;}
   .kh-loan-filter{display:flex; gap:8px; margin-bottom:14px;}
+  .kh-loan-toolbar{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
+  .kh-loan-toolbar .kh-loan-filter{margin-bottom:0; flex:1;}
+  .kh-loan-toolbar #newLoanBtn{width:100%;}
   .kh-loan-chip{flex:1; text-align:center; padding:8px 6px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-loan-chip.active{background:var(--accent2); color:#12141c; border-color:transparent;}
   .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
@@ -299,6 +302,12 @@
        as the panels above — full width would look sparse. */
     #loanPage{margin-top:18px;}
     #loanPage > *{max-width:720px; margin-left:auto; margin-right:auto;}
+
+    /* Filter chips + "New loan" sit in one row instead of stacking, and
+       the button no longer stretches edge-to-edge like on mobile. */
+    .kh-loan-toolbar{flex-direction:row; align-items:center; justify-content:space-between; gap:14px;}
+    .kh-loan-toolbar .kh-loan-filter{flex:1;}
+    .kh-loan-toolbar #newLoanBtn{width:auto; flex-shrink:0; padding:10px 20px;}
   }
   @media (min-width:1100px){
     .kh-app{padding-left:40px;padding-right:40px;}
@@ -550,13 +559,15 @@
 
     <div id="loanAlert"></div>
 
-    <div class="kh-loan-filter" id="loanFilterChips">
-      <button type="button" class="kh-loan-chip active" data-f="all" onclick="setLoanFilter('all')">All</button>
-      <button type="button" class="kh-loan-chip" data-f="lent" onclick="setLoanFilter('lent')">Owed to me</button>
-      <button type="button" class="kh-loan-chip" data-f="borrowed" onclick="setLoanFilter('borrowed')">I owe</button>
-    </div>
+    <div class="kh-loan-toolbar">
+      <div class="kh-loan-filter" id="loanFilterChips">
+        <button type="button" class="kh-loan-chip active" data-f="all" onclick="setLoanFilter('all')">All</button>
+        <button type="button" class="kh-loan-chip" data-f="lent" onclick="setLoanFilter('lent')">Owed to me</button>
+        <button type="button" class="kh-loan-chip" data-f="borrowed" onclick="setLoanFilter('borrowed')">I owe</button>
+      </div>
 
-    <button type="button" class="kh-manual-btn" style="width:100%;" onclick="openLoanForm()">＋ New loan</button>
+      <button type="button" class="kh-manual-btn" id="newLoanBtn" onclick="openLoanForm()">＋ New loan</button>
+    </div>
 
     <div id="loanList" style="margin-top:14px;"></div>
 
