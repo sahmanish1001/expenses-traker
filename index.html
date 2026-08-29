@@ -1082,7 +1082,7 @@
       </div>
       <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px;">
         <input type="checkbox" id="loanRecordTx" checked style="width:auto;" />
-        <label for="loanRecordTx" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--dim);">Also record as a transaction, so it shows in your cash flow charts</label>
+        <label for="loanRecordTx" id="loanRecordTxLabel" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--dim);">Also record as a transaction, so it shows in your cash flow charts</label>
       </div>
     </div>
 
@@ -1761,6 +1761,7 @@
       accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${n}">${n}</option>`).join("");
       document.getElementById("loanRecordTx").checked = true;
       document.getElementById("loanRecordTx").disabled = false;
+      document.getElementById("loanRecordTxLabel").textContent = "Also record as a transaction, so it shows in your cash flow charts";
       setTimeout(() => document.getElementById("loanPerson").focus(), 300);
     }
   }
@@ -3130,8 +3131,18 @@
     accSel.value = l.account || ACCOUNT_LIST[0];
     // Editing changes the loan record itself, not the transaction already
     // recorded for it — re-checking this would double count the amount.
-    document.getElementById("loanRecordTx").checked = false;
-    document.getElementById("loanRecordTx").disabled = true;
+    // But if this loan was never linked to a transaction (e.g. it predates
+    // this feature, or recording it was skipped/failed originally), let
+    // the person add that missing income/expense entry now.
+    if (l.linkTxId){
+      document.getElementById("loanRecordTx").checked = false;
+      document.getElementById("loanRecordTx").disabled = true;
+      document.getElementById("loanRecordTxLabel").textContent = "Also record as a transaction, so it shows in your cash flow charts";
+    } else {
+      document.getElementById("loanRecordTx").checked = true;
+      document.getElementById("loanRecordTx").disabled = false;
+      document.getElementById("loanRecordTxLabel").textContent = "This loan isn't in your cash flow charts yet — check to add it now";
+    }
     document.getElementById("loanFormTitle").textContent = "Edit loan";
     document.getElementById("loanSaveBtn").textContent = "Save changes";
   }
@@ -3159,7 +3170,22 @@
 
     if (editingLoanId){
       const l = LOANS.find(x => x.id === editingLoanId);
-      if (l) Object.assign(l, { person, principal, dateGiven, dueDate, interestRate, interestType, notes, account, isEmi, emiAmount, emiTenure });
+      if (l){
+        Object.assign(l, { person, principal, dateGiven, dueDate, interestRate, interestType, notes, account, isEmi, emiAmount, emiTenure });
+        // This loan predates being linked to a transaction (or that step
+        // was skipped) — the checkbox is only enabled in that situation,
+        // so if it's checked now, add the missing entry.
+        if (recordTx && !l.linkTxId){
+          const acct = account || ACCOUNT_LIST[0];
+          ensureCategory("Loan");
+          const txType = l.type === "borrowed" ? "in" : "out";
+          const vendor = l.type === "borrowed" ? `Loan from ${person}` : `Loan to ${person}`;
+          const tx = { date: dateGiven, vendor, category: "Loan", type: txType, amount: principal, account: acct, id: "tx" + (nextTxId++) };
+          TRANSACTIONS.push(tx);
+          l.linkTxId = tx.id;
+          l.account = acct;
+        }
+      }
       showToast(`Updated loan with ${person}`);
     } else {
       const loan = {
@@ -3167,13 +3193,15 @@
         interestRate, interestType, notes, account, payments: [], linkTxId: null,
         isEmi, emiAmount, emiTenure,
       };
-      if (recordTx && account){
+      if (recordTx){
+        const acct = account || ACCOUNT_LIST[0];
         ensureCategory("Loan");
         const txType = loanFormType === "borrowed" ? "in" : "out";
         const vendor = loanFormType === "borrowed" ? `Loan from ${person}` : `Loan to ${person}`;
-        const tx = { date: dateGiven, vendor, category: "Loan", type: txType, amount: principal, account, id: "tx" + (nextTxId++) };
+        const tx = { date: dateGiven, vendor, category: "Loan", type: txType, amount: principal, account: acct, id: "tx" + (nextTxId++) };
         TRANSACTIONS.push(tx);
         loan.linkTxId = tx.id;
+        loan.account = acct;
       }
       LOANS.push(loan);
       showToast(`Added loan with ${person}`);
