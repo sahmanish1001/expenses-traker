@@ -1228,7 +1228,10 @@
   const CAT = {
     "Food & Drink":     { color: "#f2a93b", icon: "☕" },
     "Groceries":        { color: "#8fd19e", icon: "🧺" },
+    "Transfer In":      { color: "#5fd1a4", icon: "↙️" },
+    "Transfer Out":     { color: "#ef6f6c", icon: "↗️" },
     "Bills & Payments": { color: "#7f9cf5", icon: "🧾" },
+    "Wallet Top-up":    { color: "#c792ea", icon: "📱" },
     "Shopping":         { color: "#e8a87c", icon: "🛍️" },
     "Transport":        { color: "#6ec6dc", icon: "⛽" },
     "Other":            { color: "#9aa0ac", icon: "❔" },
@@ -1240,29 +1243,29 @@
   // auto-loaded for every user — each signed-in Google account gets its own
   // empty tracker and can load the demo from the empty-state button.
   const DEMO_SEED_TRANSACTIONS = [
-    { date:"2026-08-18", vendor:"ESW Transfer", category:"Other", type:"in", amount:3000, account:"Nabil Bank" },
-    { date:"2026-08-18", vendor:"ESW Transfer", category:"Other", type:"in", amount:1000, account:"Nabil Bank" },
+    { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:3000, account:"Nabil Bank" },
+    { date:"2026-08-18", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:1000, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"Chai Town", category:"Food & Drink", type:"out", amount:35, account:"Nabil Bank" },
     { date:"2026-08-18", vendor:"Myoseen Meat Pvt. Ltd", category:"Groceries", type:"out", amount:200, account:"Nabil Bank" },
     { date:"2026-08-19", vendor:"Shree Krishna Dairy", category:"Groceries", type:"out", amount:35, account:"Nabil Bank" },
     { date:"2026-08-19", vendor:"Rudra Karki — nasta", category:"Food & Drink", type:"out", amount:100, account:"Nabil Bank" },
-    { date:"2026-08-20", vendor:"Bank Transfer", category:"Other", type:"in", amount:30000, account:"Nabil Bank" },
-    { date:"2026-08-20", vendor:"Bank Transfer", category:"Other", type:"in", amount:24000, account:"Nabil Bank" },
-    { date:"2026-08-20", vendor:"Manish Kumar", category:"Other", type:"out", amount:54000, account:"Nabil Bank" },
-    { date:"2026-08-20", vendor:"Bank Transfer", category:"Other", type:"in", amount:11000, account:"Nabil Bank" },
-    { date:"2026-08-20", vendor:"Bank Transfer", category:"Other", type:"in", amount:800, account:"Nabil Bank" },
+    { date:"2026-08-20", vendor:"Bank Transfer", category:"Transfer In", type:"in", amount:30000, account:"Nabil Bank" },
+    { date:"2026-08-20", vendor:"Bank Transfer", category:"Transfer In", type:"in", amount:24000, account:"Nabil Bank" },
+    { date:"2026-08-20", vendor:"Manish Kumar", category:"Transfer Out", type:"out", amount:54000, account:"Nabil Bank" },
+    { date:"2026-08-20", vendor:"Bank Transfer", category:"Transfer In", type:"in", amount:11000, account:"Nabil Bank" },
+    { date:"2026-08-20", vendor:"Bank Transfer", category:"Transfer In", type:"in", amount:800, account:"Nabil Bank" },
     { date:"2026-08-21", vendor:"CIPS Payment", category:"Bills & Payments", type:"out", amount:15040, account:"Nabil Bank" },
     { date:"2026-08-23", vendor:"Liza Momo House", category:"Food & Drink", type:"out", amount:170, account:"Nabil Bank" },
-    { date:"2026-08-24", vendor:"ESW Transfer", category:"Other", type:"in", amount:8000, account:"Nabil Bank" },
-    { date:"2026-08-24", vendor:"eSewa Load", category:"Other", type:"out", amount:100, account:"Nabil Bank" },
-    { date:"2026-08-25", vendor:"eSewa Load", category:"Other", type:"out", amount:5000, account:"Nabil Bank" },
+    { date:"2026-08-24", vendor:"ESW Transfer", category:"Transfer In", type:"in", amount:8000, account:"Nabil Bank" },
+    { date:"2026-08-24", vendor:"eSewa Load", category:"Wallet Top-up", type:"out", amount:100, account:"Nabil Bank" },
+    { date:"2026-08-25", vendor:"eSewa Load", category:"Wallet Top-up", type:"out", amount:5000, account:"Nabil Bank" },
     { date:"2026-08-26", vendor:"Shiddhi Ganesh Spare Parts", category:"Shopping", type:"out", amount:850, account:"Nabil Bank" },
-    { date:"2026-08-26", vendor:"eSewa Load", category:"Other", type:"out", amount:450, account:"Nabil Bank" },
+    { date:"2026-08-26", vendor:"eSewa Load", category:"Wallet Top-up", type:"out", amount:450, account:"Nabil Bank" },
     { date:"2026-08-26", vendor:"Valley Baba Suppliers — fuel", category:"Transport", type:"out", amount:1000, account:"Nabil Bank" },
     { date:"2026-08-26", vendor:"Narendra Chatpate Pasal", category:"Food & Drink", type:"out", amount:50, account:"Nabil Bank" },
     { date:"2026-08-27", vendor:"QR Payment", category:"Other", type:"out", amount:112, account:"Nabil Bank" },
     { date:"2026-08-27", vendor:"Binayak Tarkari Pasal", category:"Groceries", type:"out", amount:50, account:"Nabil Bank" },
-    { date:"2026-08-27", vendor:"Anshila Ghimire", category:"Other", type:"in", amount:5000, account:"Nabil Bank" },
+    { date:"2026-08-27", vendor:"Anshila Ghimire", category:"Transfer In", type:"in", amount:5000, account:"Nabil Bank" },
   ];
   const DEMO_SEED_BALANCES = { "Nabil Bank": 5608 };
 
@@ -2364,16 +2367,18 @@
   // used when the JSON import doesn't supply an explicit category, so a
   // raw statement remark like "POS PURCHASE CHAI TOWN KTM NP" still lands
   // somewhere sensible instead of always falling into "Other". Falls back
-  // to "Other" when nothing matches,
+  // to a direction-based default (Transfer In/Out) when nothing matches,
   // since an unrecognized remark is more likely a transfer than "Other".
   function guessCategoryFromText(text, type){
     const n = String(text || "").toLowerCase();
     if (/chai|coffee|cafe|restaurant|dining|momo|nasta|snack|hotel|bakery|sweet/.test(n)) return "Food & Drink";
     if (/grocer|vegetable|tarkari|kirana|dairy|meat|fruit|provision/.test(n)) return "Groceries";
+    if (/esewa\s*load|khalti\s*load|wallet\s*top|top[- ]?up|recharge|mobile\s*banking\s*load/.test(n)) return "Wallet Top-up";
     if (/electric|water\s*bill|ntc\b|ncell|internet|wifi|rent\b|utility|insurance|bill\s*payment|school\s*fee|tuition/.test(n)) return "Bills & Payments";
     if (/fuel|petrol|diesel|\btaxi\b|\bbus\b|\bride\b|transport|parking|pathao|indrive/.test(n)) return "Transport";
-    if (/shopping|mart\b|store\b|clothes|fashion|electronics|pasal|garment|footwear|\bsales\b/.test(n)) return "Shopping";
-    return "Other";
+    if (/shopping|mart\b|store\b|clothes|fashion|electronics|pasal|garment|footwear/.test(n)) return "Shopping";
+    if (/transfer|remit|fund\s*transfer|payment\s*received|ach\b|cips\b|connectips/.test(n)) return type === "in" ? "Transfer In" : "Transfer Out";
+    return type === "in" ? "Transfer In" : "Transfer Out";
   }
 
   function parseTxObject(tx, i, errors){
