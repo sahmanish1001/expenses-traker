@@ -940,6 +940,10 @@
           <input id="calcTenure" type="number" min="1" step="1" placeholder="12" oninput="runLoanCalc()" />
         </div>
         <div class="kh-manual-field">
+          <label for="calcStartDate">First payment date</label>
+          <input id="calcStartDate" type="date" onchange="runLoanCalc()" />
+        </div>
+        <div class="kh-manual-field">
           <label for="calcType">Interest type</label>
           <select id="calcType" onchange="runLoanCalc()">
             <option value="reducing">Reducing balance (EMI)</option>
@@ -947,6 +951,7 @@
           </select>
         </div>
       </div>
+      <p class="kh-cat-hint" style="margin:8px 0 0;">Leave the date as today for a fresh "what would my EMI be" estimate. Set it in the past if you're already partway through the loan, and the calculator will also show what's left to pay.</p>
       <div class="kh-loan-calc-result" id="loanCalcResult"></div>
       <button type="button" class="kh-loan-btn" id="loanCalcSaveBtn" style="display:none; margin-top:10px; width:100%; justify-content:center;" onclick="saveCalcAsEmiLoan()">📅 Track this &amp; remind me every month</button>
     </div>
@@ -3255,7 +3260,19 @@
   function toggleLoanCalc(){
     const el = document.getElementById("loanCalc");
     el.style.display = el.style.display === "none" ? "block" : "none";
-    if (el.style.display === "block") runLoanCalc();
+    if (el.style.display === "block"){
+      const dateEl = document.getElementById("calcStartDate");
+      if (!dateEl.value) dateEl.value = todayStr();
+      runLoanCalc();
+    }
+  }
+
+  function monthsElapsed(startStr, endStr){
+    const start = new Date(startStr + "T00:00:00");
+    const end = new Date(endStr + "T00:00:00");
+    let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    if (end.getDate() < start.getDate()) months -= 1;
+    return Math.max(0, months);
   }
 
   function runLoanCalc(){
@@ -3263,6 +3280,7 @@
     const annualRate = parseAmount(document.getElementById("calcRate").value) || 0;
     const n = parseInt(document.getElementById("calcTenure").value, 10) || 0;
     const type = document.getElementById("calcType").value;
+    const startDate = document.getElementById("calcStartDate").value || todayStr();
     const resEl = document.getElementById("loanCalcResult");
     const saveBtn = document.getElementById("loanCalcSaveBtn");
     if (!P || !n){
@@ -3273,8 +3291,8 @@
     }
 
     let emi, totalPayment, totalInterest;
+    const r = annualRate / 12 / 100;
     if (type === "reducing"){
-      const r = annualRate / 12 / 100;
       emi = r === 0 ? P / n : P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
       totalPayment = emi * n;
       totalInterest = totalPayment - P;
@@ -3284,14 +3302,41 @@
       emi = totalPayment / n;
     }
 
-    resEl.innerHTML = `
+    let html = `
       <div class="kh-loan-amounts">
         <div><span class="kh-loan-amt-label">Monthly payment</span><span class="kh-loan-amt-val">${rs(emi)}</span></div>
         <div><span class="kh-loan-amt-label">Total interest</span><span class="kh-loan-amt-val">${rs(totalInterest)}</span></div>
         <div><span class="kh-loan-amt-label">Total payment</span><span class="kh-loan-amt-val">${rs(totalPayment)}</span></div>
       </div>
     `;
-    lastLoanCalc = { principal: P, annualRate, tenure: n, type, emi };
+
+    // If the first payment was in the past, show how far into the loan
+    // today actually is — not just the fresh, day-one numbers above.
+    const elapsed = monthsElapsed(startDate, todayStr());
+    if (elapsed > 0){
+      const paymentsMade = Math.min(elapsed, n);
+      let remainingBalance;
+      if (paymentsMade >= n){
+        remainingBalance = 0;
+      } else if (type === "reducing"){
+        remainingBalance = r === 0
+          ? P - emi * paymentsMade
+          : P * (Math.pow(1 + r, n) - Math.pow(1 + r, paymentsMade)) / (Math.pow(1 + r, n) - 1);
+      } else {
+        remainingBalance = totalPayment - emi * paymentsMade;
+      }
+      const paidSoFar = emi * paymentsMade;
+      html += paymentsMade >= n
+        ? `<div class="kh-cat-hint" style="margin-top:10px; color:var(--in);">This loan's tenure is already up as of today — it should be fully paid off.</div>`
+        : `<div class="kh-loan-amounts" style="margin-top:2px;">
+            <div><span class="kh-loan-amt-label">Payments made</span><span class="kh-loan-amt-val">${paymentsMade} of ${n}</span></div>
+            <div><span class="kh-loan-amt-label">Paid so far</span><span class="kh-loan-amt-val">${rs(paidSoFar)}</span></div>
+            <div><span class="kh-loan-amt-label">Balance remaining</span><span class="kh-loan-amt-val">${rs(Math.max(0, remainingBalance))}</span></div>
+          </div>`;
+    }
+
+    resEl.innerHTML = html;
+    lastLoanCalc = { principal: P, annualRate, tenure: n, type, emi, startDate, elapsed: Math.min(elapsed, n) };
     saveBtn.style.display = "flex";
   }
 
@@ -3303,9 +3348,9 @@
     openLoanForm();
     setLoanType("borrowed");
     document.getElementById("loanPrincipal").value = Math.round(lastLoanCalc.principal);
-    document.getElementById("loanDateGiven").value = todayStr();
-    const next = new Date();
-    next.setMonth(next.getMonth() + 1);
+    document.getElementById("loanDateGiven").value = lastLoanCalc.startDate || todayStr();
+    const next = new Date((lastLoanCalc.startDate || todayStr()) + "T00:00:00");
+    next.setMonth(next.getMonth() + (lastLoanCalc.elapsed || 0) + 1);
     document.getElementById("loanDueDate").value = next.toISOString().slice(0, 10);
     document.getElementById("loanInterestRate").value = lastLoanCalc.annualRate || "";
     document.getElementById("loanInterestType").value = lastLoanCalc.type === "reducing" ? "reducing" : "flat";
@@ -3315,7 +3360,9 @@
     document.getElementById("loanEmiAmount").value = Math.round(lastLoanCalc.emi);
     document.getElementById("loanEmiTenure").value = lastLoanCalc.tenure;
     document.getElementById("loanPerson").focus();
-    showToast("Fill in who it's with, then save to start monthly reminders");
+    showToast(lastLoanCalc.elapsed
+      ? `Set up with ${lastLoanCalc.elapsed} payment(s) already accounted for — fill in who it's with`
+      : "Fill in who it's with, then save to start monthly reminders");
   }
 
   // ---------------------------------------------------------------------
