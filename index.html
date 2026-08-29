@@ -124,13 +124,13 @@
 
   /* iOS-style glass bottom navigation */
   .kh-bottom-nav{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:700; display:flex; gap:4px; padding:8px; background:rgba(25,28,39,.7); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:27px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
-  .kh-nav-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:9px 15px; border-radius:19px; cursor:pointer; transition:color .2s, background .35s cubic-bezier(.34,1.4,.64,1), transform .15s cubic-bezier(.34,1.56,.64,1);}
-  .kh-nav-btn svg{width:21px; height:21px; display:block; transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+  .kh-nav-indicator{position:absolute; top:8px; bottom:8px; left:0; width:0; border-radius:19px; background:rgba(242,169,59,.14); box-shadow:inset 0 1px 0 rgba(255,255,255,.06); transition:transform .5s cubic-bezier(.22,1,.36,1), width .5s cubic-bezier(.22,1,.36,1); pointer-events:none; z-index:0; will-change:transform,width;}
+  .kh-nav-btn{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:9px 15px; border-radius:19px; cursor:pointer; transition:color .3s ease, transform .15s cubic-bezier(.34,1.56,.64,1);}
+  .kh-nav-btn svg{width:21px; height:21px; display:block; transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
   .kh-nav-btn:active{transform:scale(.88);}
-  .kh-nav-btn.active{color:var(--accent); background:rgba(242,169,59,.14); animation:khNavPillIn .35s cubic-bezier(.34,1.56,.64,1);}
-  .kh-nav-btn.active svg{animation:khNavIconPop .4s cubic-bezier(.34,1.56,.64,1);}
-  @keyframes khNavPillIn{0%{transform:scale(.85);}100%{transform:scale(1);}}
-  @keyframes khNavIconPop{0%{transform:scale(1) translateY(0);}35%{transform:scale(1.22) translateY(-3px);}100%{transform:scale(1) translateY(0);}}
+  .kh-nav-btn.active{color:var(--accent);}
+  .kh-nav-btn.active svg{animation:khNavIconPop .45s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes khNavIconPop{0%{transform:scale(1) translateY(0);}35%{transform:scale(1.2) translateY(-3px);}100%{transform:scale(1) translateY(0);}}
 
   /* Glass slide-up panels (Account / Settings / More) */
   .kh-panel-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); z-index:600; opacity:0; pointer-events:none; transition:opacity .25s;}
@@ -1155,6 +1155,7 @@
   </div>
 
   <nav class="kh-bottom-nav" id="bottomNav">
+    <div class="kh-nav-indicator" id="navIndicator"></div>
     <button class="kh-nav-btn active" id="navHome" onclick="goHome()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
@@ -1835,12 +1836,37 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function setActiveNav(name){
+  function setActiveNav(name, instant){
+    let activeBtn = null;
     ["home", "loans", "budget", "insights", "settings"].forEach(n => {
       const btn = document.getElementById("nav" + n.charAt(0).toUpperCase() + n.slice(1));
-      if (btn) btn.classList.toggle("active", n === name);
+      if (!btn) return;
+      const isActive = n === name;
+      btn.classList.toggle("active", isActive);
+      if (isActive) activeBtn = btn;
     });
+    positionNavIndicator(activeBtn, instant);
   }
+
+  function positionNavIndicator(activeBtn, instant){
+    const indicator = document.getElementById("navIndicator");
+    if (!indicator || !activeBtn) return;
+    if (instant){
+      indicator.style.transition = "none";
+      indicator.style.width = activeBtn.offsetWidth + "px";
+      indicator.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+      requestAnimationFrame(() => { indicator.style.transition = ""; });
+    } else {
+      indicator.style.width = activeBtn.offsetWidth + "px";
+      indicator.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    }
+  }
+
+  // Keep the pill aligned if the window resizes (button widths can change
+  // at different breakpoints) — skip the slide animation while doing so.
+  window.addEventListener("resize", () => {
+    positionNavIndicator(document.querySelector(".kh-nav-btn.active"), true);
+  });
 
   function deleteTx(id){
     const idx = TRANSACTIONS.findIndex(t => t.id === id);
@@ -3212,6 +3238,7 @@
 
     document.getElementById("authScreen").style.display = "none";
     document.getElementById("appRoot").style.display = "block";
+    setActiveNav(currentPage, true);
     renderAccountAvatar(user);
 
     const headerImg = document.getElementById("headerAvatarImg");
