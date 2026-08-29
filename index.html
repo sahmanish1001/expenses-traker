@@ -110,6 +110,7 @@
   .kh-panel{position:fixed; left:0; right:0; bottom:92px; max-width:480px; margin:0 auto; max-height:64vh; overflow-y:auto; background:rgba(25,28,39,.86); backdrop-filter:blur(26px) saturate(180%); -webkit-backdrop-filter:blur(26px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:22px; padding:14px 18px 20px; z-index:601; transform:translateY(130%); transition:transform .32s cubic-bezier(.32,.72,0,1); box-shadow:0 16px 44px rgba(0,0,0,.45);}
   .kh-panel.show{transform:translateY(0);}
   .kh-panel-handle{width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 14px;}
+  .kh-panel-close{display:none;}
   .kh-panel-title{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; margin:0 0 14px;}
   .kh-account-panel-row{display:flex; align-items:center; gap:12px;}
   .kh-account-avatar-lg{width:52px; height:52px; border-radius:50%; object-fit:cover; background:var(--surface2); flex-shrink:0;}
@@ -210,6 +211,26 @@
     .kh-title{font-size:30px;}
     .kh-eyebrow{font-size:12px;}
     .kh-demo-note{margin-top:16px;max-width:760px;}
+
+    /* Panels (Settings / More / Add transaction / Import) open as a full
+       page on desktop instead of a small mobile-style bottom sheet. */
+    .kh-panel{
+      left:0; right:0; top:0; bottom:0; max-width:none; margin:0; max-height:none;
+      border-radius:0; background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none;
+      border:none; box-shadow:none; padding:48px 32px 60px;
+      transform:translateY(0); opacity:0; pointer-events:none; transition:opacity .2s ease;
+    }
+    .kh-panel.show{opacity:1; pointer-events:auto;}
+    .kh-panel > *{max-width:720px; margin-left:auto; margin-right:auto;}
+    .kh-panel-handle{display:none;}
+    .kh-panel-close{
+      display:flex; position:absolute; top:24px; right:28px; width:36px; height:36px;
+      border-radius:50%; align-items:center; justify-content:center; background:var(--surface);
+      border:1px solid var(--border); color:var(--text); font-size:15px; cursor:pointer;
+    }
+    .kh-panel-close:hover{color:var(--accent); border-color:var(--accent);}
+    .kh-panel-title{max-width:720px; margin-left:auto; margin-right:auto; font-size:24px;}
+
     .kh-main-grid{
       display:grid;
       grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);
@@ -364,6 +385,7 @@
 
   <div class="kh-panel kh-panel-large" id="panelSettings" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">Settings</p>
 
     <div class="kh-settings-tabs">
@@ -453,6 +475,7 @@
 
   <div class="kh-panel" id="panelMore" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">More</p>
     <button class="kh-more-item" onclick="openPanel('manual')">➕ Add transaction manually</button>
     <button class="kh-more-item" onclick="openPanel('import')">📥 Import statement (paste AI-parsed JSON)</button>
@@ -462,6 +485,7 @@
 
   <div class="kh-panel kh-panel-large" id="panelManual" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title" id="panelManualTitle">Add transaction manually</p>
     <p class="kh-manual-hint">Log a purchase or transfer in a few taps — no need to paste anything.</p>
     <div class="kh-manual-type">
@@ -499,6 +523,7 @@
 
   <div class="kh-panel kh-panel-large" id="panelImport" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">Import statement</p>
     <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
     <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
