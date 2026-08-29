@@ -358,7 +358,7 @@
 
   <div class="kh-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
 
-  <div class="kh-panel kh-panel-large" id="panelSettings">
+  <div class="kh-panel kh-panel-large" id="panelSettings" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Settings</p>
 
@@ -447,7 +447,7 @@
     </div>
   </div>
 
-  <div class="kh-panel" id="panelMore">
+  <div class="kh-panel" id="panelMore" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">More</p>
     <button class="kh-more-item" onclick="openPanel('manual')">➕ Add transaction manually</button>
@@ -456,7 +456,7 @@
     <p class="kh-more-about">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically. Each Google account gets its own private set of transactions, saved only on this device.</p>
   </div>
 
-  <div class="kh-panel kh-panel-large" id="panelManual">
+  <div class="kh-panel kh-panel-large" id="panelManual" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Add transaction manually</p>
     <p class="kh-manual-hint">Log a purchase or transfer in a few taps — no need to paste anything.</p>
@@ -467,11 +467,11 @@
     <div class="kh-manual-form">
       <div class="kh-manual-field full">
         <label for="manualVendor">Vendor / description</label>
-        <input id="manualVendor" placeholder="e.g. Chai Town" onkeydown="if(event.key==='Enter') addManualTransaction()" />
+        <input id="manualVendor" placeholder="e.g. Chai Town" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addManualTransaction(); }" />
       </div>
       <div class="kh-manual-field">
         <label for="manualAmount">Amount (Rs)</label>
-        <input id="manualAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" onkeydown="if(event.key==='Enter') addManualTransaction()" />
+        <input id="manualAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addManualTransaction(); }" />
       </div>
       <div class="kh-manual-field">
         <label for="manualDate">Date</label>
@@ -487,20 +487,20 @@
       </div>
     </div>
     <div class="kh-manual-actions">
-      <button class="kh-manual-btn" onclick="addManualTransaction()">Add transaction</button>
-      <button class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      <button type="button" class="kh-manual-btn" onclick="addManualTransaction()">Add transaction</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       <span class="kh-manual-status" id="manualStatus"></span>
     </div>
   </div>
 
-  <div class="kh-panel kh-panel-large" id="panelImport">
+  <div class="kh-panel kh-panel-large" id="panelImport" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <p class="kh-panel-title">Import statement</p>
     <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
     <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
     <div class="kh-import-actions">
-      <button class="kh-import-btn" onclick="importData()">Import</button>
-      <button class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      <button type="button" class="kh-import-btn" onclick="importData()">Import</button>
+      <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       <span class="kh-import-status" id="importStatus"></span>
     </div>
   </div>
