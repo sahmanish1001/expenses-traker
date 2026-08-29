@@ -542,6 +542,11 @@
   const DEFAULT_ACCOUNTS = ["eSewa"];
   const MAX_ACCOUNTS = 6;
   let ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
+  // Hidden accounts stay in ACCOUNT_LIST (data untouched) but are left out
+  // of the account chips and out of "All accounts" totals/pie/list, so a
+  // wallet you don't use anymore can be tucked away without deleting it.
+  let HIDDEN_ACCOUNTS = [];
+  function visibleAccounts(){ return ACCOUNT_LIST.filter(n => !HIDDEN_ACCOUNTS.includes(n)); }
 
   const CAT = {
     "Food & Drink":     { color: "#f2a93b", icon: "☕" },
@@ -902,6 +907,7 @@
   function resetAccountsAndCategoriesToDefault(){
     Object.keys(ACCOUNTS).forEach(k => { if (!KNOWN_ACCOUNT_TEMPLATES.includes(k)) delete ACCOUNTS[k]; });
     ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
+    HIDDEN_ACCOUNTS = [];
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
   }
 
@@ -914,6 +920,7 @@
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
+      hiddenAccounts: HIDDEN_ACCOUNTS,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
   }
@@ -930,6 +937,7 @@
     if (data){
       (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
       (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
       nextTxId = data.nextTxId || 1;
@@ -1067,16 +1075,32 @@
     showToast(`Removed ${name}`);
   }
 
+  function toggleAccountHidden(name){
+    if (HIDDEN_ACCOUNTS.includes(name)){
+      HIDDEN_ACCOUNTS = HIDDEN_ACCOUNTS.filter(n => n !== name);
+      showToast(`${name} is visible again`);
+    } else {
+      HIDDEN_ACCOUNTS.push(name);
+      if (activeAccount === name) activeAccount = "All";
+      showToast(`${name} hidden — its data is safe, just tucked away`);
+    }
+    saveCurrentUser();
+    renderAccountManager();
+    renderAll();
+  }
+
   function renderAccountManager(){
     const el = document.getElementById("accountList");
     const countEl = document.getElementById("accountCount");
     if (!el) return;
     el.innerHTML = ACCOUNT_LIST.map(name => {
       const isDefault = DEFAULT_ACCOUNTS.includes(name);
+      const isHidden = HIDDEN_ACCOUNTS.includes(name);
       const meta = ACCOUNTS[name] || { color: "#9aa0ac", icon: "👛" };
-      return `<span class="kh-cat-tag">
+      return `<span class="kh-cat-tag" style="${isHidden ? "opacity:.55" : ""}">
         <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${meta.color}"></span>
-        ${meta.icon} ${name}
+        ${meta.icon} ${name}${isHidden ? " (hidden)" : ""}
+        <button class="kh-cat-remove" onclick="toggleAccountHidden(${JSON.stringify(name)})" title="${isHidden ? "Unhide" : "Hide"}">${isHidden ? "👁️" : "🙈"}</button>
         ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeAccountManual(${JSON.stringify(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
@@ -1203,7 +1227,7 @@
     allBtn.onclick = () => { activeAccount = "All"; renderAll(); };
     el.appendChild(allBtn);
 
-    ACCOUNT_LIST.forEach(name => {
+    visibleAccounts().forEach(name => {
       const meta = ACCOUNTS[name];
       const has = TRANSACTIONS.some(t => t.account === name);
       const btn = document.createElement("button");
@@ -1213,6 +1237,16 @@
       btn.onclick = () => { activeAccount = name; renderAll(); };
       el.appendChild(btn);
     });
+
+    if (HIDDEN_ACCOUNTS.length){
+      const hiddenBtn = document.createElement("button");
+      hiddenBtn.className = "kh-chip";
+      hiddenBtn.style.color = "var(--dim)";
+      hiddenBtn.textContent = `${HIDDEN_ACCOUNTS.length} hidden`;
+      hiddenBtn.title = "Manage hidden accounts in Settings → Wallets";
+      hiddenBtn.onclick = () => { openPanel("settings"); setSettingsTab("wallets"); };
+      el.appendChild(hiddenBtn);
+    }
 
     if (ACCOUNT_LIST.length < MAX_ACCOUNTS){
       const addBtn = document.createElement("button");
@@ -1248,7 +1282,10 @@
   }
 
   function getScoped(){
-    let list = activeAccount === "All" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.account === activeAccount);
+    if (activeAccount !== "All" && HIDDEN_ACCOUNTS.includes(activeAccount)) activeAccount = "All";
+    let list = activeAccount === "All"
+      ? TRANSACTIONS.filter(t => !HIDDEN_ACCOUNTS.includes(t.account))
+      : TRANSACTIONS.filter(t => t.account === activeAccount);
     if (activeNepaliMonth !== "All") list = list.filter(t => bsMonthKey(t.date) === activeNepaliMonth);
     return list;
   }
@@ -1279,9 +1316,12 @@
     const scoped = getScoped();
     const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
     const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
+    const net = totalIn - totalOut;
+    const netLabel = activeAccount === "All" ? "Net (all accounts)" : "Money left";
     let html = `
       <div class="kh-stat"><div class="kh-stat-head">Money in</div><div class="kh-stat-amt" style="color:var(--in)">${rs(totalIn)}</div></div>
-      <div class="kh-stat"><div class="kh-stat-head">Money out</div><div class="kh-stat-amt" style="color:var(--out)">${rs(totalOut)}</div></div>`;
+      <div class="kh-stat"><div class="kh-stat-head">Money out</div><div class="kh-stat-amt" style="color:var(--out)">${rs(totalOut)}</div></div>
+      <div class="kh-stat"><div class="kh-stat-head">${netLabel}</div><div class="kh-stat-amt" style="color:${net >= 0 ? "var(--in)" : "var(--out)"}">${net >= 0 ? "" : "−"}${rs(Math.abs(net))}</div></div>`;
     if (activeAccount !== "All" && BALANCES[activeAccount] != null){
       html += `<div class="kh-stat"><div class="kh-stat-head">Last balance</div><div class="kh-stat-amt">${rs(BALANCES[activeAccount])}</div></div>`;
     }
@@ -1293,7 +1333,7 @@
     if (activeAccount === "All"){
       document.getElementById("pieTitle").textContent = "Spending by account";
       const m = {};
-      TRANSACTIONS.filter(t => t.type === "out").forEach(t => m[t.account] = (m[t.account]||0) + t.amount);
+      TRANSACTIONS.filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account)).forEach(t => m[t.account] = (m[t.account]||0) + t.amount);
       data = Object.entries(m).map(([name,value]) => ({ name, value, color: ACCOUNTS[name]?.color || "#9aa0ac" }))
         .sort((a,b)=>b.value-a.value);
     } else {
@@ -1336,7 +1376,7 @@
     // account filter — this chart answers "where did the money go, by
     // Nepali month" for everything in the tracker.
     const totals = {}; // "2083-5" -> amount
-    TRANSACTIONS.filter(t => t.type === "out").forEach(t => {
+    TRANSACTIONS.filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account)).forEach(t => {
       const bs = adToBs(t.date);
       const key = `${bs.year}-${bs.month}`;
       totals[key] = (totals[key] || 0) + t.amount;
