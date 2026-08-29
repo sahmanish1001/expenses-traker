@@ -163,12 +163,46 @@
   .kh-loan-page-head{margin:0 0 16px;}
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
-  .kh-settings-tabs{display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; background:var(--surface2); padding:4px; border-radius:12px; margin:14px 0 18px;}
-  .kh-settings-tabs::-webkit-scrollbar{display:none;}
-  .kh-settings-tab{flex:0 0 auto; white-space:nowrap; background:none; border:none; color:var(--dim); font-family:inherit; font-size:12px; font-weight:600; padding:9px 14px; border-radius:9px; cursor:pointer; transition:background .15s, color .15s;}
-  .kh-settings-tab.active{background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
+  /* Settings: icon-grid menu (replaces the old scrolling pill tabs) */
+  .kh-settings-tabs{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0 20px;}
+  .kh-settings-tab{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--dim); font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.01em; padding:12px 6px 10px; border-radius:14px; cursor:pointer; transition:border-color .15s, color .15s, background .15s, transform .1s; text-align:center; line-height:1.25;}
+  .kh-settings-tab:active{transform:scale(.96);}
+  .kh-settings-tab .kh-settings-tab-icon{width:34px; height:34px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:16px; transition:background .15s, color .15s;}
+  .kh-settings-tab.active{color:var(--text); border-color:var(--accent); background:rgba(242,169,59,.08);}
+  .kh-settings-tab.active .kh-settings-tab-icon{background:var(--accent); color:#1a1400;}
   .kh-settings-section{display:none;}
-  .kh-settings-section.active{display:block;}
+  .kh-settings-section.active{display:block; animation:kh-settings-fade .18s ease;}
+  @keyframes kh-settings-fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  /* Settings: icon + title header used at the top of each section */
+  .kh-settings-section-head{display:flex; align-items:center; gap:12px; margin:0 0 14px;}
+  .kh-settings-section-head .kh-ssh-icon{width:40px; height:40px; border-radius:12px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .kh-settings-section-head .kh-ssh-text{min-width:0;}
+  .kh-settings-section-head .kh-ssh-text h3{margin:0; font-size:15.5px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+  .kh-settings-section-head .kh-ssh-text p{margin:2px 0 0; font-size:11.5px; color:var(--dim); line-height:1.45;}
+
+  /* About page */
+  .kh-about-hero{display:flex; flex-direction:column; align-items:center; text-align:center; padding:8px 0 20px;}
+  .kh-about-hero .kh-about-mark{width:60px; height:60px; margin-bottom:10px;}
+  .kh-about-hero .kh-about-mark svg{width:100%; height:100%; display:block;}
+  .kh-about-hero h3{margin:0; font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700;}
+  .kh-about-hero p{margin:4px 0 10px; font-size:12px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase;}
+  .kh-about-version{display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px 12px; font-size:11px; color:var(--dim); font-weight:600;}
+  .kh-about-version .dot{width:6px; height:6px; border-radius:50%; background:var(--in);}
+  .kh-about-feature-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0;}
+  .kh-about-feature{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px;}
+  .kh-about-feature .icon{width:30px; height:30px; border-radius:9px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; margin-bottom:8px;}
+  .kh-about-feature .title{font-size:12.5px; font-weight:600; margin:0 0 2px;}
+  .kh-about-feature .desc{font-size:11px; color:var(--dim); line-height:1.4; margin:0;}
+  .kh-about-block{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
+  .kh-about-block h4{margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
+  .kh-about-block p{margin:0; font-size:12.5px; line-height:1.6; color:var(--text);}
+  .kh-about-block p + p{margin-top:8px;}
+  .kh-about-links{display:flex; flex-direction:column; gap:6px;}
+  .kh-about-link-row{display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px dashed var(--border); font-size:12.5px;}
+  .kh-about-link-row:last-child{border-bottom:none;}
+  .kh-about-link-row span:first-child{color:var(--dim);}
+  .kh-about-footer{text-align:center; font-size:11px; color:var(--dim); margin-top:18px; line-height:1.6;}
 
   /* Settings: toggle rows (Appearance / Notifications / Calendar) */
   .kh-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
@@ -535,20 +569,26 @@
     </div>
 
     <div class="kh-settings-tabs">
-      <button class="kh-settings-tab active" id="settingsTabBtnAccount" onclick="setSettingsTab('account')">Account</button>
-      <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="setSettingsTab('appearance')">Appearance</button>
-      <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="setSettingsTab('notifications')">Notifications</button>
-      <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="setSettingsTab('backup')">Backup &amp; Sync</button>
-      <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="setSettingsTab('calendar')">Nepali Calendar</button>
-      <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="setSettingsTab('wallets')">Wallets</button>
-      <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')">Categories</button>
-      <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')">Data</button>
+      <button class="kh-settings-tab active" id="settingsTabBtnAccount" onclick="setSettingsTab('account')"><span class="kh-settings-tab-icon">👤</span>Account</button>
+      <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="setSettingsTab('appearance')"><span class="kh-settings-tab-icon">🎨</span>Appearance</button>
+      <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="setSettingsTab('notifications')"><span class="kh-settings-tab-icon">🔔</span>Notifications</button>
+      <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="setSettingsTab('backup')"><span class="kh-settings-tab-icon">☁️</span>Backup &amp; Sync</button>
+      <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="setSettingsTab('calendar')"><span class="kh-settings-tab-icon">📅</span>Calendar</button>
+      <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="setSettingsTab('wallets')"><span class="kh-settings-tab-icon">💳</span>Wallets</button>
+      <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')"><span class="kh-settings-tab-icon">🏷️</span>Categories</button>
+      <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')"><span class="kh-settings-tab-icon">🗄️</span>Data</button>
+      <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="setSettingsTab('about')"><span class="kh-settings-tab-icon">ℹ️</span>About</button>
     </div>
 
     <!-- ===================== ACCOUNT (profile + Google sign-in, first) ===================== -->
     <div class="kh-settings-section active" id="settingsSectionAccount">
-      <p class="kh-cat-title">Signed in with Google</p>
-      <p class="kh-cat-hint">Every Google account that signs in gets its own private tracker on this device — transactions, categories, and this profile are never shared between accounts.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">👤</span>
+        <div class="kh-ssh-text">
+          <h3>Signed in with Google</h3>
+          <p>Every Google account gets its own private tracker on this device — transactions, categories, and profile are never shared between accounts.</p>
+        </div>
+      </div>
       <div class="kh-account-panel-row" id="accountPanelInfo" style="margin-top:10px;"></div>
       <button class="kh-signout-btn" style="width:100%; margin-top:14px; padding:11px;" onclick="signOut()">Sign out</button>
       <p class="kh-cat-hint" style="margin-top:12px;">To switch to a different Google account, sign out and sign back in with the account you want.</p>
@@ -591,8 +631,13 @@
 
     <!-- ===================== APPEARANCE ===================== -->
     <div class="kh-settings-section" id="settingsSectionAppearance">
-      <p class="kh-cat-title">Theme</p>
-      <p class="kh-cat-hint">Choose how Kharchā looks on this device. This is saved to your browser, not your account.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🎨</span>
+        <div class="kh-ssh-text">
+          <h3>Theme</h3>
+          <p>Choose how Kharchā looks on this device. Saved to your browser, not your account.</p>
+        </div>
+      </div>
       <div class="kh-theme-options">
         <button type="button" class="kh-theme-opt" id="themeOptDark" onclick="setTheme('dark')">
           <span class="kh-theme-opt-swatch" style="background:#12141c; border-color:#2a2d3a;"></span>
@@ -607,8 +652,13 @@
 
     <!-- ===================== NOTIFICATIONS ===================== -->
     <div class="kh-settings-section" id="settingsSectionNotifications">
-      <p class="kh-cat-title">Notifications</p>
-      <p class="kh-cat-hint">Kharchā has no server, so these are on-device alerts shown when you open the app — not push notifications.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🔔</span>
+        <div class="kh-ssh-text">
+          <h3>Notifications</h3>
+          <p>Kharchā has no server, so these are on-device alerts shown when you open the app — not push notifications.</p>
+        </div>
+      </div>
       <div class="kh-toggle-row">
         <div class="kh-toggle-row-text">
           <div class="kh-toggle-row-title">Budget alerts</div>
@@ -633,8 +683,13 @@
 
     <!-- ===================== BACKUP & SYNC ===================== -->
     <div class="kh-settings-section" id="settingsSectionBackup">
-      <p class="kh-cat-title">Backup &amp; sync</p>
-      <p class="kh-cat-hint">This tracker's data lives only in this browser, tied to your Google account — there's no automatic cloud sync yet, so back up manually and regularly. Clearing your browser data or switching devices wipes everything with no recovery otherwise. The .json backup can restore your data here later; the .csv opens in Excel or Google Sheets for viewing/analysis but can't be restored from.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">☁️</span>
+        <div class="kh-ssh-text">
+          <h3>Backup &amp; sync</h3>
+          <p>Data lives only in this browser, tied to your Google account — no automatic cloud sync yet, so back up manually and regularly. The .json backup can restore your data here later; the .csv is for viewing in Excel/Sheets and can't be restored from.</p>
+        </div>
+      </div>
       <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="exportData()">⬇ Download backup (.json)</button>
       <button class="kh-cat-add" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:var(--in); color:#0f2a20;" onclick="exportCSV()">⬇ Export to Excel (.csv)</button>
       <label class="kh-manual-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px; background:transparent; border:1px solid var(--border); color:var(--text); cursor:pointer; display:flex;">
@@ -645,8 +700,13 @@
 
     <!-- ===================== NEPALI CALENDAR ===================== -->
     <div class="kh-settings-section" id="settingsSectionCalendar">
-      <p class="kh-cat-title">Nepali calendar</p>
-      <p class="kh-cat-hint">Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically — no manual entry needed.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📅</span>
+        <div class="kh-ssh-text">
+          <h3>Nepali calendar</h3>
+          <p>Kharchā converts every date you enter into the Nepali (Bikram Sambat) calendar automatically — no manual entry needed.</p>
+        </div>
+      </div>
       <div class="kh-toggle-row">
         <div class="kh-toggle-row-text">
           <div class="kh-toggle-row-title">Show BS date first</div>
@@ -660,9 +720,14 @@
     </div>
 
     <div class="kh-settings-section" id="settingsSectionWallets">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">💳</span>
+        <div class="kh-ssh-text">
+          <h3>Your accounts</h3>
+          <p>A new sign-in starts with just eSewa. Add whatever else you actually use — Nabil Bank, Khalti, cash, anything — up to 6 total (<span id="accountCount">1 of 6 used</span>).</p>
+        </div>
+      </div>
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
-        <p class="kh-cat-title">Your accounts</p>
-        <p class="kh-cat-hint">A new sign-in starts with just eSewa. Add whatever else you actually use — Nabil Bank, Khalti, cash, anything — up to 6 total (<span id="accountCount">1 of 6 used</span>).</p>
         <div class="kh-cat-form">
           <input id="accountInput" class="kh-cat-input" placeholder="e.g. Nabil Bank, Khalti, Cash" onkeydown="if(event.key==='Enter') addAccountManual()" />
           <button class="kh-cat-add" id="accountAddBtn" onclick="addAccountManual()">＋ Add</button>
@@ -672,9 +737,14 @@
     </div>
 
     <div class="kh-settings-section" id="settingsSectionCategories">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🏷️</span>
+        <div class="kh-ssh-text">
+          <h3>Personalized categories</h3>
+          <p>Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
+        </div>
+      </div>
       <div class="kh-cat-manager" style="margin-top:0; padding:0; background:none; border:none;">
-        <p class="kh-cat-title">Personalized categories</p>
-        <p class="kh-cat-hint">Add your own categories. Imported transactions can use any category name, and new categories are created automatically.</p>
         <div class="kh-cat-form">
           <input id="categoryInput" class="kh-cat-input" placeholder="e.g. Rent, Education, Medicine" onkeydown="if(event.key==='Enter') addCategory()" />
           <button class="kh-cat-add" onclick="addCategory()">＋ Add</button>
@@ -684,8 +754,13 @@
     </div>
 
     <div class="kh-settings-section" id="settingsSectionData">
-      <p class="kh-cat-title">Data</p>
-      <p class="kh-cat-hint">Each Google account's transactions, balances, and categories are saved only on this device.</p>
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🗄️</span>
+        <div class="kh-ssh-text">
+          <h3>Data</h3>
+          <p>Each Google account's transactions, balances, and categories are saved only on this device.</p>
+        </div>
+      </div>
       <button class="kh-more-item" style="margin-top:8px;" onclick="goHome(); loadDemoData();">🎲 Load demo dataset</button>
       <p class="kh-more-about">Need to back up or restore your data instead? That's under the Backup &amp; Sync tab.</p>
       <div class="kh-danger-zone">
@@ -693,6 +768,82 @@
         <p class="kh-cat-hint">Permanently delete every transaction and balance for this account. This can't be undone.</p>
         <button class="kh-clear-btn" style="width:100%; margin-top:8px; justify-content:center; padding:11px;" onclick="clearAllData()">🗑 Delete all data</button>
       </div>
+    </div>
+
+    <!-- ===================== ABOUT ===================== -->
+    <div class="kh-settings-section" id="settingsSectionAbout">
+      <div class="kh-about-hero">
+        <div class="kh-about-mark">
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+            <title>Kharchā icon</title>
+            <rect width="512" height="512" rx="112" fill="#191c27"/>
+            <g transform="rotate(-90 256 256)">
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-dashoffset="0"/>
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65"/>
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24"/>
+            </g>
+            <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
+          </svg>
+        </div>
+        <h3>Kharchā</h3>
+        <p>खर्चा — "expense" in Hindi / Nepali</p>
+        <span class="kh-about-version"><span class="dot"></span>Version 1.0.0</span>
+      </div>
+
+      <div class="kh-about-block">
+        <h4>What is this</h4>
+        <p>Kharchā is a fast, no-fuss personal expense tracker that runs entirely in your browser. No servers, no ads, no clutter — just a quick way to log where your money goes and see it broken down by category, wallet, and Nepali month.</p>
+      </div>
+
+      <p class="kh-cat-title" style="margin:18px 2px 10px;">Features</p>
+      <div class="kh-about-feature-grid">
+        <div class="kh-about-feature">
+          <div class="icon">⚡</div>
+          <p class="title">Quick entry</p>
+          <p class="desc">Log a transaction in seconds, or import a batch at once.</p>
+        </div>
+        <div class="kh-about-feature">
+          <div class="icon">🏷️</div>
+          <p class="title">Categories</p>
+          <p class="desc">Custom categories with a spending breakdown pie chart.</p>
+        </div>
+        <div class="kh-about-feature">
+          <div class="icon">🧮</div>
+          <p class="title">Loans &amp; EMI</p>
+          <p class="desc">Track money lent or borrowed, with a built-in calculator.</p>
+        </div>
+        <div class="kh-about-feature">
+          <div class="icon">📅</div>
+          <p class="title">Nepali calendar</p>
+          <p class="desc">Every date auto-converts to Bikram Sambat.</p>
+        </div>
+        <div class="kh-about-feature">
+          <div class="icon">🌗</div>
+          <p class="title">Light &amp; dark</p>
+          <p class="desc">Switch anytime — the app remembers your choice.</p>
+        </div>
+        <div class="kh-about-feature">
+          <div class="icon">🔒</div>
+          <p class="title">Local-first</p>
+          <p class="desc">Your data stays in this browser, not on a server.</p>
+        </div>
+      </div>
+
+      <div class="kh-about-block">
+        <h4>Data &amp; privacy</h4>
+        <p>All transaction data is stored locally in your browser, scoped to your signed-in Google account — nothing is ever sent to a server. Clearing your browser data or switching devices won't carry your data over unless you export/import a backup manually from Backup &amp; Sync.</p>
+      </div>
+
+      <div class="kh-about-block">
+        <h4>Credits</h4>
+        <div class="kh-about-links">
+          <div class="kh-about-link-row"><span>Built with</span><span>HTML · CSS · JS</span></div>
+          <div class="kh-about-link-row"><span>Typeface</span><span>Inter &amp; Space Grotesk</span></div>
+          <div class="kh-about-link-row"><span>Feedback</span><span>Use the thumbs-down 👎</span></div>
+        </div>
+      </div>
+
+      <p class="kh-about-footer">Made with care for anyone tracking their kharchā, one rupee at a time.</p>
     </div>
   </div>
 
@@ -1422,7 +1573,7 @@
   }
 
   function setSettingsTab(tab){
-    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "data"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "data", "about"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
