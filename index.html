@@ -164,6 +164,12 @@
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; margin:0;}
   /* Settings: icon-grid menu (replaces the old scrolling pill tabs) */
+  /* Settings: two-level navigation — icon-grid menu, then a full drill-down
+     page per section with a back button (replaces the old inline tabs). */
+  .kh-settings-menu-view, .kh-settings-detail-view{display:none;}
+  .kh-settings-menu-view.active, .kh-settings-detail-view.active{display:block; animation:kh-settings-fade .18s ease;}
+  .kh-settings-back{display:flex; align-items:center; gap:4px; background:none; border:none; color:var(--accent); font-family:inherit; font-size:14px; font-weight:600; padding:6px 0 18px; cursor:pointer;}
+  .kh-settings-back-arrow{font-size:20px; line-height:1; font-weight:700;}
   .kh-settings-tabs{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0 20px;}
   .kh-settings-tab{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--dim); font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.01em; padding:12px 6px 10px; border-radius:14px; cursor:pointer; transition:border-color .15s, color .15s, background .15s, transform .1s; text-align:center; line-height:1.25;}
   .kh-settings-tab:active{transform:scale(.96);}
@@ -563,22 +569,29 @@
   <div class="kh-panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
 
   <div class="kh-page" id="settingsPage">
-    <div class="kh-loan-page-head">
-      <p class="kh-eyebrow">Manage</p>
-      <h2>Settings</h2>
+    <div class="kh-settings-menu-view active" id="settingsMenuView">
+      <div class="kh-loan-page-head">
+        <p class="kh-eyebrow">Manage</p>
+        <h2>Settings</h2>
+      </div>
+
+      <div class="kh-settings-tabs">
+        <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="showSettingsDetail('account')"><span class="kh-settings-tab-icon">👤</span>Account</button>
+        <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="showSettingsDetail('appearance')"><span class="kh-settings-tab-icon">🎨</span>Appearance</button>
+        <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="showSettingsDetail('notifications')"><span class="kh-settings-tab-icon">🔔</span>Notifications</button>
+        <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="showSettingsDetail('backup')"><span class="kh-settings-tab-icon">☁️</span>Backup &amp; Sync</button>
+        <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="showSettingsDetail('calendar')"><span class="kh-settings-tab-icon">📅</span>Calendar</button>
+        <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span>Wallets</button>
+        <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span>Categories</button>
+        <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span>Data</button>
+        <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span>About</button>
+      </div>
     </div>
 
-    <div class="kh-settings-tabs">
-      <button class="kh-settings-tab active" id="settingsTabBtnAccount" onclick="setSettingsTab('account')"><span class="kh-settings-tab-icon">👤</span>Account</button>
-      <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="setSettingsTab('appearance')"><span class="kh-settings-tab-icon">🎨</span>Appearance</button>
-      <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="setSettingsTab('notifications')"><span class="kh-settings-tab-icon">🔔</span>Notifications</button>
-      <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="setSettingsTab('backup')"><span class="kh-settings-tab-icon">☁️</span>Backup &amp; Sync</button>
-      <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="setSettingsTab('calendar')"><span class="kh-settings-tab-icon">📅</span>Calendar</button>
-      <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="setSettingsTab('wallets')"><span class="kh-settings-tab-icon">💳</span>Wallets</button>
-      <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="setSettingsTab('categories')"><span class="kh-settings-tab-icon">🏷️</span>Categories</button>
-      <button class="kh-settings-tab" id="settingsTabBtnData" onclick="setSettingsTab('data')"><span class="kh-settings-tab-icon">🗄️</span>Data</button>
-      <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="setSettingsTab('about')"><span class="kh-settings-tab-icon">ℹ️</span>About</button>
-    </div>
+    <div class="kh-settings-detail-view" id="settingsDetailView">
+      <button type="button" class="kh-settings-back" onclick="showSettingsMenu()">
+        <span class="kh-settings-back-arrow">‹</span> Settings
+      </button>
 
     <!-- ===================== ACCOUNT (profile + Google sign-in, first) ===================== -->
     <div class="kh-settings-section active" id="settingsSectionAccount">
@@ -844,6 +857,7 @@
       </div>
 
       <p class="kh-about-footer">Made with care for anyone tracking their kharchā, one rupee at a time.</p>
+    </div>
     </div>
   </div>
 
@@ -1579,6 +1593,22 @@
     });
   }
 
+  // Settings is a two-level menu: the icon-grid list (settingsMenuView) and
+  // a full drill-down page per section (settingsDetailView), same idea as
+  // native iOS/Android settings apps.
+  function showSettingsMenu(){
+    document.getElementById("settingsMenuView").classList.add("active");
+    document.getElementById("settingsDetailView").classList.remove("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showSettingsDetail(tab){
+    setSettingsTab(tab);
+    document.getElementById("settingsMenuView").classList.remove("active");
+    document.getElementById("settingsDetailView").classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   // ---------------------------------------------------------------------
   // Appearance (theme), Notifications, and Nepali Calendar display prefs.
   // These are on-device browser preferences (not per-Google-account data),
@@ -1701,10 +1731,14 @@
     closePanel();
     showPage("settings");
     setActiveNav("settings");
-    setSettingsTab(tab || "account");
     populateAppearanceNotifCalendarUI();
     renderCategoryManager();
     renderAccountManager();
+    if (tab){
+      showSettingsDetail(tab);
+    } else {
+      showSettingsMenu();
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
