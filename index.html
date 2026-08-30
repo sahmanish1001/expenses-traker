@@ -175,11 +175,13 @@
   .kh-settings-menu-view.active, .kh-settings-detail-view.active{display:block; animation:kh-settings-fade .18s ease;}
   .kh-settings-back{display:flex; align-items:center; gap:4px; background:none; border:none; color:var(--accent); font-family:inherit; font-size:14px; font-weight:600; padding:6px 0 18px; cursor:pointer;}
   .kh-settings-back-arrow{font-size:20px; line-height:1; font-weight:700;}
-  .kh-settings-tabs{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0 20px;}
-  .kh-settings-tab{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--dim); font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.01em; padding:12px 6px 10px; border-radius:14px; cursor:pointer; transition:border-color .15s, color .15s, background .15s, transform .1s; text-align:center; line-height:1.25;}
-  .kh-settings-tab:active{transform:scale(.96);}
-  .kh-settings-tab .kh-settings-tab-icon{width:34px; height:34px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:16px; transition:background .15s, color .15s;}
-  .kh-settings-tab.active{color:var(--text); border-color:var(--accent); background:rgba(242,169,59,.08);}
+  .kh-settings-tabs{display:flex; flex-direction:column; gap:8px; margin:14px 0 20px;}
+  .kh-settings-tab{display:flex; flex-direction:row; align-items:center; gap:13px; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:inherit; font-size:13.5px; font-weight:600; padding:12px 14px; border-radius:14px; cursor:pointer; transition:border-color .15s, background .15s, transform .1s; text-align:left; width:100%;}
+  .kh-settings-tab:active{transform:scale(.98);}
+  .kh-settings-tab .kh-settings-tab-icon{width:36px; height:36px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; transition:background .15s, color .15s;}
+  .kh-settings-tab-label{flex:1; min-width:0;}
+  .kh-settings-tab-chevron{color:var(--dim); font-size:16px; flex-shrink:0;}
+  .kh-settings-tab.active{border-color:var(--accent); background:rgba(242,169,59,.08);}
   .kh-settings-tab.active .kh-settings-tab-icon{background:var(--accent); color:#1a1400;}
   .kh-settings-section{display:none;}
   .kh-settings-section.active{display:block; animation:kh-settings-fade .18s ease;}
@@ -604,15 +606,15 @@
       </div>
 
       <div class="kh-settings-tabs">
-        <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="showSettingsDetail('account')"><span class="kh-settings-tab-icon">👤</span>Account</button>
-        <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="showSettingsDetail('appearance')"><span class="kh-settings-tab-icon">🎨</span>Appearance</button>
-        <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="showSettingsDetail('notifications')"><span class="kh-settings-tab-icon">🔔</span>Notifications</button>
-        <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="showSettingsDetail('backup')"><span class="kh-settings-tab-icon">☁️</span>Backup &amp; Sync</button>
-        <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="showSettingsDetail('calendar')"><span class="kh-settings-tab-icon">📅</span>Calendar</button>
-        <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span>Wallets</button>
-        <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span>Categories</button>
-        <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span>Data</button>
-        <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span>About</button>
+        <button class="kh-settings-tab" id="settingsTabBtnAccount" onclick="showSettingsDetail('account')"><span class="kh-settings-tab-icon">👤</span><span class="kh-settings-tab-label">Account</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnAppearance" onclick="showSettingsDetail('appearance')"><span class="kh-settings-tab-icon">🎨</span><span class="kh-settings-tab-label">Appearance</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnNotifications" onclick="showSettingsDetail('notifications')"><span class="kh-settings-tab-icon">🔔</span><span class="kh-settings-tab-label">Notifications</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnBackup" onclick="showSettingsDetail('backup')"><span class="kh-settings-tab-icon">☁️</span><span class="kh-settings-tab-label">Backup &amp; Sync</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="showSettingsDetail('calendar')"><span class="kh-settings-tab-icon">📅</span><span class="kh-settings-tab-label">Calendar</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span><span class="kh-settings-tab-label">Wallets</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span><span class="kh-settings-tab-label">Categories</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span><span class="kh-settings-tab-label">Data</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span><span class="kh-settings-tab-label">About</span><span class="kh-settings-tab-chevron">›</span></button>
       </div>
     </div>
 
