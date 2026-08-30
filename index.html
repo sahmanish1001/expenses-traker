@@ -1908,7 +1908,7 @@
   }
 
   function setSettingsTab(tab){
-    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "data", "about"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "data", "about"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
