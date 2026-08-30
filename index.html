@@ -352,6 +352,15 @@
   .kh-loan-calc{margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
   .kh-loan-calc-result{margin-top:12px;}
   .kh-loan-dash-card{margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
+  .kh-home-sections{display:flex; flex-direction:column;}
+  .kh-layout-list{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+  .kh-layout-row{display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px;}
+  .kh-layout-row-icon{font-size:15px;}
+  .kh-layout-row-label{flex:1; font-size:13.5px; font-weight:600; color:var(--text);}
+  .kh-layout-row-btns{display:flex; gap:6px;}
+  .kh-layout-btn{width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:inherit;}
+  .kh-layout-btn:disabled{opacity:.3; cursor:default;}
+  .kh-layout-btn:not(:disabled):hover{border-color:var(--accent); color:var(--accent);}
   .kh-loan-dash-top{display:flex; align-items:center; justify-content:space-between;}
   .kh-loan-dash-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
   .kh-loan-dash-section-label{font-size:10.5px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; border-top:1px dashed var(--border); padding-top:10px;}
@@ -563,35 +572,46 @@
 
   <div class="kh-demo-note" id="demoNote"></div>
 
-  <div class="kh-main-grid kh-page active" id="homePage">
-    <div class="kh-left-column">
-      <div class="kh-chips" id="chips"></div>
+  <div class="kh-page active" id="homePage">
+    <div class="kh-chips" id="chips"></div>
 
-      <div class="kh-np-filter">
-        <label for="npMonthFilter">Nepali month</label>
-        <select id="npMonthFilter" onchange="setNepaliMonthFilter(this.value)"></select>
-      </div>
-
-      <div class="kh-stats" id="stats"></div>
-
-      <div class="kh-loan-dash-card" id="loanDashCard"></div>
-      <div class="kh-loan-dash-card" id="budgetDashCard" style="margin-top:12px;"></div>
-
-      <p class="kh-section-title">Transactions</p>
-      <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
-      <div id="txList"></div>
+    <div class="kh-np-filter">
+      <label for="npMonthFilter">Nepali month</label>
+      <select id="npMonthFilter" onchange="setNepaliMonthFilter(this.value)"></select>
     </div>
 
-    <div class="kh-right-column">
-      <div class="kh-pie-card">
-        <p class="kh-pie-title" id="pieTitle">Spending by account</p>
-        <div id="pieBody"></div>
+    <div class="kh-home-sections" id="homeSections">
+      <div class="kh-home-section" data-section="stats" id="homeSectionStats">
+        <div class="kh-stats" id="stats"></div>
       </div>
 
-      <div class="kh-np-pie-card">
-        <p class="kh-np-pie-title">Spending by Nepali month (all accounts)</p>
-        <p class="kh-np-pie-sub">Dates you enter in the worldwide (AD) calendar, converted to Bikram Sambat.</p>
-        <div id="npPieBody"></div>
+      <div class="kh-home-section" data-section="loans" id="homeSectionLoans">
+        <div class="kh-loan-dash-card" id="loanDashCard"></div>
+      </div>
+
+      <div class="kh-home-section" data-section="budget" id="homeSectionBudget">
+        <div class="kh-loan-dash-card" id="budgetDashCard"></div>
+      </div>
+
+      <div class="kh-home-section" data-section="transactions" id="homeSectionTransactions">
+        <p class="kh-section-title">Transactions</p>
+        <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
+        <div id="txList"></div>
+      </div>
+
+      <div class="kh-home-section" data-section="pie" id="homeSectionPie">
+        <div class="kh-pie-card">
+          <p class="kh-pie-title" id="pieTitle">Spending by account</p>
+          <div id="pieBody"></div>
+        </div>
+      </div>
+
+      <div class="kh-home-section" data-section="nppie" id="homeSectionNppie">
+        <div class="kh-np-pie-card">
+          <p class="kh-np-pie-title">Spending by Nepali month (all accounts)</p>
+          <p class="kh-np-pie-sub">Dates you enter in the worldwide (AD) calendar, converted to Bikram Sambat.</p>
+          <div id="npPieBody"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -613,6 +633,7 @@
         <button class="kh-settings-tab" id="settingsTabBtnCalendar" onclick="showSettingsDetail('calendar')"><span class="kh-settings-tab-icon">📅</span><span class="kh-settings-tab-label">Calendar</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span><span class="kh-settings-tab-label">Wallets</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span><span class="kh-settings-tab-label">Categories</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnLayout" onclick="showSettingsDetail('layout')"><span class="kh-settings-tab-icon">🧩</span><span class="kh-settings-tab-label">Home Layout</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span><span class="kh-settings-tab-label">Data</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span><span class="kh-settings-tab-label">About</span><span class="kh-settings-tab-chevron">›</span></button>
       </div>
@@ -794,6 +815,19 @@
         </div>
         <div class="kh-cat-list" id="categoryList"></div>
       </div>
+    </div>
+
+    <!-- ===================== HOME LAYOUT ===================== -->
+    <div class="kh-settings-section" id="settingsSectionLayout">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🧩</span>
+        <div class="kh-ssh-text">
+          <h3>Home screen order</h3>
+          <p>Choose the order Total, Loans, Budget, Transactions, and the pie charts appear in on your Home tab. Saved to your account, so it stays this way next time you sign in.</p>
+        </div>
+      </div>
+      <div class="kh-layout-list" id="homeLayoutList"></div>
+      <button class="kh-more-item" style="margin-top:12px;" onclick="resetHomeLayout()">↺ Reset to default order</button>
     </div>
 
     <div class="kh-settings-section" id="settingsSectionData">
@@ -1279,6 +1313,79 @@
     "Other":            { color: "#9aa0ac", icon: "❔" },
   };
   const DEFAULT_CATEGORIES = Object.keys(CAT);
+
+  // Home tab is a stack of these cards; each user can reorder them from
+  // Settings → Home Layout. HOME_LAYOUT holds the current order (an array
+  // of section ids); the actual DOM elements live in fixed wrapper divs
+  // (#homeSection<Id>) inside #homeSections so applyHomeLayout() only has
+  // to move nodes around, never re-render their contents.
+  const HOME_SECTIONS = [
+    { id: "stats",        label: "Total & summary",  icon: "📊" },
+    { id: "loans",         label: "Loan overview",    icon: "🤝" },
+    { id: "budget",        label: "Budget",           icon: "🎯" },
+    { id: "transactions",  label: "Transactions",     icon: "🧾" },
+    { id: "pie",           label: "Spending pie chart", icon: "🥧" },
+    { id: "nppie",          label: "Nepali month pie chart", icon: "📆" },
+  ];
+  const DEFAULT_HOME_LAYOUT = HOME_SECTIONS.map(s => s.id);
+  let HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
+
+  // Keeps a saved layout usable even if sections are ever renamed/added:
+  // drops ids that no longer exist, appends any new ones at the end.
+  function normalizeHomeLayout(saved){
+    if (!Array.isArray(saved)) return [...DEFAULT_HOME_LAYOUT];
+    const valid = saved.filter(id => DEFAULT_HOME_LAYOUT.includes(id));
+    DEFAULT_HOME_LAYOUT.forEach(id => { if (!valid.includes(id)) valid.push(id); });
+    return valid;
+  }
+
+  function homeSectionElId(id){
+    return "homeSection" + id.charAt(0).toUpperCase() + id.slice(1);
+  }
+
+  function applyHomeLayout(){
+    const container = document.getElementById("homeSections");
+    if (!container) return;
+    HOME_LAYOUT.forEach(id => {
+      const el = document.getElementById(homeSectionElId(id));
+      if (el) container.appendChild(el);
+    });
+  }
+
+  function moveHomeSection(id, dir){
+    const idx = HOME_LAYOUT.indexOf(id);
+    const swapIdx = idx + dir;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= HOME_LAYOUT.length) return;
+    [HOME_LAYOUT[idx], HOME_LAYOUT[swapIdx]] = [HOME_LAYOUT[swapIdx], HOME_LAYOUT[idx]];
+    applyHomeLayout();
+    renderHomeLayoutManager();
+    saveCurrentUser();
+  }
+
+  function resetHomeLayout(){
+    HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
+    applyHomeLayout();
+    renderHomeLayoutManager();
+    saveCurrentUser();
+    showToast("Home layout reset");
+  }
+
+  function renderHomeLayoutManager(){
+    const el = document.getElementById("homeLayoutList");
+    if (!el) return;
+    el.innerHTML = HOME_LAYOUT.map((id, i) => {
+      const sec = HOME_SECTIONS.find(s => s.id === id);
+      if (!sec) return "";
+      return `<div class="kh-layout-row">
+        <span class="kh-layout-row-icon">${sec.icon}</span>
+        <span class="kh-layout-row-label">${sec.label}</span>
+        <div class="kh-layout-row-btns">
+          <button class="kh-layout-btn" onclick="moveHomeSection(${attrJson(id)}, -1)" ${i === 0 ? "disabled" : ""} title="Move up">↑</button>
+          <button class="kh-layout-btn" onclick="moveHomeSection(${attrJson(id)}, 1)" ${i === HOME_LAYOUT.length - 1 ? "disabled" : ""} title="Move down">↓</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
 
   // This is only a one-time DEMO seed, offered to a brand-new user so they
   // can see what the tracker looks like with data in it. It is never
@@ -2024,6 +2131,7 @@
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
+      homeLayout: HOME_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
     };
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
@@ -2085,6 +2193,7 @@
       resetAccountsAndCategoriesToDefault();
       (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
       (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
       HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
@@ -2174,6 +2283,7 @@
     ACCOUNT_LIST = [...DEFAULT_ACCOUNTS];
     HIDDEN_ACCOUNTS = [];
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
+    HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
   }
 
   function saveCurrentUser(){
@@ -2189,6 +2299,7 @@
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
+      homeLayout: HOME_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
@@ -2207,6 +2318,7 @@
     if (data){
       (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
       (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
       HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
@@ -3798,6 +3910,7 @@
 
 
   function renderAll(){
+    applyHomeLayout();
     renderChips();
     renderNepaliMonthFilter();
     renderStats();
@@ -3806,6 +3919,7 @@
     renderTx();
     renderLoanDashCard();
     renderBudgetDashCard();
+    renderHomeLayoutManager();
   }
 
   // ---------------------------------------------------------------------
