@@ -1164,7 +1164,7 @@
       </div>
       <div class="kh-manual-field">
         <label for="loanDateGiven">Date given</label>
-        <input id="loanDateGiven" type="date" />
+        <input id="loanDateGiven" type="date" oninput="updateEmiPastPreview()" />
       </div>
       <div class="kh-manual-field">
         <label for="loanDueDate" id="loanDueDateLabel">Due date (optional)</label>
@@ -1197,6 +1197,13 @@
       <div class="kh-manual-field" id="loanEmiAmountField" style="display:none;">
         <label for="loanEmiAmount">EMI amount (Rs / month)</label>
         <input id="loanEmiAmount" type="number" min="0" step="any" placeholder="Auto-calculated once tenure is set" />
+      </div>
+      <div class="kh-manual-field full" id="loanEmiPastPaymentsBox" style="display:none; background:rgba(242,169,59,.08); border:1px solid rgba(242,169,59,.3); border-radius:10px; padding:10px 12px;">
+        <p id="loanEmiPastPaymentsText" style="margin:0 0 8px; font-size:12px; color:var(--text); text-transform:none; letter-spacing:0;"></p>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="loanEmiMarkPastPaid" style="width:auto;" />
+          <label for="loanEmiMarkPastPaid" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text);">Mark those past installments as already paid</label>
+        </div>
       </div>
       <div class="kh-manual-field full" id="loanEmiHint" style="display:none;">
         <p class="kh-cat-hint" style="margin:0;">The due date above is treated as the <b>next</b> EMI date. Each time you log a payment for this loan, it automatically rolls forward one month, and "📅 Add reminder" sets up a repeating monthly reminder instead of a one-off.</p>
@@ -3600,7 +3607,7 @@
         ? "Also record the loan amount as a transaction (leave unchecked if the money was already disbursed earlier)"
         : "Also record as a transaction, so it shows in your cash flow charts";
     }
-    if (on) autoCalcLoanEmi();
+    if (on) autoCalcLoanEmi(); else updateEmiPastPreview();
   }
 
   // Computes the monthly EMI straight from Amount + Interest % + Interest
@@ -3613,7 +3620,7 @@
     if (!document.getElementById("loanIsEmi").checked) return;
     const P = parseAmount(document.getElementById("loanPrincipal").value);
     const n = parseInt(document.getElementById("loanEmiTenure").value, 10);
-    if (!P || !n) return;
+    if (!P || !n){ updateEmiPastPreview(); return; }
     const annualRate = parseAmount(document.getElementById("loanInterestRate").value) || 0;
     const type = document.getElementById("loanInterestType").value;
     let emi;
@@ -3627,6 +3634,56 @@
       emi = P / n;
     }
     document.getElementById("loanEmiAmount").value = Math.round(emi);
+    updateEmiPastPreview();
+  }
+
+  // If the EMI's start date is in the past, shows how many installments
+  // would already be due by today and offers to mark them paid — defaults
+  // to checked, since a real ongoing EMI almost always has been. Only
+  // applies while creating a brand-new loan; editing one relies on its
+  // actual logged payment history instead.
+  function updateEmiPastPreview(){
+    const box = document.getElementById("loanEmiPastPaymentsBox");
+    if (editingLoanId || !document.getElementById("loanIsEmi").checked){
+      box.style.display = "none";
+      return;
+    }
+    const dateGiven = document.getElementById("loanDateGiven").value;
+    const emiAmount = parseAmount(document.getElementById("loanEmiAmount").value);
+    const emiTenureVal = document.getElementById("loanEmiTenure").value;
+    const emiTenure = emiTenureVal ? parseInt(emiTenureVal, 10) : null;
+    if (!dateGiven || !emiAmount){ box.style.display = "none"; return; }
+    let elapsed = monthsElapsed(dateGiven, todayStr());
+    if (emiTenure) elapsed = Math.min(elapsed, emiTenure);
+    if (elapsed <= 0){ box.style.display = "none"; return; }
+
+    const wasHidden = box.style.display === "none" || !box.style.display;
+    document.getElementById("loanEmiPastPaymentsText").textContent =
+      `This loan started ${elapsed} month${elapsed === 1 ? "" : "s"} ago — that's ${rs(elapsed * emiAmount)} already due by now.`;
+    box.style.display = "block";
+    if (wasHidden) document.getElementById("loanEmiMarkPastPaid").checked = true;
+  }
+
+  // Bulk-logs installments for months that have already elapsed before an
+  // EMI loan was even entered into the tracker. Deliberately doesn't touch
+  // loan.dueDate the way a normal payment does — the person already told
+  // us the real next due date when filling in the form.
+  function markPastEmiPaid(loan, count, account, recordTx){
+    for (let i = 1; i <= count; i++){
+      const d = new Date(loan.dateGiven + "T00:00:00");
+      d.setMonth(d.getMonth() + i);
+      const payDate = d.toISOString().slice(0, 10);
+      const payment = { id: "pay" + Math.random().toString(36).slice(2, 9), date: payDate, amount: loan.emiAmount, note: "Marked as already paid", linkTxId: null };
+      if (recordTx && account){
+        ensureCategory("Loan");
+        const txType = loan.type === "borrowed" ? "out" : "in";
+        const vendor = loan.type === "borrowed" ? `Loan repayment to ${loan.person}` : `Loan repayment from ${loan.person}`;
+        const tx = { date: payDate, vendor, category: "Loan", type: txType, amount: loan.emiAmount, account, id: "tx" + (nextTxId++) };
+        TRANSACTIONS.push(tx);
+        payment.linkTxId = tx.id;
+      }
+      loan.payments.push(payment);
+    }
   }
 
   // Moves an EMI loan's due date forward by one month after an installment
@@ -3742,7 +3799,23 @@
         loan.account = acct;
       }
       LOANS.push(loan);
-      showToast(`Added loan with ${person}`);
+
+      let pastPaidCount = 0;
+      if (isEmi){
+        const box = document.getElementById("loanEmiPastPaymentsBox");
+        const markPast = box.style.display !== "none" && document.getElementById("loanEmiMarkPastPaid").checked;
+        if (markPast){
+          let elapsed = monthsElapsed(dateGiven, todayStr());
+          if (emiTenure) elapsed = Math.min(elapsed, emiTenure);
+          if (elapsed > 0){
+            markPastEmiPaid(loan, elapsed, account || ACCOUNT_LIST[0], recordTx);
+            pastPaidCount = elapsed;
+          }
+        }
+      }
+      showToast(pastPaidCount
+        ? `Added loan with ${person} — marked ${pastPaidCount} past installment${pastPaidCount === 1 ? "" : "s"} as paid`
+        : `Added loan with ${person}`);
     }
 
     saveCurrentUser();
