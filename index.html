@@ -1160,7 +1160,7 @@
       </div>
       <div class="kh-manual-field">
         <label for="loanPrincipal">Amount (Rs)</label>
-        <input id="loanPrincipal" type="number" min="0" step="any" placeholder="0" />
+        <input id="loanPrincipal" type="number" min="0" step="any" placeholder="0" oninput="autoCalcLoanEmi()" />
       </div>
       <div class="kh-manual-field">
         <label for="loanDateGiven">Date given</label>
@@ -1176,11 +1176,11 @@
       </div>
       <div class="kh-manual-field">
         <label for="loanInterestRate">Interest % / yr (optional)</label>
-        <input id="loanInterestRate" type="number" min="0" step="any" placeholder="0" />
+        <input id="loanInterestRate" type="number" min="0" step="any" placeholder="0" oninput="autoCalcLoanEmi()" />
       </div>
       <div class="kh-manual-field">
         <label for="loanInterestType">Interest type</label>
-        <select id="loanInterestType">
+        <select id="loanInterestType" onchange="autoCalcLoanEmi()">
           <option value="none">No interest</option>
           <option value="flat">Flat rate</option>
           <option value="reducing">Reducing balance</option>
@@ -1190,13 +1190,13 @@
         <input type="checkbox" id="loanIsEmi" style="width:auto;" onchange="toggleEmiFields()" />
         <label for="loanIsEmi" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text);">This is an EMI loan — remind me every month, not just once</label>
       </div>
+      <div class="kh-manual-field" id="loanEmiTenureField" style="display:none;">
+        <label for="loanEmiTenure">Total installments (months)</label>
+        <input id="loanEmiTenure" type="number" min="1" step="1" placeholder="e.g. 24" oninput="autoCalcLoanEmi()" />
+      </div>
       <div class="kh-manual-field" id="loanEmiAmountField" style="display:none;">
         <label for="loanEmiAmount">EMI amount (Rs / month)</label>
-        <input id="loanEmiAmount" type="number" min="0" step="any" placeholder="e.g. 8500" />
-      </div>
-      <div class="kh-manual-field" id="loanEmiTenureField" style="display:none;">
-        <label for="loanEmiTenure">Total installments (months, optional)</label>
-        <input id="loanEmiTenure" type="number" min="1" step="1" placeholder="e.g. 24" />
+        <input id="loanEmiAmount" type="number" min="0" step="any" placeholder="Auto-calculated once tenure is set" />
       </div>
       <div class="kh-manual-field full" id="loanEmiHint" style="display:none;">
         <p class="kh-cat-hint" style="margin:0;">The due date above is treated as the <b>next</b> EMI date. Each time you log a payment for this loan, it automatically rolls forward one month, and "📅 Add reminder" sets up a repeating monthly reminder instead of a one-off.</p>
@@ -3600,6 +3600,33 @@
         ? "Also record the loan amount as a transaction (leave unchecked if the money was already disbursed earlier)"
         : "Also record as a transaction, so it shows in your cash flow charts";
     }
+    if (on) autoCalcLoanEmi();
+  }
+
+  // Computes the monthly EMI straight from Amount + Interest % + Interest
+  // type + Total installments, the same math as the standalone calculator —
+  // so filling in a loan doesn't require jumping over to the calculator
+  // and copying numbers across by hand. Only fires once tenure is set;
+  // typing directly into the EMI field afterward is still respected until
+  // one of these source fields changes again.
+  function autoCalcLoanEmi(){
+    if (!document.getElementById("loanIsEmi").checked) return;
+    const P = parseAmount(document.getElementById("loanPrincipal").value);
+    const n = parseInt(document.getElementById("loanEmiTenure").value, 10);
+    if (!P || !n) return;
+    const annualRate = parseAmount(document.getElementById("loanInterestRate").value) || 0;
+    const type = document.getElementById("loanInterestType").value;
+    let emi;
+    if (type === "reducing"){
+      const r = annualRate / 12 / 100;
+      emi = r === 0 ? P / n : P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    } else if (type === "flat"){
+      const totalInterest = P * (annualRate / 100) * (n / 12);
+      emi = (P + totalInterest) / n;
+    } else {
+      emi = P / n;
+    }
+    document.getElementById("loanEmiAmount").value = Math.round(emi);
   }
 
   // Moves an EMI loan's due date forward by one month after an installment
