@@ -1028,6 +1028,7 @@
 
     <div class="kh-insight-card">
       <p class="kh-insight-title">Biggest categories this month</p>
+      <div id="topCategoriesPie"></div>
       <div id="topCategories"></div>
     </div>
 
@@ -1230,13 +1231,13 @@
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 12V4.5A7.5 7.5 0 0 1 19.5 12H12Z" fill="currentColor"/></svg>
       <span>Budget</span>
     </button>
-    <button class="kh-nav-btn" id="navSettings" onclick="showSettingsPage()">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-      <span>Settings</span>
-    </button>
     <button class="kh-nav-btn" id="navInsights" onclick="showInsightsPage()">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V10M10 19V5M16 19v-7M20 19V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Insights</span>
+    </button>
+    <button class="kh-nav-btn" id="navSettings" onclick="showSettingsPage()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.14 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1-1.55V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09c.29.7.86 1.26 1.55 1.46H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1.55Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Settings</span>
     </button>
   </nav>
 
@@ -3709,15 +3710,47 @@
     const catTotals = {};
     TRANSACTIONS.filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === curKey)
       .forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
-    const catRanked = Object.entries(catTotals).sort((a,b) => b[1] - a[1]).slice(0, 6);
-    const catTotal = catRanked.reduce((s,[,v]) => s + v, 0) || 1;
+    const catAllRanked = Object.entries(catTotals).sort((a,b) => b[1] - a[1]);
+    const catGrandTotal = catAllRanked.reduce((s,[,v]) => s + v, 0) || 1;
+    const catRanked = catAllRanked.slice(0, 6);
+
+    const pieEl = document.getElementById("topCategoriesPie");
+    if (!catAllRanked.length){
+      pieEl.innerHTML = "";
+    } else {
+      // Top 5 slices, with anything beyond that folded into "Other" so the
+      // pie stays readable even with a long tail of small categories.
+      const top5 = catAllRanked.slice(0, 5).map(([name, value]) => ({ name, value, color: CAT[name]?.color || "#9aa0ac" }));
+      const otherTotal = catAllRanked.slice(5).reduce((s,[,v]) => s + v, 0);
+      const pieData = otherTotal > 0 ? [...top5, { name: "Other", value: otherTotal, color: "#9aa0ac" }] : top5;
+      let angle = 0;
+      const stops = pieData.map(d => {
+        const start = angle;
+        angle += (d.value / catGrandTotal) * 360;
+        return `${d.color} ${start}deg ${angle}deg`;
+      }).join(", ");
+      pieEl.innerHTML = `
+        <div class="kh-pie-wrap"><div class="kh-pie" style="width:150px; height:150px; background:conic-gradient(${stops})"></div></div>
+        <div class="kh-legend">
+          ${pieData.map(d => `
+            <div class="kh-legend-row">
+              <span class="kh-legend-dot" style="background:${d.color}"></span>
+              <span class="kh-legend-name">${d.name}</span>
+              <span class="kh-legend-amt">${rs(d.value)}</span>
+              <span class="kh-legend-pct">${Math.round((d.value / catGrandTotal) * 100)}%</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
     const catEl = document.getElementById("topCategories");
     catEl.innerHTML = catRanked.length ? catRanked.map(([name, amt], i) => `
       <div class="kh-rank-row">
         <span class="kh-rank-num">${i + 1}</span>
         <div class="kh-rank-mid">
           <div class="kh-rank-name">${name}</div>
-          <div class="kh-rank-sub">${Math.round((amt / catTotal) * 100)}% of this month's spending</div>
+          <div class="kh-rank-sub">${Math.round((amt / catGrandTotal) * 100)}% of this month's spending</div>
         </div>
         <span class="kh-rank-amt">${rs(amt)}</span>
       </div>
