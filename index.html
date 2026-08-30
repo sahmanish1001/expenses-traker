@@ -763,6 +763,31 @@
       </label>
     </div>
 
+    <!-- ===================== GOOGLE DRIVE SYNC ===================== -->
+    <div class="kh-settings-section" id="settingsSectionDriveSync">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🔄</span>
+        <div class="kh-ssh-text">
+          <h3>Google Drive sync</h3>
+          <p>Optional — keeps a copy of this same backup in a hidden app folder inside your own Google Drive. It never appears in your normal Drive files and nobody but you (via this app) can read it, since Kharchā still has no server. Turn it on here, then it stays backed up automatically.</p>
+        </div>
+      </div>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">Back up to my Google Drive</div>
+          <div class="kh-toggle-row-sub" id="driveSyncStatus">Off — your data stays only on this device unless you back up manually.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="driveSyncToggle" onchange="toggleDriveSync(this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
+      </div>
+      <div id="driveSyncButtons" style="display:none; gap:8px; margin-top:10px;">
+        <button class="kh-cat-add" style="flex:1; justify-content:center; padding:11px;" onclick="driveBackupNow(false)">☁️ Back up now</button>
+        <button class="kh-manual-btn" style="flex:1; justify-content:center; padding:11px; background:transparent; border:1px solid var(--border); color:var(--text);" onclick="driveRestoreNow()">⬇ Restore latest</button>
+      </div>
+    </div>
+
     <!-- ===================== NEPALI CALENDAR ===================== -->
     <div class="kh-settings-section" id="settingsSectionCalendar">
       <div class="kh-settings-section-head">
@@ -2162,8 +2187,8 @@
     showToast("All data cleared");
   }
 
-  function exportData(){
-    const snapshot = {
+  function buildBackupSnapshot(){
+    return {
       app: "Kharcha",
       exportedAt: new Date().toISOString(),
       transactions: TRANSACTIONS,
@@ -2179,6 +2204,10 @@
       homeLayout: HOME_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
     };
+  }
+
+  function exportData(){
+    const snapshot = buildBackupSnapshot();
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2218,6 +2247,34 @@
     showToast("CSV downloaded");
   }
 
+  // Shared by "restore from .json file" and "restore from Google Drive" —
+  // both just need to hand this a parsed snapshot object.
+  function applyBackupSnapshot(data){
+    resetAccountsAndCategoriesToDefault();
+    (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
+    (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+    HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
+    HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
+    TRANSACTIONS = data.transactions || [];
+    BALANCES = data.balances || {};
+    nextTxId = data.nextTxId || (TRANSACTIONS.length + 1);
+    LOANS = data.loans || [];
+    nextLoanId = data.nextLoanId || (LOANS.length + 1);
+    BUDGETS = data.budgets || {};
+    BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+    PROFILE = data.profile || PROFILE;
+    TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
+    activeAccount = "All";
+    activeNepaliMonth = "All";
+    loanFilter = "all";
+    saveCurrentUser();
+    renderAll();
+    renderAccountManager();
+    renderCategoryManager();
+    renderBudgetPage();
+    populateProfileForm();
+  }
+
   function restoreDataFile(input){
     const file = input.files && input.files[0];
     if (!file) return;
@@ -2235,33 +2292,227 @@
         input.value = "";
         return;
       }
-      resetAccountsAndCategoriesToDefault();
-      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
-      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
-      HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
-      HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
-      TRANSACTIONS = data.transactions || [];
-      BALANCES = data.balances || {};
-      nextTxId = data.nextTxId || (TRANSACTIONS.length + 1);
-      LOANS = data.loans || [];
-      nextLoanId = data.nextLoanId || (LOANS.length + 1);
-      BUDGETS = data.budgets || {};
-      BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
-      PROFILE = data.profile || PROFILE;
-      TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
-      activeAccount = "All";
-      activeNepaliMonth = "All";
-      loanFilter = "all";
-      saveCurrentUser();
-      renderAll();
-      renderAccountManager();
-      renderCategoryManager();
-      renderBudgetPage();
-      populateProfileForm();
+      applyBackupSnapshot(data);
       input.value = "";
       showToast("Backup restored");
     };
     reader.readAsText(file);
+  }
+
+  // ---------------------------------------------------------------------
+  // Google Drive backup — stores the exact same snapshot as the manual
+  // .json backup above, but inside the signed-in user's own Google Drive,
+  // in the special "appDataFolder" that only THIS app can see: it never
+  // shows up in their normal My Drive, and nobody else (not even us — we
+  // have no server) can read it. It's just a private JSON file that
+  // travels with their Gmail account, so signing in on a new phone and
+  // hitting "Restore latest" brings everything back.
+  //
+  // This needs a SEPARATE consent from the sign-in above: signing in only
+  // proves who the person is (an ID token). Touching their Drive needs an
+  // access token with the drive.appdata scope, granted via the OAuth2
+  // "token client" from the same Google Identity Services script — the
+  // person approves a one-time consent popup the first time they turn
+  // this on.
+  //
+  // Setup checklist (same Google Cloud project as GOOGLE_CLIENT_ID below):
+  //   1. Enable the "Google Drive API" for the project.
+  //   2. On the OAuth consent screen, add the scope
+  //        https://www.googleapis.com/auth/drive.appdata
+  //      (a "sensitive" scope — fine while testing with your own account,
+  //      but Google requires app verification before ~100+ real users can
+  //      use it).
+  //   3. No new client ID needed — GOOGLE_CLIENT_ID is reused as-is.
+  // ---------------------------------------------------------------------
+  const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+  const DRIVE_FILE_NAME = "kharcha-data.json";
+  let driveTokenClient = null;
+  let driveAccessToken = null;
+  let driveTokenExpiresAt = 0; // ms epoch
+  let driveAutoSyncTimer = null;
+
+  function driveSyncEnabled(email){
+    try{ return localStorage.getItem("kh_drive_enabled_" + email) === "1"; }catch(e){ return false; }
+  }
+  function setDriveSyncEnabled(email, on){
+    try{ localStorage.setItem("kh_drive_enabled_" + email, on ? "1" : "0"); }catch(e){}
+  }
+  function driveFileIdFor(email){
+    try{ return localStorage.getItem("kh_drive_fileid_" + email); }catch(e){ return null; }
+  }
+  function setDriveFileIdFor(email, id){
+    try{ if (id) localStorage.setItem("kh_drive_fileid_" + email, id); }catch(e){}
+  }
+  function driveLastSyncFor(email){
+    try{ return localStorage.getItem("kh_drive_lastsync_" + email); }catch(e){ return null; }
+  }
+  function setDriveLastSyncFor(email, iso){
+    try{ localStorage.setItem("kh_drive_lastsync_" + email, iso); }catch(e){}
+  }
+
+  // Gets a live Drive access token, requesting/refreshing it via the
+  // Google Identity Services popup when needed, then calls onReady(true|false).
+  function ensureDriveToken(onReady, opts){
+    opts = opts || {};
+    const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
+    if (placeholderId || !window.google || !google.accounts || !google.accounts.oauth2){
+      if (!opts.silent) showToast("Google Drive isn't set up yet (see the GOOGLE_CLIENT_ID / Drive API setup notes in the code)");
+      onReady(false);
+      return;
+    }
+    if (driveAccessToken && Date.now() < driveTokenExpiresAt - 30000){
+      onReady(true);
+      return;
+    }
+    if (!driveTokenClient){
+      driveTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: DRIVE_SCOPE,
+        hint: currentUser ? currentUser.email : undefined,
+        callback: (resp) => {
+          if (resp && resp.access_token){
+            driveAccessToken = resp.access_token;
+            driveTokenExpiresAt = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+            onReady(true);
+          } else {
+            onReady(false);
+          }
+        },
+        error_callback: () => onReady(false),
+      });
+    }
+    // Silent (prompt:"") reuses a still-valid grant without popping a
+    // dialog — used for the background auto-sync. A first-time enable, or
+    // any explicit button tap, shows the normal consent prompt.
+    driveTokenClient.requestAccessToken({ prompt: opts.silent ? "" : "consent" });
+  }
+
+  function driveApiFetch(url, options){
+    options = options || {};
+    const headers = Object.assign({ Authorization: "Bearer " + driveAccessToken }, options.headers || {});
+    return fetch(url, Object.assign({}, options, { headers }));
+  }
+
+  function driveFindFile(cb){
+    driveApiFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'${DRIVE_FILE_NAME}'&fields=files(id,modifiedTime)`)
+      .then(r => r.json())
+      .then(json => cb((json.files && json.files[0]) || null))
+      .catch(() => cb(null));
+  }
+
+  function driveUploadSnapshot(fileId, snapshot, cb){
+    const metadata = fileId ? { name: DRIVE_FILE_NAME } : { name: DRIVE_FILE_NAME, parents: ["appDataFolder"] };
+    const boundary = "kharcha_" + Math.random().toString(36).slice(2);
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(snapshot)}\r\n` +
+      `--${boundary}--`;
+    const url = fileId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+      : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+    driveApiFetch(url, {
+      method: fileId ? "PATCH" : "POST",
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+      body,
+    }).then(r => r.json()).then(json => cb(json && json.id ? json.id : null)).catch(() => cb(null));
+  }
+
+  function driveDownloadSnapshot(fileId, cb){
+    driveApiFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)
+      .then(r => r.json())
+      .then(json => cb(json))
+      .catch(() => cb(null));
+  }
+
+  // silent=true suppresses toasts/popups — used for the automatic
+  // background sync so routine saves don't interrupt the person.
+  function driveBackupNow(silent){
+    if (!currentUser) return;
+    ensureDriveToken((ok) => {
+      if (!ok){ if (!silent) showToast("Couldn't connect to Google Drive"); return; }
+      const email = currentUser.email;
+      driveFindFile((file) => {
+        const fileId = (file && file.id) || driveFileIdFor(email);
+        driveUploadSnapshot(fileId, buildBackupSnapshot(), (newId) => {
+          const savedId = newId || fileId;
+          if (savedId){
+            setDriveFileIdFor(email, savedId);
+            setDriveLastSyncFor(email, new Date().toISOString());
+            renderDriveSyncStatus();
+            if (!silent) showToast("Backed up to Google Drive");
+          } else if (!silent){
+            showToast("Backup to Drive failed — try again");
+          }
+        });
+      });
+    }, { silent });
+  }
+
+  function driveRestoreNow(){
+    if (!currentUser) return;
+    ensureDriveToken((ok) => {
+      if (!ok){ showToast("Couldn't connect to Google Drive"); return; }
+      driveFindFile((file) => {
+        if (!file){ showToast("No Drive backup found yet — back up first"); return; }
+        driveDownloadSnapshot(file.id, (data) => {
+          if (!data || !Array.isArray(data.transactions)){
+            showToast("The Drive backup looks corrupted");
+            return;
+          }
+          if (!confirm("Restore your latest Google Drive backup? This replaces everything currently in your tracker.")) return;
+          applyBackupSnapshot(data);
+          setDriveFileIdFor(currentUser.email, file.id);
+          setDriveLastSyncFor(currentUser.email, new Date().toISOString());
+          renderDriveSyncStatus();
+          showToast("Restored from Google Drive");
+        });
+      });
+    });
+  }
+
+  function toggleDriveSync(enabled){
+    if (!currentUser) return;
+    if (enabled){
+      ensureDriveToken((ok) => {
+        if (!ok){
+          const t = document.getElementById("driveSyncToggle");
+          if (t) t.checked = false;
+          showToast("Couldn't enable — Google Drive permission wasn't granted");
+          return;
+        }
+        setDriveSyncEnabled(currentUser.email, true);
+        renderDriveSyncStatus();
+        driveBackupNow(true);
+      });
+    } else {
+      setDriveSyncEnabled(currentUser.email, false);
+      renderDriveSyncStatus();
+    }
+  }
+
+  function renderDriveSyncStatus(){
+    if (!currentUser) return;
+    const on = driveSyncEnabled(currentUser.email);
+    const toggle = document.getElementById("driveSyncToggle");
+    if (toggle) toggle.checked = on;
+    const btns = document.getElementById("driveSyncButtons");
+    if (btns) btns.style.display = on ? "flex" : "none";
+    const statusEl = document.getElementById("driveSyncStatus");
+    if (statusEl){
+      if (!on){ statusEl.textContent = "Off — your data stays only on this device unless you back up manually."; }
+      else {
+        const last = driveLastSyncFor(currentUser.email);
+        statusEl.textContent = last ? `Last synced ${new Date(last).toLocaleString()}` : "On — syncing shortly…";
+      }
+    }
+  }
+
+  // Debounced so a burst of local saves (e.g. importing many statement
+  // rows) triggers one Drive upload a few seconds later, not one per row.
+  function scheduleDriveAutoSync(){
+    if (!currentUser || !driveSyncEnabled(currentUser.email)) return;
+    clearTimeout(driveAutoSyncTimer);
+    driveAutoSyncTimer = setTimeout(() => driveBackupNow(true), 4000);
   }
 
   const PALETTE = ["#f2a93b","#5fd1a4","#ef6f6c","#7f9cf5","#c792ea","#e8a87c","#6ec6dc","#8fd19e","#e0473e","#3aa655"];
@@ -2348,6 +2599,7 @@
       hiddenAccounts: HIDDEN_ACCOUNTS,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
+    scheduleDriveAutoSync();
   }
 
   function loadUserData(email){
@@ -4079,12 +4331,17 @@
     renderAll();
     renderCategoryManager();
     renderAccountManager();
+    renderDriveSyncStatus();
     setTimeout(checkAlerts, 600);
   }
 
   function signOut(){
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
     currentUser = null;
+    driveAccessToken = null;
+    driveTokenExpiresAt = 0;
+    driveTokenClient = null;
+    clearTimeout(driveAutoSyncTimer);
     try{ localStorage.removeItem(CURRENT_USER_KEY); }catch(e){}
     closePanel();
     document.getElementById("appRoot").style.display = "none";
