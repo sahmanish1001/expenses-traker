@@ -354,6 +354,7 @@
   .kh-loan-dash-card{margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px;}
   .kh-loan-dash-top{display:flex; align-items:center; justify-content:space-between;}
   .kh-loan-dash-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);}
+  .kh-loan-dash-section-label{font-size:10.5px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; border-top:1px dashed var(--border); padding-top:10px;}
   .kh-loan-dash-link{background:none; border:none; color:var(--accent2); font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; padding:0;}
   .kh-loan-dash-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
   .kh-loan-dash-label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim);}
@@ -3130,18 +3131,35 @@
       el.innerHTML = `<div class="kh-loan-dash-empty">No loans tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showLoanPage()">Track a loan →</button></div>`;
       return;
     }
-    const pos = netLoanPosition();
-    const netColor = pos.net >= 0 ? "var(--in)" : "var(--out)";
+    const loanPos = netLoanPosition("nonEmi");
+    const loanNetColor = loanPos.net >= 0 ? "var(--in)" : "var(--out)";
+    const hasLoans = LOANS.some(l => !l.isEmi);
+    const emiLoans = LOANS.filter(l => l.isEmi);
+    const emiOutstanding = emiLoans.reduce((s, l) => s + loanTotals(l).outstanding, 0);
+    const activeEmis = emiLoans.filter(l => l.emiAmount && loanStatus(l) !== "Cleared");
+    const emiMonthly = activeEmis.reduce((s, l) => s + l.emiAmount, 0);
+
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">Net loan position</span>
         <button type="button" class="kh-loan-dash-link" onclick="showLoanPage()">View all →</button>
       </div>
-      <div class="kh-loan-dash-row">
-        <div><span class="kh-loan-dash-label">Owed to you</span><span class="kh-loan-dash-val" style="color:var(--in)">${rs(pos.lentOutstanding)}</span></div>
-        <div><span class="kh-loan-dash-label">You owe</span><span class="kh-loan-dash-val" style="color:var(--out)">${rs(pos.borrowedOutstanding)}</span></div>
-        <div><span class="kh-loan-dash-label">Net</span><span class="kh-loan-dash-val" style="color:${netColor}">${pos.net >= 0 ? "+" : "−"}${rs(Math.abs(pos.net))}</span></div>
-      </div>
+      ${hasLoans ? `
+        <div class="kh-loan-dash-section-label">Loans</div>
+        <div class="kh-loan-dash-row">
+          <div><span class="kh-loan-dash-label">Owed to you</span><span class="kh-loan-dash-val" style="color:var(--in)">${rs(loanPos.lentOutstanding)}</span></div>
+          <div><span class="kh-loan-dash-label">You owe</span><span class="kh-loan-dash-val" style="color:var(--out)">${rs(loanPos.borrowedOutstanding)}</span></div>
+          <div><span class="kh-loan-dash-label">Net</span><span class="kh-loan-dash-val" style="color:${loanNetColor}">${loanPos.net >= 0 ? "+" : "−"}${rs(Math.abs(loanPos.net))}</span></div>
+        </div>
+      ` : ""}
+      ${emiLoans.length ? `
+        <div class="kh-loan-dash-section-label" style="margin-top:${hasLoans ? "12px" : "0"};">EMI</div>
+        <div class="kh-loan-dash-row">
+          <div><span class="kh-loan-dash-label">Outstanding</span><span class="kh-loan-dash-val" style="color:var(--out)">${rs(emiOutstanding)}</span></div>
+          <div><span class="kh-loan-dash-label">Per month</span><span class="kh-loan-dash-val" style="color:var(--accent)">${rs(emiMonthly)}</span></div>
+          <div><span class="kh-loan-dash-label">Active EMIs</span><span class="kh-loan-dash-val">${activeEmis.length}</span></div>
+        </div>
+      ` : ""}
     `;
   }
 
