@@ -1309,8 +1309,12 @@
     </div>
 
     <div id="importModeJson">
-      <p class="kh-import-hint">Upload your statement photo to Claude in chat, copy the JSON block it sends back, and paste it below. (For a single quick entry, use "Add transaction manually" instead.)</p>
-      <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[...]}'></textarea>
+      <p class="kh-import-hint">Open a Claude chat, upload your statement photo there, and Claude will read it and write back the JSON below — vendor names and categories are figured out automatically. Paste that JSON here and hit Import. (For a single quick entry, use "Add transaction manually" instead.)</p>
+      <div class="kh-import-actions" style="margin-top:0; margin-bottom:10px;">
+        <button type="button" class="kh-import-btn" onclick="openClaudeForStatement()">💬 Open Claude to scan a statement</button>
+        <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="copyStatementPrompt()">Copy prompt</button>
+      </div>
+      <textarea id="importInput" class="kh-import-textarea" placeholder='{"account":"eSewa","closingBalance":1200,"transactions":[{"date":"2026-08-30","vendor":"Chai Town","category":"Food & Drink","type":"out","amount":150}]}'></textarea>
       <div class="kh-import-actions">
         <button type="button" class="kh-import-btn" onclick="importData()">Import</button>
         <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
@@ -1801,6 +1805,44 @@
 
   function toggleImport(){
     openPanel("import");
+  }
+
+  // ---------------------------------------------------------------------
+  // "Open Claude to scan a statement" — a shareable deep link into a fresh
+  // Claude chat, pre-filled with exact instructions for the JSON schema
+  // this app's importer expects (see parseTxObject/importData above).
+  // Claude does the reading of the photo, the vendor-name cleanup, and the
+  // category guessing; the person just uploads a screenshot there and
+  // pastes back whatever JSON block Claude replies with.
+  // ---------------------------------------------------------------------
+  const STATEMENT_IMPORT_PROMPT = [
+    "I'm going to upload a photo or screenshot of a bank/wallet statement (eSewa, Khalti, or a bank app).",
+    "Please read every transaction visible in the image and reply with ONLY a single JSON code block (no extra commentary) in exactly this shape:",
+    "",
+    '{"account":"<name of the bank or wallet, e.g. eSewa>","closingBalance":<number, if visible>,"transactions":[',
+    '  {"date":"YYYY-MM-DD","vendor":"<short, clean merchant/payee name>","category":"<one of: Food & Drink, Groceries, Wallet Top-up, Bills & Payments, Transport, Shopping, Transfer In, Transfer Out, Other>","type":"in or out","amount":<positive number>}',
+    "]}",
+    "",
+    "For each transaction: clean up the raw bank narration into a short human-readable vendor name (e.g. \"POS PURCHASE CHAI TOWN KTM NP\" -> \"Chai Town\"), and pick the single best-fitting category yourself from the list above based on the vendor and remark — don't leave category blank. Use \"type\":\"out\" for money leaving the account and \"in\" for money coming in. If a date has no year, assume the current year. Output valid JSON only, wrapped in a single ```json code block.",
+  ].join("\n");
+
+  function openClaudeForStatement(){
+    const url = "https://claude.ai/new?q=" + encodeURIComponent(STATEMENT_IMPORT_PROMPT);
+    window.open(url, "_blank", "noopener");
+  }
+
+  function copyStatementPrompt(){
+    const status = document.getElementById("importStatus");
+    const done = (ok) => {
+      if (!status) return;
+      status.textContent = ok ? "Prompt copied — paste it into a Claude chat, then upload your statement photo there." : "Couldn't copy automatically — long-press the button's link or copy manually.";
+      status.className = ok ? "kh-import-status ok" : "kh-import-status err";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(STATEMENT_IMPORT_PROMPT).then(() => done(true)).catch(() => done(false));
+    } else {
+      done(false);
+    }
   }
 
   let manualType = "out";
@@ -2879,36 +2921,97 @@
     return type === "in" ? "Transfer In" : "Transfer Out";
   }
 
+  // Does a raw amount value/string carry an explicit negative sign?
+  // Used to infer debit vs credit when there's no separate type/dr/cr field —
+  // e.g. Claude (or a bank export) writing {"amount": "-500"} or {"amount": -500}.
+  function amountLooksNegative(val){
+    if (typeof val === "number") return val < 0;
+    return /^\s*-|\(\s*-?\d/.test(String(val == null ? "" : val));
+  }
+
+  // Reads one transaction object and normalizes it into {date, vendor, category, type, amount}.
+  // Tolerates a wide range of key names/shapes so JSON pasted from different statement
+  // photos — or different AI phrasing of the same schema — still works.
   function parseTxObject(tx, i, errors){
-    const date = normalizeDate(tx.date || tx.dateTime || tx.datetime);
+    if (!tx || typeof tx !== "object"){ errors.push(`Item ${i+1}: not a valid entry`); return null; }
+
+    const date = normalizeDate(
+      tx.date || tx.dateTime || tx.datetime || tx.txnDate || tx.transactionDate || tx.time
+    );
     if (!date){ errors.push(`Item ${i+1}: bad or missing date`); return null; }
 
-    const vendor = tx.vendor || tx.description || tx.desc || tx.merchant || tx.narration;
+    const vendor = tx.vendor || tx.description || tx.desc || tx.merchant ||
+      tx.narration || tx.payee || tx.remarks || tx.remark || tx.title || tx.name;
     if (!vendor){ errors.push(`Item ${i+1}: missing vendor/description`); return null; }
 
     let type = null, amount = null;
     if (tx.type){
       const t = String(tx.type).toLowerCase();
-      type = (t === "in" || t === "credit" || t === "cr" || t === "+") ? "in" : "out";
-      amount = parseAmount(tx.amount);
+      type = (t === "in" || t === "credit" || t === "cr" || t === "+" || t === "income" || t === "deposit") ? "in" : "out";
+      amount = parseAmount(tx.amount != null ? tx.amount : (tx.value != null ? tx.value : tx.total));
     } else if (tx.dr !== undefined || tx.cr !== undefined || tx.debit !== undefined || tx.credit !== undefined){
       const dr = parseAmount(tx.dr !== undefined ? tx.dr : tx.debit);
       const cr = parseAmount(tx.cr !== undefined ? tx.cr : tx.credit);
       if (cr){ type = "in"; amount = cr; }
       else { type = "out"; amount = dr; }
     } else {
-      amount = parseAmount(tx.amount);
-      type = (typeof tx.amount === "number" && tx.amount < 0) ? "out" : "in";
+      const rawAmount = tx.amount != null ? tx.amount : (tx.value != null ? tx.value : tx.total);
+      amount = parseAmount(rawAmount);
+      type = amountLooksNegative(rawAmount) ? "out" : "in";
     }
 
-    if (amount === null || amount === 0){ errors.push(`Item ${i+1}: missing/bad amount`); return null; }
+    if (amount === null || amount === 0){ errors.push(`Item ${i+1} (${vendor}): missing/bad amount`); return null; }
 
     // Trust an explicit category (e.g. one Claude already worked out from
     // the statement photo); only guess from the remark/vendor when it's
     // genuinely missing.
-    const category = tx.category || guessCategoryFromText(vendor, type);
+    const category = tx.category || tx.categoryGuess || guessCategoryFromText(vendor, type);
 
     return { date, vendor, category, type, amount };
+  }
+
+  // Pulls a transactions array out of whatever shape the pasted JSON has —
+  // {"transactions":[...]}, {"items":[...]}, {"entries":[...]}, a nested
+  // {"statement":{...}}/{"data":{...}} wrapper, or a bare top-level array.
+  function findTransactionsArray(data){
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== "object") return null;
+    const keys = ["transactions", "items", "entries", "rows", "records"];
+    for (const k of keys){ if (Array.isArray(data[k])) return data[k]; }
+    for (const wrapKey of ["statement", "data", "result"]){
+      if (data[wrapKey] && typeof data[wrapKey] === "object"){
+        const nested = findTransactionsArray(data[wrapKey]);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  function findAccountName(data){
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    const name = data.account || data.accountName || data.wallet || data.bank || data.source;
+    if (name) return String(name);
+    for (const wrapKey of ["statement", "data", "result"]){
+      if (data[wrapKey] && typeof data[wrapKey] === "object"){
+        const nested = findAccountName(data[wrapKey]);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  function findClosingBalance(data){
+    if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+    const bal = data.closingBalance !== undefined ? data.closingBalance
+      : (data.balance !== undefined ? data.balance : data.availableBalance);
+    if (bal !== undefined) return bal;
+    for (const wrapKey of ["statement", "data", "result"]){
+      if (data[wrapKey] && typeof data[wrapKey] === "object"){
+        const nested = findClosingBalance(data[wrapKey]);
+        if (nested !== undefined) return nested;
+      }
+    }
+    return undefined;
   }
 
   function importData(){
@@ -2923,24 +3026,35 @@
 
     let data;
     try {
-      data = JSON.parse(raw);
+      // Tolerate a reply that includes prose or ```json fences around the
+      // block, not just a bare JSON object — Claude sometimes wraps it.
+      let cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```\s*$/,"").trim();
+      const first = cleaned.search(/[\{\[]/);
+      if (first > 0) cleaned = cleaned.slice(first);
+      data = JSON.parse(cleaned);
     } catch (e) {
-      status.textContent = "That doesn't look like valid data — make sure you copied the whole block.";
+      status.textContent = "That doesn't look like valid JSON — make sure you copied the whole block, including the { and } at each end.";
       status.className = "kh-import-status err";
       return;
     }
 
-    if (!data.account || !Array.isArray(data.transactions)){
-      status.textContent = 'JSON needs an "account" name and a "transactions" array.';
+    const txArray = findTransactionsArray(data);
+    let account = findAccountName(data);
+
+    if (!txArray || !txArray.length){
+      status.textContent = 'No transactions found — the JSON needs a "transactions" array with at least one entry.';
       status.className = "kh-import-status err";
       return;
     }
-
-    const account = data.account;
+    if (!account){
+      // Fall back rather than fail outright — an AI reply that forgot the
+      // account name shouldn't block the whole import.
+      account = "Imported";
+    }
     ensureAccount(account);
 
     let added = 0, errors = [];
-    data.transactions.forEach((tx, i) => {
+    txArray.forEach((tx, i) => {
       const parsed = parseTxObject(tx, i, errors);
       if (!parsed) return;
       ensureCategory(parsed.category);
@@ -2949,8 +3063,9 @@
     });
 
     let balanceSet = false;
-    if (data.closingBalance !== undefined){
-      const bal = parseAmount(data.closingBalance);
+    const rawBalance = findClosingBalance(data);
+    if (rawBalance !== undefined){
+      const bal = parseAmount(rawBalance);
       if (bal !== null){ BALANCES[account] = bal; balanceSet = true; }
     }
 
@@ -2961,13 +3076,16 @@
 
     if (added || balanceSet){
       let msg = [];
-      if (added) msg.push(`${added} transaction${added === 1 ? "" : "s"}`);
+      if (added) msg.push(`${added} transaction${added === 1 ? "" : "s"} into ${account}`);
       if (balanceSet) msg.push("balance updated");
+      if (errors.length) msg.push(`${errors.length} skipped`);
       showToast(`Imported ${msg.join(", ")}`);
+      status.textContent = errors.length ? `Imported, but skipped: ${errors.join(" · ")}` : "";
+      status.className = errors.length ? "kh-import-status err" : "kh-import-status";
       document.getElementById("importInput").value = "";
-      closePanel();
+      if (!errors.length) closePanel();
     } else {
-      status.textContent = errors.length ? errors.join(" · ") : "Nothing to import.";
+      status.textContent = errors.length ? `Nothing imported — ${errors.join(" · ")}` : "Nothing to import.";
       status.className = "kh-import-status err";
     }
   }
