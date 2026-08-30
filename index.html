@@ -213,7 +213,8 @@
   .kh-about-block p + p{margin-top:8px;}
   .kh-about-links{display:flex; flex-direction:column; gap:6px;}
   .kh-about-dev-row{display:flex; align-items:center; gap:12px;}
-  .kh-about-dev-avatar{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#1a1400; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; flex-shrink:0;}
+  .kh-about-dev-avatar{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#1a1400; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; flex-shrink:0; overflow:hidden;}
+  svg.kh-about-dev-avatar{background:none; display:block;}
   .kh-about-dev-text{min-width:0;}
   .kh-about-dev-text .name{margin:0; font-size:13.5px; font-weight:600; color:var(--text);}
   .kh-about-dev-text .email{display:inline-block; margin-top:2px; font-size:12px; color:var(--accent2); text-decoration:none; word-break:break-all;}
@@ -924,7 +925,19 @@
       <div class="kh-about-block">
         <h4>Developer</h4>
         <div class="kh-about-dev-row">
-          <div class="kh-about-dev-avatar">MS</div>
+          <svg class="kh-about-dev-avatar" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manish Kumar Sah avatar">
+            <title>Avatar — Manish Kumar Sah</title>
+            <defs>
+              <linearGradient id="avatarGradMS" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#f2a93b"/>
+                <stop offset="100%" stop-color="#ef6f6c"/>
+              </linearGradient>
+            </defs>
+            <circle cx="22" cy="22" r="22" fill="url(#avatarGradMS)"/>
+            <circle cx="14" cy="17" r="7" fill="rgba(255,255,255,.22)"/>
+            <circle cx="30" cy="30" r="10" fill="rgba(255,255,255,.14)"/>
+            <path d="M22 12 L26.5 20 H17.5 Z" fill="rgba(255,255,255,.5)"/>
+          </svg>
           <div class="kh-about-dev-text">
             <p class="name">Manish Kumar Sah</p>
             <a class="email" href="mailto:sah.manish868@gmail.com">sah.manish868@gmail.com</a>
@@ -935,9 +948,21 @@
       <div class="kh-about-block">
         <h4>Design</h4>
         <div class="kh-about-dev-row">
-          <div class="kh-about-dev-avatar">RM</div>
+          <svg class="kh-about-dev-avatar" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rohit Mahato avatar">
+            <title>Avatar — Rohit Mahato</title>
+            <defs>
+              <linearGradient id="avatarGradRM" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stop-color="#5fd1a4"/>
+                <stop offset="100%" stop-color="#7f9cf5"/>
+              </linearGradient>
+            </defs>
+            <circle cx="22" cy="22" r="22" fill="url(#avatarGradRM)"/>
+            <rect x="10" y="10" width="14" height="14" rx="4" fill="rgba(255,255,255,.5)" transform="rotate(18 17 17)"/>
+            <circle cx="29" cy="27" r="8" fill="rgba(255,255,255,.2)"/>
+          </svg>
           <div class="kh-about-dev-text">
             <p class="name">Rohit Mahato</p>
+            <a class="email" href="mailto:rohitkumarmahato60@gmail.com">rohitkumarmahato60@gmail.com</a>
           </div>
         </div>
       </div>
