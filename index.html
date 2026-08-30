@@ -906,6 +906,7 @@
       <h2>Loans</h2>
     </div>
 
+    <p class="kh-eyebrow" id="loanSummaryScopeLabel" style="margin:0 0 8px;">Showing regular loans</p>
     <div class="kh-loan-summary">
       <div class="kh-loan-summary-item">
         <div class="kh-loan-summary-label">Owed to you</div>
@@ -1521,9 +1522,11 @@
     return loanPaid(loan) > 0 ? "Partially Paid" : "Pending";
   }
 
-  function netLoanPosition(){
+  function netLoanPosition(scope){
     let lentOutstanding = 0, borrowedOutstanding = 0;
     LOANS.forEach(l => {
+      if (scope === "emi" && !l.isEmi) return;
+      if (scope === "nonEmi" && l.isEmi) return;
       const { outstanding } = loanTotals(l);
       if (l.type === "lent") lentOutstanding += outstanding;
       else borrowedOutstanding += outstanding;
@@ -3017,7 +3020,12 @@
   function renderLoans(){
     document.querySelectorAll("#loanFilterChips .kh-loan-chip").forEach(b => b.classList.toggle("active", b.dataset.f === loanFilter));
 
-    const pos = netLoanPosition();
+    // The summary card reflects whichever bucket is selected — Loan totals
+    // and EMI totals are kept apart rather than blended into one number.
+    const summaryScope = loanFilter === "emi" ? "emi" : "nonEmi";
+    const pos = netLoanPosition(summaryScope);
+    const summaryLabelEl = document.getElementById("loanSummaryScopeLabel");
+    if (summaryLabelEl) summaryLabelEl.textContent = summaryScope === "emi" ? "Showing EMI loans" : "Showing regular loans";
     document.getElementById("loanSummaryLent").textContent = rs(pos.lentOutstanding);
     document.getElementById("loanSummaryBorrowed").textContent = rs(pos.borrowedOutstanding);
     const netEl = document.getElementById("loanSummaryNet");
@@ -3151,6 +3159,18 @@
     const titleEl = document.getElementById("loanFormTitle");
     const isEditing = !!editingLoanId;
     titleEl.textContent = (isEditing ? "Edit " : "New ") + (on ? "EMI" : "loan");
+    // New EMIs default to NOT recording the principal as a transaction —
+    // an EMI is usually a bank loan already disbursed earlier, unlike a
+    // fresh informal loan where the money is changing hands right now.
+    // Editing an existing loan has its own locked/unlocked logic already,
+    // so this only applies while creating a brand-new one.
+    const recordTxEl = document.getElementById("loanRecordTx");
+    if (!isEditing && !recordTxEl.disabled){
+      recordTxEl.checked = !on;
+      document.getElementById("loanRecordTxLabel").textContent = on
+        ? "Also record the loan amount as a transaction (leave unchecked if the money was already disbursed earlier)"
+        : "Also record as a transaction, so it shows in your cash flow charts";
+    }
   }
 
   // Moves an EMI loan's due date forward by one month after an installment
