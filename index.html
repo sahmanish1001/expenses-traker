@@ -1201,7 +1201,7 @@
       <div class="kh-manual-field full" id="loanEmiPastPaymentsBox" style="display:none; background:rgba(242,169,59,.08); border:1px solid rgba(242,169,59,.3); border-radius:10px; padding:10px 12px;">
         <p id="loanEmiPastPaymentsText" style="margin:0 0 8px; font-size:12px; color:var(--text); text-transform:none; letter-spacing:0;"></p>
         <div style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" id="loanEmiMarkPastPaid" style="width:auto;" />
+          <input type="checkbox" id="loanEmiMarkPastPaid" checked style="width:auto;" />
           <label for="loanEmiMarkPastPaid" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text);">Mark those past installments as already paid</label>
         </div>
       </div>
@@ -3706,6 +3706,7 @@
     document.getElementById("loanIsEmi").checked = !!forceEmi;
     document.getElementById("loanEmiAmount").value = "";
     document.getElementById("loanEmiTenure").value = "";
+    document.getElementById("loanEmiMarkPastPaid").checked = true;
     toggleEmiFields();
     if (!id) return;
     const l = LOANS.find(x => x.id === id);
@@ -3801,16 +3802,12 @@
       LOANS.push(loan);
 
       let pastPaidCount = 0;
-      if (isEmi){
-        const box = document.getElementById("loanEmiPastPaymentsBox");
-        const markPast = box.style.display !== "none" && document.getElementById("loanEmiMarkPastPaid").checked;
-        if (markPast){
-          let elapsed = monthsElapsed(dateGiven, todayStr());
-          if (emiTenure) elapsed = Math.min(elapsed, emiTenure);
-          if (elapsed > 0){
-            markPastEmiPaid(loan, elapsed, account || ACCOUNT_LIST[0], recordTx);
-            pastPaidCount = elapsed;
-          }
+      if (isEmi && document.getElementById("loanEmiMarkPastPaid").checked){
+        let elapsed = monthsElapsed(dateGiven, todayStr());
+        if (emiTenure) elapsed = Math.min(elapsed, emiTenure);
+        if (elapsed > 0){
+          markPastEmiPaid(loan, elapsed, account || ACCOUNT_LIST[0], recordTx);
+          pastPaidCount = elapsed;
         }
       }
       showToast(pastPaidCount
