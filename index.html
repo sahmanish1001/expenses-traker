@@ -317,7 +317,8 @@
   .kh-loan-filter::-webkit-scrollbar{display:none;}
   .kh-loan-toolbar{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
   .kh-loan-toolbar .kh-loan-filter{margin-bottom:0; flex:1;}
-  .kh-loan-toolbar #newLoanBtn{width:100%;}
+  .kh-loan-new-row{display:flex; gap:8px;}
+  .kh-loan-new-row button{flex:1; padding:10px; font-size:12.5px;}
   .kh-loan-chip{flex:0 0 auto; white-space:nowrap; text-align:center; padding:8px 13px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--dim); font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-loan-chip.active{background:var(--accent2); color:#12141c; border-color:transparent;}
   .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
@@ -325,6 +326,12 @@
   .kh-emi-outflow{background:rgba(242,169,59,.1); border:1px solid rgba(242,169,59,.3); border-radius:12px; padding:10px 12px; font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
   .kh-emi-outflow b{font-family:'Space Grotesk',sans-serif; color:var(--accent);}
   .kh-loan-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
+  .kh-loan-card.kh-emi-card{border-left:3px solid var(--accent); background:linear-gradient(180deg, rgba(242,169,59,.07), var(--surface) 55%);}
+  .kh-emi-headline{display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);}
+  .kh-emi-headline-label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);}
+  .kh-emi-headline-amt{font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--accent);}
+  #loanEmiToggleRow{border-radius:10px; transition:background .15s, border-color .15s;}
+  #loanEmiToggleRow.kh-emi-on{background:rgba(242,169,59,.1); border-color:var(--accent) !important;}
   .kh-loan-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
   .kh-loan-person{font-size:14.5px; font-weight:600;}
   .kh-loan-type{font-size:11px; font-weight:600; margin-top:2px;}
@@ -445,11 +452,12 @@
     #loanPage{margin-top:18px;}
     #loanPage > *{max-width:720px; margin-left:auto; margin-right:auto;}
 
-    /* Filter chips + "New loan" sit in one row instead of stacking, and
-       the button no longer stretches edge-to-edge like on mobile. */
+    /* Filter chips + new-loan buttons sit in one row instead of stacking,
+       and the buttons no longer stretch edge-to-edge like on mobile. */
     .kh-loan-toolbar{flex-direction:row; align-items:center; justify-content:space-between; gap:14px;}
     .kh-loan-toolbar .kh-loan-filter{flex:1;}
-    .kh-loan-toolbar #newLoanBtn{width:auto; flex-shrink:0; padding:10px 20px;}
+    .kh-loan-new-row{flex-shrink:0;}
+    .kh-loan-new-row button{flex:0 0 auto; padding:10px 18px;}
   }
   @media (min-width:1100px){
     .kh-app{padding-left:40px;padding-right:40px;}
@@ -924,7 +932,10 @@
         <button type="button" class="kh-loan-chip" data-f="emi" onclick="setLoanFilter('emi')">EMI</button>
       </div>
 
-      <button type="button" class="kh-manual-btn" id="newLoanBtn" onclick="openLoanForm()">＋ New loan</button>
+      <div class="kh-loan-new-row">
+        <button type="button" class="kh-manual-btn" id="newLoanBtn" onclick="openLoanForm(null, false)">＋ New loan</button>
+        <button type="button" class="kh-manual-btn" id="newEmiBtn" style="background:var(--accent); color:#1a1400;" onclick="openLoanForm(null, true)">＋ New EMI</button>
+      </div>
     </div>
 
     <div id="loanList" style="margin-top:14px;"></div>
@@ -1067,7 +1078,7 @@
           <option value="reducing">Reducing balance</option>
         </select>
       </div>
-      <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:2px;">
+      <div class="kh-manual-field full" id="loanEmiToggleRow" style="flex-direction:row; align-items:center; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:2px;">
         <input type="checkbox" id="loanIsEmi" style="width:auto;" onchange="toggleEmiFields()" />
         <label for="loanIsEmi" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text);">This is an EMI loan — remind me every month, not just once</label>
       </div>
@@ -3064,11 +3075,11 @@
       const typeColor = l.type === "lent" ? "var(--in)" : "var(--out)";
       const paidCount = emiInstallmentsPaid(l);
       const emiMeta = l.isEmi
-        ? ` · ${rs(l.emiAmount)}/mo EMI${l.emiTenure ? ` · ${Math.min(paidCount, l.emiTenure)}/${l.emiTenure} paid` : ` · ${paidCount} paid`}${l.dueDate && status !== "Cleared" ? ` · Next ${fmtDate(l.dueDate)}` : ""}`
+        ? `${paidCount ? ` · ${Math.min(paidCount, l.emiTenure || paidCount)}${l.emiTenure ? `/${l.emiTenure}` : ""} paid` : ""}${l.dueDate && status !== "Cleared" ? ` · Next ${fmtDate(l.dueDate)}` : ""}`
         : "";
       const emiProgressPct = l.isEmi && l.emiTenure ? Math.min(100, (paidCount / l.emiTenure) * 100) : null;
       const payoff = status !== "Cleared" ? emiPayoffDate(l) : null;
-      return `<div class="kh-loan-card">
+      return `<div class="kh-loan-card${l.isEmi ? " kh-emi-card" : ""}">
         <div class="kh-loan-card-top">
           <div>
             <div class="kh-loan-person">${l.person}</div>
@@ -3076,8 +3087,12 @@
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
         </div>
-        ${emiProgressPct !== null ? `
-          <div class="kh-budget-bar-track" style="margin-top:10px;"><div class="kh-budget-bar-fill" style="width:${emiProgressPct}%; background:${status === "Cleared" ? "var(--in)" : "var(--accent)"};"></div></div>
+        ${l.isEmi ? `
+          <div class="kh-emi-headline">
+            <span class="kh-emi-headline-label">Monthly payment</span>
+            <span class="kh-emi-headline-amt">${rs(l.emiAmount)}<span style="font-size:11px; color:var(--dim); font-weight:500;">/mo</span></span>
+          </div>
+          <div class="kh-budget-bar-track" style="margin-top:8px;"><div class="kh-budget-bar-fill" style="width:${emiProgressPct !== null ? emiProgressPct : 0}%; background:${status === "Cleared" ? "var(--in)" : "var(--accent)"};"></div></div>
         ` : ""}
         <div class="kh-loan-amounts">
           <div><span class="kh-loan-amt-label">Principal</span><span class="kh-loan-amt-val">${rs(l.principal)}</span></div>
@@ -3132,6 +3147,10 @@
     document.getElementById("loanEmiTenureField").style.display = on ? "flex" : "none";
     document.getElementById("loanEmiHint").style.display = on ? "block" : "none";
     document.getElementById("loanDueDateLabel").textContent = on ? "Next EMI due date" : "Due date (optional)";
+    document.getElementById("loanEmiToggleRow").classList.toggle("kh-emi-on", on);
+    const titleEl = document.getElementById("loanFormTitle");
+    const isEditing = !!editingLoanId;
+    titleEl.textContent = (isEditing ? "Edit " : "New ") + (on ? "EMI" : "loan");
   }
 
   // Moves an EMI loan's due date forward by one month after an installment
@@ -3148,9 +3167,10 @@
     return (loan.payments || []).length;
   }
 
-  function openLoanForm(id){
+  function openLoanForm(id, forceEmi){
     openPanel("loanform"); // resets the form to a blank "new loan" state
-    document.getElementById("loanIsEmi").checked = false;
+    editingLoanId = null;
+    document.getElementById("loanIsEmi").checked = !!forceEmi;
     document.getElementById("loanEmiAmount").value = "";
     document.getElementById("loanEmiTenure").value = "";
     toggleEmiFields();
@@ -3186,7 +3206,6 @@
       document.getElementById("loanRecordTx").disabled = false;
       document.getElementById("loanRecordTxLabel").textContent = "This loan isn't in your cash flow charts yet — check to add it now";
     }
-    document.getElementById("loanFormTitle").textContent = "Edit loan";
     document.getElementById("loanSaveBtn").textContent = "Save changes";
   }
 
