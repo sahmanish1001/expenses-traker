@@ -62,7 +62,7 @@
   .kh-demo-note{margin-top:12px; font-size:12px; color:var(--dim); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 12px; line-height:1.5;}
   .kh-balance-card{margin-top:16px; padding:26px 20px; border-radius:24px; text-align:center; background:linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 20px rgba(28,28,26,.03);}
   .kh-balance-label{margin:0 0 8px; font-size:11px; color:var(--dim); font-weight:600;}
-  .kh-balance-amt{margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:34px; font-weight:800; letter-spacing:-.01em;}
+  .kh-balance-amt{margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,9vw,34px); font-weight:800; letter-spacing:-.01em; white-space:nowrap;}
   .kh-chips{display:flex; gap:8px; overflow-x:auto; margin-top:16px; padding-bottom:2px;}
   .kh-chip{display:flex; align-items:center; gap:6px; flex-shrink:0; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); font-size:12.5px; font-weight:500; color:var(--dim); cursor:pointer; font-family:inherit;}
   .kh-chip.active{color:#12141c; border-color:transparent;}
@@ -70,12 +70,12 @@
   .kh-chip-add{width:30px; height:30px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px dashed var(--border); background:transparent; color:var(--dim); font-size:16px; line-height:1; cursor:pointer; font-family:inherit;}
   .kh-chip-add:hover{color:var(--accent); border-color:var(--accent);}
   .kh-stats{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;}
-  .kh-stat{flex:1; min-width:100px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px 16px;}
-  .kh-stat-icon{display:flex; align-items:center; gap:10px;}
-  .kh-stat-icon-circle{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .kh-stat-icon-circle svg{width:18px; height:18px;}
+  .kh-stat{flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:14px;}
+  .kh-stat-icon{display:flex; flex-direction:column; align-items:flex-start; gap:8px;}
+  .kh-stat-icon-circle{width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .kh-stat-icon-circle svg{width:16px; height:16px;}
   .kh-stat-head{font-size:11px; color:var(--dim);}
-  .kh-stat-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; margin-top:6px;}
+  .kh-stat-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(15px,4.5vw,18px); font-weight:700; margin-top:6px; white-space:nowrap;}
   .kh-pie-card{margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:20px;}
   .kh-pie-title{font-size:12px; color:var(--dim); margin:0 0 12px;}
   .kh-pie-empty{font-size:13px; color:var(--dim); padding:20px 4px; text-align:center;}
@@ -330,7 +330,7 @@
   .kh-loan-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
   .kh-loan-summary-item{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center;}
   .kh-loan-summary-label{font-size:10px; color:var(--dim);}
-  .kh-loan-summary-val{font-family:'Plus Jakarta Sans',sans-serif; font-size:14.5px; font-weight:700; margin-top:4px;}
+  .kh-loan-summary-val{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(12.5px,3.8vw,14.5px); font-weight:700; margin-top:4px; white-space:nowrap;}
   .kh-loan-filter{display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
   .kh-loan-filter::-webkit-scrollbar{display:none;}
   .kh-loan-toolbar{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
@@ -347,7 +347,7 @@
   .kh-loan-card.kh-emi-card{border-left:3px solid var(--accent); background:linear-gradient(180deg, rgba(107,142,111,.08), var(--surface) 55%);}
   .kh-emi-headline{display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);}
   .kh-emi-headline-label{font-size:11px; color:var(--dim);}
-  .kh-emi-headline-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:700; color:var(--accent);}
+  .kh-emi-headline-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(16px,5vw,20px); font-weight:700; color:var(--accent); white-space:nowrap;}
   #loanEmiToggleRow{border-radius:10px; transition:background .15s, border-color .15s;}
   #loanEmiToggleRow.kh-emi-on{background:rgba(107,142,111,.12); border-color:var(--accent) !important;}
   .kh-loan-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
@@ -356,7 +356,7 @@
   .kh-loan-badge{font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0;}
   .kh-loan-amounts{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-top:12px;}
   .kh-loan-amt-label{display:block; font-size:10px; color:var(--dim);}
-  .kh-loan-amt-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; font-weight:700; margin-top:2px;}
+  .kh-loan-amt-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(12px,3.5vw,13.5px); font-weight:700; margin-top:2px; white-space:nowrap;}
   .kh-loan-meta{font-size:11px; color:var(--dim); margin-top:10px;}
   .kh-loan-notes{font-size:11.5px; color:var(--dim); margin-top:6px; font-style:italic;}
   .kh-loan-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
@@ -380,7 +380,7 @@
   .kh-loan-dash-link{background:none; border:none; color:var(--accent2); font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; padding:0;}
   .kh-loan-dash-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
   .kh-loan-dash-label{display:block; font-size:10px; color:var(--dim);}
-  .kh-loan-dash-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; margin-top:4px;}
+  .kh-loan-dash-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(12px,3.6vw,14px); font-weight:700; margin-top:4px; white-space:nowrap;}
   .kh-loan-dash-empty{font-size:12.5px; color:var(--dim); line-height:1.6;}
 
   .kh-budget-page-head{margin:0 0 16px;}
@@ -391,7 +391,7 @@
   .kh-budget-overall{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:18px;}
   .kh-budget-overall-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px 12px;}
   .kh-budget-overall-label{font-size:12px; color:var(--dim);}
-  .kh-budget-overall-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:19px; font-weight:700;}
+  .kh-budget-overall-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(15px,4.6vw,19px); font-weight:700; white-space:nowrap;}
   .kh-budget-overall-set{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;}
   .kh-budget-overall-set input{flex:1; min-width:110px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:8px 10px; font-size:12.5px; font-family:inherit;}
   .kh-budget-warn{font-size:11px; margin-top:8px; font-weight:600;}
@@ -408,7 +408,7 @@
   .kh-mom-row{display:flex; gap:12px;}
   .kh-mom-item{flex:1; text-align:center;}
   .kh-mom-label{font-size:11px; color:var(--dim); }
-  .kh-mom-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; margin-top:5px;}
+  .kh-mom-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(14px,4.4vw,18px); font-weight:700; margin-top:5px; white-space:nowrap;}
   .kh-mom-delta{margin-top:12px; text-align:center; font-size:12.5px; font-weight:600;}
   .kh-trend-chart{display:flex; align-items:flex-end; gap:8px; height:140px;}
   .kh-trend-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
