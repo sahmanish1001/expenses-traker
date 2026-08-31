@@ -328,6 +328,10 @@
   .kh-cat-remove:hover{color:var(--out);}
   .kh-cat-edit{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:0;font-size:11px;}
   .kh-cat-edit:hover{color:var(--accent);}
+  /* Vibrant category chips — solid saturated fill, high-contrast white text */
+  .kh-cat-tag-vibrant{display:flex;align-items:center;gap:6px;padding:7px 10px 7px 8px;border:none;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.01em;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.12);}
+  .kh-cat-tag-vibrant .kh-cat-edit-v, .kh-cat-tag-vibrant .kh-cat-remove-v{border:none;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;padding:2px 6px;font-size:11px;line-height:1.4;border-radius:999px;}
+  .kh-cat-tag-vibrant .kh-cat-edit-v:hover, .kh-cat-tag-vibrant .kh-cat-remove-v:hover{background:rgba(255,255,255,.4);}
 
   /* Loans tab */
   .kh-loan-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
@@ -1408,15 +1412,15 @@
   function visibleAccounts(){ return ACCOUNT_LIST.filter(n => !HIDDEN_ACCOUNTS.includes(n)); }
 
   const CAT = {
-    "Food & Drink":     { color: "#f2a93b", icon: "☕" },
-    "Groceries":        { color: "#8fd19e", icon: "🧺" },
-    "Transfer In":      { color: "#5fd1a4", icon: "↙️" },
-    "Transfer Out":     { color: "#ef6f6c", icon: "↗️" },
-    "Bills & Payments": { color: "#7f9cf5", icon: "🧾" },
-    "Wallet Top-up":    { color: "#c792ea", icon: "📱" },
-    "Shopping":         { color: "#e8a87c", icon: "🛍️" },
-    "Transport":        { color: "#6ec6dc", icon: "⛽" },
-    "Other":            { color: "#9aa0ac", icon: "❔" },
+    "Food & Drink":     { color: "#B45309", icon: "☕" },
+    "Groceries":        { color: "#15803D", icon: "🧺" },
+    "Transfer In":      { color: "#0F766E", icon: "↙️" },
+    "Transfer Out":     { color: "#B91C1C", icon: "↗️" },
+    "Bills & Payments": { color: "#1D4ED8", icon: "🧾" },
+    "Wallet Top-up":    { color: "#7E22CE", icon: "📱" },
+    "Shopping":         { color: "#C2410C", icon: "🛍️" },
+    "Transport":        { color: "#0E7490", icon: "⛽" },
+    "Other":            { color: "#374151", icon: "❔" },
   };
   const DEFAULT_CATEGORIES = Object.keys(CAT);
 
@@ -2589,7 +2593,7 @@
     driveAutoSyncTimer = setTimeout(() => driveBackupNow(true), 4000);
   }
 
-  const PALETTE = ["#f2a93b","#5fd1a4","#ef6f6c","#7f9cf5","#c792ea","#e8a87c","#6ec6dc","#8fd19e","#e0473e","#3aa655"];
+  const PALETTE = ["#B45309","#0F766E","#B91C1C","#1D4ED8","#7E22CE","#C2410C","#0E7490","#15803D","#BE185D","#4D7C0F"];
   let paletteIdx = 0;
   function nextColor(){ return PALETTE[(paletteIdx++) % PALETTE.length]; }
 
@@ -2827,11 +2831,11 @@
     el.innerHTML = Object.keys(CAT).map(name => {
       const isDefault = DEFAULT_CATEGORIES.includes(name);
       const canRename = name !== "Other";
-      return `<span class="kh-cat-tag">
-        <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${CAT[name].color}"></span>
+      return `<span class="kh-cat-tag-vibrant" style="background:${CAT[name].color}">
+        <span>${CAT[name].icon}</span>
         ${name}
-        ${canRename ? `<button class="kh-cat-edit" onclick="renameCategory(${attrJson(name)})" title="Rename">✎</button>` : ""}
-        ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeCategory(${attrJson(name)})" title="Remove">✕</button>`}
+        ${canRename ? `<button class="kh-cat-edit-v" onclick="renameCategory(${attrJson(name)})" title="Rename">✎</button>` : ""}
+        ${isDefault ? "" : `<button class="kh-cat-remove-v" onclick="removeCategory(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
     }).join("");
   }
@@ -3561,7 +3565,7 @@
         const meta = CAT[t.category] || CAT.Other;
         const sub = activeAccount === "All" ? `${t.account} · ${t.category}` : t.category;
         html += `<div class="kh-row">
-          <div class="kh-row-icon" style="background:${meta.color}26">${meta.icon}</div>
+          <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
           <div class="kh-row-mid">
             <div class="kh-row-vendor">${t.vendor}</div>
             <div class="kh-row-cat">${sub}</div>
@@ -4300,7 +4304,7 @@
       const safe = cssSafe(name);
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
-          <span class="kh-budget-row-icon" style="background:${meta.color}26">${meta.icon}</span>
+          <span class="kh-budget-row-icon" style="background:${meta.color}">${meta.icon}</span>
           <span class="kh-budget-row-name">${name}</span>
           <span class="kh-budget-row-amt">${amtText}</span>
         </div>
