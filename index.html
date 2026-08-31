@@ -48,7 +48,7 @@
   .kh-app{ max-width:480px; margin:0 auto; padding:20px 16px calc(120px + env(safe-area-inset-bottom)); }
   .kh-top{
     display:flex; justify-content:space-between; align-items:center; gap:10px;
-    padding:10px 2px; position:sticky; top:0; z-index:700;
+    padding:calc(10px + env(safe-area-inset-top)) 2px 10px; position:sticky; top:0; z-index:700;
     background:var(--bg); backdrop-filter:blur(14px) saturate(180%); -webkit-backdrop-filter:blur(14px) saturate(180%);
     border-bottom:1px solid var(--border); margin:0 -2px 0;
   }
@@ -429,7 +429,7 @@
   @media (min-width:768px){
     body{min-height:100vh;}
     .kh-app{max-width:1180px;padding:28px 32px 110px;}
-    .kh-top{padding:16px 18px;}
+    .kh-top{padding:calc(16px + env(safe-area-inset-top)) 18px 16px;}
     .kh-title{font-size:30px;}
     .kh-eyebrow{font-size:12px;}
     .kh-demo-note{margin-top:16px;max-width:760px;}
