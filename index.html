@@ -3336,14 +3336,66 @@
     // above) is what's current until the next successful save.
     const sb = getSb();
     if (sb && supabaseUserId){
+      const savedAt = new Date().toISOString();
+      // Remember this device made the change at this instant, so the
+      // real-time listener below can tell "this is just an echo of my
+      // own save" apart from "another device changed something" and
+      // skip re-applying (and re-rendering / toasting about) its own edit.
+      lastSelfSaveAt = savedAt;
       sb.from("user_data")
-        .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: new Date().toISOString() })
+        .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: savedAt })
         .then(({ error }) => { if (error) console.warn("Kharcha: Supabase save failed —", error.message); });
     }
   }
 
-  async function loadUserData(email){
+  // Applies a loaded (or live-synced) snapshot object to in-memory app
+  // state. Shared by the initial loadUserData() below and by the
+  // real-time subscription further down, so a change to one field's
+  // restore logic can't drift out of sync with the other.
+  function applyUserDataSnapshot(data, email){
     resetAccountsAndCategoriesToDefault();
+    if (data){
+      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
+      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
+      ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
+      RECURRING = data.recurring || [];
+      nextRecurringId = data.nextRecurringId || (RECURRING.length + 1);
+      HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
+      TRANSACTIONS = data.transactions || [];
+      BALANCES = data.balances || {};
+      nextTxId = data.nextTxId || 1;
+      LOANS = data.loans || [];
+      nextLoanId = data.nextLoanId || 1;
+      BUDGETS = data.budgets || {};
+      BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+      BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
+      ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+      ROOM_EXPENSES = data.roomExpenses || [];
+      ROOM_SETTLEMENTS = data.roomSettlements || [];
+      nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+      nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
+      PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
+      // Make sure every account any saved transaction refers to is present
+      // in the wallet list — covers older saved data from before wallets
+      // were user-managed.
+      TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
+    } else {
+      TRANSACTIONS = [];
+      BALANCES = {};
+      nextTxId = 1;
+      LOANS = [];
+      nextLoanId = 1;
+      BUDGETS = {};
+      BUDGET_OVERALL = null;
+      BUDGET_CATEGORY_ORDER = null;
+      PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
+    }
+    populateProfileForm();
+  }
+
+  async function loadUserData(email){
     let data = null;
 
     const sb = getSb();
@@ -3364,49 +3416,12 @@
     activeNepaliMonth = "current"; // reset -> default to current month
     activeRoomNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
-    const noteEl = document.getElementById("demoNote");
 
-    if (data){
-      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
-      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
-      HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
-      ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
-      RECURRING = data.recurring || [];
-      nextRecurringId = data.nextRecurringId || (RECURRING.length + 1);
-      HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
-      TRANSACTIONS = data.transactions || [];
-      BALANCES = data.balances || {};
-      nextTxId = data.nextTxId || 1;
-      LOANS = data.loans || [];
-      nextLoanId = data.nextLoanId || 1;
-      BUDGETS = data.budgets || {};
-      BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
-    BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
-      ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
-      ROOM_EXPENSES = data.roomExpenses || [];
-      ROOM_SETTLEMENTS = data.roomSettlements || [];
-      nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
-      nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
-      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
-      PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
-      // Make sure every account any saved transaction refers to is present
-      // in the wallet list — covers older saved data from before wallets
-      // were user-managed.
-      TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
-      noteEl.innerHTML = "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows.";
-    } else {
-      TRANSACTIONS = [];
-      BALANCES = {};
-      nextTxId = 1;
-      LOANS = [];
-      nextLoanId = 1;
-      BUDGETS = {};
-      BUDGET_OVERALL = null;
-      BUDGET_CATEGORY_ORDER = null;
-      PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
-      noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
-    }
-    populateProfileForm();
+    applyUserDataSnapshot(data, email);
+
+    document.getElementById("demoNote").innerHTML = data
+      ? "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows."
+      : 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
   }
 
   function populateProfileForm(){
@@ -6201,6 +6216,40 @@
     return sbClient;
   }
   let supabaseUserId = null; // auth.uid() once signed in through Supabase; null = local-only mode (offline, or Supabase unreachable)
+  let realtimeChannel = null;
+  let lastSelfSaveAt = null;
+
+  // Live sync — any other device signed into the same account gets its
+  // update pushed here instead of waiting for its next sign-in. Skips
+  // echoes of a save THIS device just made (compares against
+  // lastSelfSaveAt, set right before each upsert in saveCurrentUser)
+  // so a save doesn't immediately re-render itself and pop a toast.
+  function startRealtimeSync(){
+    const sb = getSb();
+    if (!sb || !supabaseUserId) return;
+    stopRealtimeSync();
+    realtimeChannel = sb
+      .channel(`user_data_${supabaseUserId}`)
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "user_data", filter: `id=eq.${supabaseUserId}` },
+        (payload) => {
+          const row = payload.new;
+          if (!row || !row.data) return;
+          if (lastSelfSaveAt && row.updated_at && row.updated_at <= lastSelfSaveAt) return;
+          applyUserDataSnapshot(row.data, currentUser.email);
+          renderAll();
+          renderCategoryManager();
+          renderAccountManager();
+          showToast("Synced from another device");
+        })
+      .subscribe();
+  }
+
+  function stopRealtimeSync(){
+    const sb = getSb();
+    if (sb && realtimeChannel) sb.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
 
   // Builds the account-panel avatar with real DOM nodes (not an innerHTML
   // string) so nothing breaks on names/URLs containing quotes, and falls
@@ -6306,11 +6355,13 @@
     renderCategoryManager();
     renderAccountManager();
     renderDriveSyncStatus();
+    startRealtimeSync();
     setTimeout(checkAlerts, 600);
   }
 
   function signOut(){
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    stopRealtimeSync();
     const sb = getSb();
     if (sb) sb.auth.signOut().catch(() => {});
     supabaseUserId = null;
