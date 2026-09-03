@@ -19,21 +19,25 @@
 
   :root{
     --bg:#12141c; --surface:#191c27; --surface2:#20232f; --border:rgba(255,255,255,.08);
-    --text:#f2f0ea; --dim:#9396a8; --accent:#6b8e6f; --accent2:#1a2e1b; --in:#22c55e; --out:#f97316;
+    --text:#f2f0ea; --dim:#9396a8; --accent:#10b981; --accent2:#0f9d63; --in:#22c55e; --out:#f97316;
+    --amber:#f59e0b; --amber-bg:rgba(245,158,11,.14); --amber-border:rgba(245,158,11,.32);
+    --jade-bg:rgba(16,185,129,.14); --jade-border:rgba(16,185,129,.32);
   }
   html[data-theme="light"]{
-    /* Kharchā light theme — restyled to match the Stitch redesign (sage green / warm cream) */
+    /* Kharchā light theme — emerald/jade + amber design language */
     --bg:#fbf9f6; --surface:#ffffff; --surface2:#f5f3f0; --border:rgba(28,28,26,.08);
-    --text:#1c1c1a; --dim:#71717a; --accent:#6b8e6f; --accent2:#1a2e1b; --in:#16a34a; --out:#f97316;
-    --primary-container:#d9e6d9;
+    --text:#1c1c1a; --dim:#71717a; --accent:#10b981; --accent2:#0f9d63; --in:#16a34a; --out:#f97316;
+    --primary-container:#d1fae5;
+    --amber:#d97706; --amber-bg:rgba(217,119,6,.12); --amber-border:rgba(217,119,6,.3);
+    --jade-bg:rgba(16,185,129,.12); --jade-border:rgba(16,185,129,.3);
   }
   html[data-theme="light"] .kh-panel{background:rgba(255,255,255,.98); backdrop-filter:none; -webkit-backdrop-filter:none;}
   html[data-theme="light"] .kh-panel-backdrop{background:rgba(28,28,26,.25);}
   html[data-theme="light"] .kh-bottom-nav{background:rgba(255,255,255,.98); backdrop-filter:none; -webkit-backdrop-filter:none; border-color:var(--border); box-shadow:0 4px 20px rgba(28,28,26,.06);}
   html[data-theme="light"] .kh-nav-indicator{background:var(--primary-container); box-shadow:none;}
-  html[data-theme="light"] .kh-nav-btn.active{color:#1a2e1b;}
+  html[data-theme="light"] .kh-nav-btn.active{color:#0f6b46;}
   html[data-theme="light"] .kh-stat, html[data-theme="light"] .kh-pie-card, html[data-theme="light"] .kh-np-pie-card, html[data-theme="light"] .kh-manual-card, html[data-theme="light"] .kh-loan-dash-card{box-shadow:0 4px 20px rgba(28,28,26,.03);}
-  html[data-theme="light"] .kh-chip.active{background:#3d513f; color:#fff;}
+  html[data-theme="light"] .kh-chip.active{background:#0f9d63; color:#fff;}
   html[data-theme="light"] .kh-manual-fab{background:var(--accent2); box-shadow:0 6px 16px rgba(28,28,26,.18);}
   html[data-theme="light"] .kh-upload-btn{background:var(--accent); color:#fff;}
   *{box-sizing:border-box;}
@@ -100,7 +104,7 @@
   .kh-day-np{font-weight:400; color:var(--dim); text-transform:none; letter-spacing:0;}
   .kh-legend-row.clickable{cursor:pointer; border-radius:8px; margin:0 -6px; padding-left:6px; padding-right:6px;}
   .kh-legend-row.clickable:hover{background:var(--surface2);}
-  .kh-legend-row.active{background:rgba(107,142,111,.14);}
+  .kh-legend-row.active{background:rgba(16,185,129,.14);}
   .kh-np-filter-clear{font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; margin-top:8px; font-family:inherit;}
 
   .kh-welcome-greeting{margin:14px 2px 0; font-size:14.5px; color:var(--text); font-weight:500;}
@@ -139,7 +143,7 @@
 
   /* iOS-style glass bottom navigation */
   .kh-bottom-nav{position:fixed; left:50%; bottom:calc(6px + env(safe-area-inset-bottom)); transform:translateX(-50%); max-width:calc(100vw - 24px); z-index:700; display:flex; gap:4px; padding:8px; background:rgba(25,28,39,.7); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.14); border-radius:27px; box-shadow:0 10px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09);}
-  .kh-nav-indicator{position:absolute; top:8px; bottom:8px; left:0; width:0; border-radius:19px; background:rgba(107,142,111,.16); box-shadow:inset 0 1px 0 rgba(255,255,255,.06); transition:transform .5s cubic-bezier(.22,1,.36,1), width .5s cubic-bezier(.22,1,.36,1); pointer-events:none; z-index:0; will-change:transform,width;}
+  .kh-nav-indicator{position:absolute; top:8px; bottom:8px; left:0; width:0; border-radius:19px; background:rgba(16,185,129,.16); box-shadow:inset 0 1px 0 rgba(255,255,255,.06); transition:transform .5s cubic-bezier(.22,1,.36,1), width .5s cubic-bezier(.22,1,.36,1); pointer-events:none; z-index:0; will-change:transform,width;}
   .kh-nav-btn{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--dim); font-family:inherit; font-size:10px; font-weight:500; padding:9px 15px; border-radius:19px; cursor:pointer; transition:color .3s ease, transform .15s cubic-bezier(.34,1.56,.64,1);}
   .kh-nav-btn svg{width:21px; height:21px; display:block; transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
   .kh-nav-btn:active{transform:scale(.88);}
@@ -171,7 +175,7 @@
   .kh-profile-field label{font-size:10.5px; color:var(--dim);}
   .kh-profile-field input, .kh-profile-field select{width:100%; min-width:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:9px 10px; font-family:inherit; font-size:16px;}
   .kh-profile-field input:focus, .kh-profile-field select:focus{outline:none; border-color:var(--accent);}
-  .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
+  .kh-profile-save{grid-column:1 / -1; background:var(--accent); color:#ffffff; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:2px;}
   .kh-profile-saved-note{grid-column:1 / -1; font-size:11px; color:var(--in); min-height:14px;}
 
   /* Settings opens larger, with its own internal tabs */
@@ -196,8 +200,8 @@
   .kh-settings-tab .kh-settings-tab-icon{width:36px; height:36px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; transition:background .15s, color .15s;}
   .kh-settings-tab-label{flex:1; min-width:0;}
   .kh-settings-tab-chevron{color:var(--dim); font-size:16px; flex-shrink:0;}
-  .kh-settings-tab.active{border-color:var(--accent); background:rgba(107,142,111,.1);}
-  .kh-settings-tab.active .kh-settings-tab-icon{background:var(--accent); color:#1a1400;}
+  .kh-settings-tab.active{border-color:var(--accent); background:rgba(16,185,129,.1);}
+  .kh-settings-tab.active .kh-settings-tab-icon{background:var(--accent); color:#ffffff;}
   .kh-settings-section{display:none;}
   .kh-settings-section.active{display:block; animation:kh-settings-fade .18s ease;}
   @keyframes kh-settings-fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
@@ -228,7 +232,7 @@
   .kh-about-block p + p{margin-top:8px;}
   .kh-about-links{display:flex; flex-direction:column; gap:6px;}
   .kh-about-dev-row{display:flex; align-items:center; gap:12px;}
-  .kh-about-dev-avatar{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#1a1400; display:flex; align-items:center; justify-content:center; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; flex-shrink:0; overflow:hidden;}
+  .kh-about-dev-avatar{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#ffffff; display:flex; align-items:center; justify-content:center; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; flex-shrink:0; overflow:hidden;}
   svg.kh-about-dev-avatar{background:none; display:block;}
   .kh-about-dev-text{min-width:0;}
   .kh-about-dev-text .name{margin:0; font-size:13.5px; font-weight:600; color:var(--text);}
@@ -252,7 +256,7 @@
   .kh-toggle-switch input:checked + .kh-toggle-slider::before{transform:translateX(18px);}
   .kh-theme-options{display:flex; gap:8px; margin-top:10px;}
   .kh-theme-opt{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 8px; cursor:pointer; color:var(--dim); font-size:12px; font-weight:600; font-family:inherit;}
-  .kh-theme-opt.active{border-color:var(--accent); color:var(--text); background:rgba(107,142,111,.12);}
+  .kh-theme-opt.active{border-color:var(--accent); color:var(--text); background:rgba(16,185,129,.12);}
   .kh-theme-opt-swatch{width:100%; height:34px; border-radius:8px; border:1px solid var(--border);}
   .kh-danger-zone{margin-top:16px; background:var(--surface); border:1px solid rgba(239,111,108,.28); border-radius:14px; padding:14px;}
 
@@ -304,12 +308,12 @@
   .kh-import-title{font-size:12px; color:var(--dim); margin:0 0 4px;}
   .kh-import-tabs{display:flex; gap:8px; margin:10px 0 12px;}
   .kh-import-tab{flex:1; padding:8px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
-  .kh-import-tab.active{background:rgba(107,142,111,.16); border-color:var(--accent); color:var(--accent);}
+  .kh-import-tab.active{background:rgba(16,185,129,.16); border-color:var(--accent); color:var(--accent);}
   .kh-import-hint{font-size:11.5px; color:var(--dim); margin:0 0 10px; line-height:1.5;}
   .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; padding:10px 12px; line-height:1.5;}
   .kh-import-textarea:focus{outline:none; border-color:var(--accent);}
   .kh-import-actions{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;}
-  .kh-import-btn{background:var(--accent); color:#1a1400; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-import-btn{background:var(--accent); color:#ffffff; border:none; border-radius:10px; padding:8px 16px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-import-status{font-size:11.5px; color:var(--dim);}
   .kh-import-status.err{color:var(--out);}
   .kh-import-status.ok{color:var(--in);}
@@ -320,7 +324,7 @@
   .kh-cat-form{display:flex;gap:8px;}
   .kh-cat-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-family:inherit;font-size:16px;}
   .kh-cat-input:focus{outline:none;border-color:var(--accent);}
-  .kh-cat-add{background:var(--accent);color:#1a1400;border:none;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .kh-cat-add{background:var(--accent);color:#ffffff;border:none;border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
   .kh-cat-add:disabled{background:var(--surface2);color:var(--dim);cursor:not-allowed;}
   .kh-cat-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .kh-cat-tag{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);background:var(--surface2);border-radius:999px;font-size:11.5px;}
@@ -348,19 +352,27 @@
   .kh-loan-chip.active{background:var(--accent2); color:#fff; border-color:transparent;}
   .kh-loan-alert{background:rgba(239,111,108,.12); border:1px solid rgba(239,111,108,.35); border-radius:12px; padding:10px 12px; font-size:12px; color:var(--out); line-height:1.5; margin-bottom:14px;}
   .kh-loan-alert-row{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px;}
-  .kh-emi-outflow{background:rgba(107,142,111,.1); border:1px solid rgba(107,142,111,.3); border-radius:12px; padding:10px 12px; font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .kh-emi-outflow{background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); border-radius:12px; padding:10px 12px; font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
   .kh-emi-outflow b{font-family:'Plus Jakarta Sans',sans-serif; color:var(--accent);}
   .kh-loan-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px;}
-  .kh-loan-card.kh-emi-card{border-left:3px solid var(--accent); background:linear-gradient(180deg, rgba(107,142,111,.08), var(--surface) 55%);}
+  .kh-loan-card.kh-emi-card{border-left:3px solid var(--accent); background:linear-gradient(180deg, rgba(16,185,129,.08), var(--surface) 55%);}
   .kh-emi-headline{display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);}
   .kh-emi-headline-label{font-size:11px; color:var(--dim);}
   .kh-emi-headline-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(16px,5vw,20px); font-weight:700; color:var(--accent); white-space:nowrap;}
   #loanEmiToggleRow{border-radius:10px; transition:background .15s, border-color .15s;}
-  #loanEmiToggleRow.kh-emi-on{background:rgba(107,142,111,.12); border-color:var(--accent) !important;}
+  #loanEmiToggleRow.kh-emi-on{background:rgba(16,185,129,.12); border-color:var(--accent) !important;}
   .kh-loan-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
   .kh-loan-person{font-size:14.5px; font-weight:600;}
   .kh-loan-type{font-size:11px; font-weight:600; margin-top:2px;}
   .kh-loan-badge{font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap; flex-shrink:0;}
+  .kh-pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; white-space:nowrap; border:1px solid transparent;}
+  .kh-pill-jade{color:var(--in); background:var(--jade-bg); border-color:var(--jade-border);}
+  .kh-pill-amber{color:var(--amber); background:var(--amber-bg); border-color:var(--amber-border);}
+  .kh-pill-dim{color:var(--dim); background:rgba(147,150,168,.12); border-color:rgba(147,150,168,.24);}
+  .kh-room-hero{margin:0 0 16px; padding:20px; border-radius:24px; background:linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,.15);}
+  .kh-room-hero-label{font-size:11px; font-weight:700; letter-spacing:.02em; color:var(--dim); text-transform:uppercase; margin:0;}
+  .kh-room-hero-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,8vw,32px); font-weight:800; margin:4px 0 0; letter-spacing:-.01em;}
+  .kh-room-hero-sub{font-size:12.5px; color:var(--dim); margin:4px 0 0;}
   .kh-loan-amounts{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-top:12px;}
   .kh-loan-amt-label{display:block; font-size:10px; color:var(--dim);}
   .kh-loan-amt-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(12px,3.5vw,13.5px); font-weight:700; margin-top:2px; white-space:nowrap;}
@@ -1074,7 +1086,7 @@
 
       <div class="kh-loan-new-row">
         <button type="button" class="kh-manual-btn" id="newLoanBtn" onclick="openLoanForm(null, false)">＋ New loan</button>
-        <button type="button" class="kh-manual-btn" id="newEmiBtn" style="background:var(--accent); color:#1a1400;" onclick="openLoanForm(null, true)">＋ New EMI</button>
+        <button type="button" class="kh-manual-btn" id="newEmiBtn" style="background:var(--accent); color:#ffffff;" onclick="openLoanForm(null, true)">＋ New EMI</button>
       </div>
     </div>
 
@@ -1144,6 +1156,8 @@
       <p class="kh-eyebrow">Shared with roommates</p>
       <h2>Room expenses</h2>
     </div>
+
+    <div class="kh-room-hero" id="roomHeroCard"></div>
 
     <p class="kh-section-title">Roommates</p>
     <div class="kh-cat-manager" style="margin-top:0;">
@@ -1281,7 +1295,7 @@
         <label for="loanEmiAmount">EMI amount (Rs / month)</label>
         <input id="loanEmiAmount" type="number" min="0" step="any" placeholder="Auto-calculated once tenure is set" />
       </div>
-      <div class="kh-manual-field full" id="loanEmiPastPaymentsBox" style="display:none; background:rgba(107,142,111,.1); border:1px solid rgba(107,142,111,.3); border-radius:10px; padding:10px 12px;">
+      <div class="kh-manual-field full" id="loanEmiPastPaymentsBox" style="display:none; background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); border-radius:10px; padding:10px 12px;">
         <p id="loanEmiPastPaymentsText" style="margin:0 0 8px; font-size:12px; color:var(--text); text-transform:none; letter-spacing:0;"></p>
         <div style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="loanEmiMarkPastPaid" checked style="width:auto;" />
@@ -1801,9 +1815,9 @@
 
   const LOAN_STATUS_META = {
     "Pending":         { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
-    "Partially Paid":  { color: "#f2a93b", bg: "rgba(242,169,59,.16)" },
-    "Cleared":         { color: "#5fd1a4", bg: "rgba(95,209,164,.16)" },
-    "Overdue":         { color: "#ef6f6c", bg: "rgba(239,111,108,.16)" },
+    "Partially Paid":  { color: "#f59e0b", bg: "rgba(245,158,11,.16)" },
+    "Cleared":         { color: "#22c55e", bg: "rgba(34,197,94,.16)" },
+    "Overdue":         { color: "#f97316", bg: "rgba(249,115,22,.16)" },
   };
 
   function loanStatus(loan){
@@ -3759,7 +3773,7 @@
         <div class="kh-loan-card-top">
           <div>
             <div class="kh-loan-person">${l.person}</div>
-            <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}${l.isEmi ? ` <span class="kh-loan-badge" style="color:#3E6B52;background:rgba(107,142,111,.16); margin-left:4px;">EMI</span>` : ""}</div>
+            <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}${l.isEmi ? ` <span class="kh-loan-badge" style="color:#059669;background:rgba(16,185,129,.16); margin-left:4px;">EMI</span>` : ""}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
         </div>
@@ -3779,7 +3793,7 @@
         <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}${payoff ? ` · Payoff ~${fmtDate(payoff)}` : ""}</div>
         ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
         <div class="kh-loan-actions">
-          ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#1a1400; border-color:transparent;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay ${rs(l.emiAmount)}</button>` : ""}
+          ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#ffffff; border-color:transparent;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay ${rs(l.emiAmount)}</button>` : ""}
           ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
           ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kh-loan-btn" onclick="addLoanReminder('${l.id}')">📅 ${l.isEmi ? "Add monthly reminder" : "Add reminder"}</button>` : ""}
           <button type="button" class="kh-loan-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
@@ -4492,7 +4506,7 @@
       return;
     }
     const mine = computeRoomBalances()["Me"] || 0;
-    const color = mine > 0.5 ? "var(--in)" : mine < -0.5 ? "var(--out)" : "var(--dim)";
+    const color = mine > 0.5 ? "var(--in)" : mine < -0.5 ? "var(--amber)" : "var(--dim)";
     const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're all settled up";
     el.innerHTML = `
       <div class="kh-loan-dash-top">
@@ -4691,21 +4705,23 @@
     if (!el) return;
     if (ROOMMATES.length < 2){
       el.innerHTML = `<div class="kh-empty">Add at least one roommate above to start splitting costs.</div>`;
+      renderRoomHero(null);
       return;
     }
     const net = computeRoomBalances();
     const rows = ROOMMATES.map(name => {
       const amt = net[name] || 0;
-      const color = amt > 0.5 ? "var(--in)" : amt < -0.5 ? "var(--out)" : "var(--dim)";
+      const pillClass = amt > 0.5 ? "kh-pill-jade" : amt < -0.5 ? "kh-pill-amber" : "kh-pill-dim";
       const label = amt > 0.5 ? `owed ${rs(amt)}` : amt < -0.5 ? `owes ${rs(-amt)}` : "settled up";
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
           <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
           <span class="kh-budget-row-name">${name}</span>
-          <span class="kh-budget-row-amt" style="color:${color}">${label}</span>
+          <span class="kh-pill ${pillClass}">${label}</span>
         </div>
       </div>`;
     }).join("");
+    renderRoomHero(net);
     const settlements = simplifyRoomDebts(net);
     const settleHtml = settlements.length ? `
       <p class="kh-cat-hint" style="margin:14px 2px 8px;">Settle up</p>
@@ -4722,6 +4738,27 @@
       `).join("")}
     ` : `<p class="kh-cat-hint" style="margin:14px 2px 0;">Everyone's settled up. 🎉</p>`;
     el.innerHTML = rows + settleHtml;
+  }
+
+  function renderRoomHero(net){
+    const el = document.getElementById("roomHeroCard");
+    if (!el) return;
+    if (!net){
+      el.innerHTML = `<p class="kh-room-hero-label">Your room balance</p><p class="kh-room-hero-amt" style="color:var(--dim)">—</p><p class="kh-room-hero-sub">Add roommates to start splitting shared costs</p>`;
+      return;
+    }
+    const totalShared = ROOM_EXPENSES.reduce((s, e) => s + e.amount, 0);
+    const mine = net["Me"] || 0;
+    const pillClass = mine > 0.5 ? "kh-pill-jade" : mine < -0.5 ? "kh-pill-amber" : "kh-pill-dim";
+    const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're settled up";
+    el.innerHTML = `
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+        <p class="kh-room-hero-label">Total shared this cycle</p>
+        <span class="kh-pill ${pillClass}">${label}</span>
+      </div>
+      <p class="kh-room-hero-amt">${rs(totalShared)}</p>
+      <p class="kh-room-hero-sub">Split across ${ROOMMATES.length} roommate${ROOMMATES.length === 1 ? "" : "s"}</p>
+    `;
   }
 
   function showRoomPage(){
