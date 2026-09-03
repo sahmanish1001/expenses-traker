@@ -1257,8 +1257,6 @@
       <h2>Room expenses</h2>
     </div>
 
-    <div id="roomSetupScreen" style="display:none;"></div>
-
     <div class="kh-room-sections" id="roomSections">
       <div class="kh-home-section" data-section="hero" id="roomSectionHero">
         <div class="kh-room-hero" id="roomHeroCard"></div>
@@ -1267,8 +1265,7 @@
       <div class="kh-home-section" data-section="roommates" id="roomSectionRoommates">
         <p class="kh-section-title">Roommates</p>
         <div class="kh-cat-manager" style="margin-top:0;">
-          <div id="roomInviteBanner" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;"></div>
-          <p class="kh-cat-hint">Placeholders (just a name) or real members who've joined with the invite code above — either way, add everyone you split room costs with.</p>
+          <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
           <div class="kh-roommate-grid" id="roommateList"></div>
         </div>
       </div>
@@ -1904,31 +1901,15 @@
   let BUDGETS = {}; // categoryName -> monthly limit (Rs, in whatever currency)
   let BUDGET_OVERALL = null; // number or null
 
-  // Room expenses — shared-flat cost splitting, backed by real Supabase
-  // tables (rooms/room_members/room_expenses/room_settlements/room_rent)
-  // so multiple real Google accounts can see and edit the same room live.
-  // ROOMMATES/ROOM_EXPENSES/ROOM_SETTLEMENTS/ROOM_RENT below are kept as
-  // an in-memory MIRROR of that shared server data (populated by
-  // fetchRoomData() on room load and on every realtime update) so the
-  // existing render functions — computeRoomBalances, renderRoomBalances,
-  // renderRoomExpenseList, etc. — didn't need rewriting: ROOMMATES now
-  // holds room_members.id UUIDs instead of plain name strings, and every
-  // display spot already goes through roommateDisplayName() to turn an id
-  // into a name, so the swap is transparent to those functions. Only the
-  // identity-aware bits (roommateDisplayName, and anywhere that used to
-  // special-case the literal string "Me") change to compare against
-  // MY_MEMBER_ID instead.
-  let ROOM_ID = null; // uuid of the room this user belongs to, or null (not set up yet)
-  let ROOM_INVITE_CODE = null;
-  let ROOM_MEMBERS = []; // [{id, user_id, display_name, color}] — the raw member rows
-  let MY_MEMBER_ID = null; // this user's own room_members.id in the current room
-  let LEGACY_ROOM_DATA = null; // pre-migration local room data, offered as a one-time "create a room from this" option
-  let PENDING_JOIN_ROOM_ID = null; // room id being joined, between "enter code" and "confirm which member you are"
-  let roomRealtimeChannel = null;
-  let roomRealtimeDebounce = null;
-  let ROOMMATES = []; // member ids (uuids), mirrored from ROOM_MEMBERS — see note above
-  let ROOM_EXPENSES = []; // { id, date, desc, category, amount, paidBy, splitAmong: [memberIds], txId? } — mirrored from room_expenses
-  let ROOM_SETTLEMENTS = []; // { id, date, from, to, amount, method?, expenseId? } — mirrored from room_settlements
+  // Room expenses — shared-flat cost splitting between roommates. "Me"
+  // always represents the signed-in user and can't be renamed/removed.
+  // Each expense is paid by one roommate and split (equally, by default)
+  // among a subset of roommates; balances are derived, not stored.
+  let ROOMMATES = ["Me"];
+  let ROOM_EXPENSES = []; // { id, date, desc, category, amount, paidBy, splitAmong: [names], txId? }
+  let ROOM_SETTLEMENTS = []; // { id, date, from, to, amount } — a debt paydown between two roommates
+  let nextRoomExpenseId = 1;
+  let nextRoomSettlementId = 1;
   let activeRoomNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key
 
   // Room rent & utilities — a recurring monthly bill, distinct from
@@ -1964,17 +1945,15 @@
     const idx = ROOMMATES.indexOf(name);
     return ROOMMATE_PALETTE[(idx < 0 ? 0 : idx) % ROOMMATE_PALETTE.length];
   }
-  // `id` is a room_members.id (uuid). Your OWN member row always shows
-  // your current Settings → Name / Google name (so it stays right even
-  // if you rename yourself later) instead of whatever name was stored
-  // when you joined; every other member shows their stored display name.
-  function roommateDisplayName(id){
-    if (id === MY_MEMBER_ID){
-      const n = (PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "You";
-      return n.split(" ")[0];
-    }
-    const m = ROOM_MEMBERS.find(x => x.id === id);
-    return m ? m.display_name : "Unknown";
+  // "Me" is always the storage key for the signed-in person (so saved
+  // expenses/splits stay stable even if they rename themselves), but
+  // wherever we show it to the user we swap in their actual name —
+  // whatever they've set under Settings → Name, falling back to their
+  // Google account name, falling back to plain "Me".
+  function roommateDisplayName(name){
+    if (name !== "Me") return name;
+    const n = (PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me";
+    return n.split(" ")[0];
   }
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
@@ -2374,7 +2353,6 @@
     if (currentPage === "loans"){
       openPanel("loanform");
     } else if (currentPage === "room"){
-      if (!ROOM_ID){ showToast("Set up your room first"); return; }
       openPanel("roomexpense");
     } else {
       const wasOpen = openPanelName === "manual";
@@ -2825,13 +2803,11 @@
 
   function clearAllData(){
     if (!confirm("Delete all transactions, balances, and loans? This can't be undone.")) return;
-    // Room data deliberately NOT touched here — it's shared with other
-    // real people now, not private to this account, so "clear my data"
-    // must never delete it out from under them. Leave a room via the
-    // Room page's "Leave room" instead.
     TRANSACTIONS.length = 0;
     Object.keys(BALANCES).forEach(k => delete BALANCES[k]);
     LOANS.length = 0;
+    ROOM_EXPENSES.length = 0;
+    ROOM_SETTLEMENTS.length = 0;
     activeAccount = "All";
     activeNepaliMonth = "current"; // reset -> default to current month
     activeRoomNepaliMonth = "current"; // reset -> default to current month
@@ -2861,9 +2837,12 @@
       recurring: RECURRING,
       nextRecurringId,
       hiddenAccounts: HIDDEN_ACCOUNTS,
-      // Room content lives in Supabase's shared room_* tables now — only
-      // the pointer to which room this account belongs to is personal.
-      roomId: ROOM_ID,
+      roommates: ROOMMATES,
+      roomExpenses: ROOM_EXPENSES,
+      roomSettlements: ROOM_SETTLEMENTS,
+      nextRoomExpenseId,
+      nextRoomSettlementId,
+      roomRent: ROOM_RENT,
     };
   }
 
@@ -2989,10 +2968,12 @@
     BUDGETS = data.budgets || {};
     BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
     BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
-    ROOM_ID = data.roomId || null;
-    LEGACY_ROOM_DATA = (!ROOM_ID && data.roommates && data.roommates.length > 1)
-      ? { roommates: data.roommates, expenses: data.roomExpenses || [], settlements: data.roomSettlements || [], rent: data.roomRent || null }
-      : null;
+    ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+    ROOM_EXPENSES = data.roomExpenses || [];
+    ROOM_SETTLEMENTS = data.roomSettlements || [];
+    nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+    nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
@@ -3313,12 +3294,7 @@
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
     HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
     ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
-    stopRoomRealtimeSync();
-    ROOM_ID = null;
-    ROOM_INVITE_CODE = null;
-    ROOM_MEMBERS = [];
-    MY_MEMBER_ID = null;
-    ROOMMATES = [];
+    ROOMMATES = ["Me"];
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
     ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
@@ -3344,11 +3320,12 @@
       recurring: RECURRING,
       nextRecurringId,
       hiddenAccounts: HIDDEN_ACCOUNTS,
-      // Room content itself (roommates/expenses/settlements/rent) now
-      // lives in Supabase's room_* tables, shared with other real
-      // members — only the pointer to which room this account belongs
-      // to stays in this private snapshot.
-      roomId: ROOM_ID,
+      roommates: ROOMMATES,
+      roomExpenses: ROOM_EXPENSES,
+      roomSettlements: ROOM_SETTLEMENTS,
+      nextRoomExpenseId,
+      nextRoomSettlementId,
+      roomRent: ROOM_RENT,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
@@ -3393,15 +3370,12 @@
       BUDGETS = data.budgets || {};
       BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
       BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
-      ROOM_ID = data.roomId || null;
-      // Pre-shared-rooms saves still have the old plain-array room fields
-      // sitting in this blob (they're just never written again going
-      // forward) — if there's no roomId yet but there IS old room data,
-      // offer it as a one-time "create a real room from this" migration
-      // instead of silently discarding it. See migrateLocalRoomToSupabase().
-      LEGACY_ROOM_DATA = (!ROOM_ID && data.roommates && data.roommates.length > 1)
-        ? { roommates: data.roommates, expenses: data.roomExpenses || [], settlements: data.roomSettlements || [], rent: data.roomRent || null }
-        : null;
+      ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+      ROOM_EXPENSES = data.roomExpenses || [];
+      ROOM_SETTLEMENTS = data.roomSettlements || [];
+      nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+      nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -5252,7 +5226,7 @@
       el.innerHTML = `<div class="kh-loan-dash-empty">No room expenses tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showRoomPage()">Set up your room →</button></div>`;
       return;
     }
-    const mine = computeRoomBalances()[MY_MEMBER_ID] || 0;
+    const mine = computeRoomBalances()["Me"] || 0;
     const color = mine > 0.5 ? "var(--in)" : mine < -0.5 ? "var(--amber)" : "var(--dim)";
     const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're all settled up";
     // Surface the same rent due date shown on the Room page, so it's
@@ -5283,59 +5257,49 @@
   function renderRoommateManager(){
     const el = document.getElementById("roommateList");
     if (!el) return;
-    el.innerHTML = ROOMMATES.map(id => {
-      const isMe = id === MY_MEMBER_ID;
-      const dName = roommateDisplayName(id);
+    el.innerHTML = ROOMMATES.map(name => {
+      const isMe = name === "Me";
       return `<div class="kh-roommate-card">
-        ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(id)})" title="Remove">✕</button>` : ""}
-        <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(id)}">${isMe ? "🙋" : dName.charAt(0).toUpperCase()}</div>
-        <span class="kh-roommate-name">${dName}</span>
+        ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
+        <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : name.charAt(0).toUpperCase()}</div>
+        <span class="kh-roommate-name">${roommateDisplayName(name)}</span>
       </div>`;
     }).join("") + `<button type="button" class="kh-roommate-add-card" onclick="openPanel('roommate')" title="Add roommate">
       <div class="kh-roommate-avatar">＋</div>
       <span class="kh-roommate-name">Add</span>
     </button>`;
-    renderRoomInviteBanner();
     renderRoomPaidBySelect();
     renderRoomSplitChecks();
   }
 
-  // Adds a placeholder member (no linked account) — the "just type a
-  // name" flow that's always worked. A real member joins via invite code
-  // instead (joinRoomByCode/claimPlaceholderMember/joinRoomAsNewMember
-  // below).
-  async function addRoommate(){
+  function addRoommate(){
     const input = document.getElementById("roommateInput");
     const name = input.value.trim();
     if (!name) return;
-    if (!ROOM_ID){ showToast("Set up your room first"); return; }
-    const sb = getSb();
-    const { error } = await sb.from("room_members").insert({ room_id: ROOM_ID, display_name: name });
-    if (error){ showToast("Couldn't add roommate — " + error.message); return; }
+    if (ROOMMATES.includes(name)){ showToast("Already added"); return; }
+    ROOMMATES.push(name);
     input.value = "";
-    await fetchRoomData();
+    saveCurrentUser();
     renderRoommateManager();
     renderRoomBalances();
     closePanel();
     showToast(`Added ${name}`);
   }
 
-  async function removeRoommate(id){
-    if (id === MY_MEMBER_ID) return;
+  function removeRoommate(name){
+    if (name === "Me") return;
     const net = computeRoomBalances();
-    if (Math.abs(net[id] || 0) > 0.5){
-      showToast(`Settle up with ${roommateDisplayName(id)} before removing them`);
+    if (Math.abs(net[name] || 0) > 0.5){
+      showToast(`Settle up with ${name} before removing them`);
       return;
     }
-    const used = ROOM_EXPENSES.some(e => e.paidBy === id || (e.splitAmong || []).includes(id));
+    const used = ROOM_EXPENSES.some(e => e.paidBy === name || (e.splitAmong || []).includes(name));
     if (used){
-      showToast(`${roommateDisplayName(id)} is on past shared expenses — can't remove`);
+      showToast(`${name} is on past shared expenses — can't remove`);
       return;
     }
-    const sb = getSb();
-    const { error } = await sb.from("room_members").delete().eq("id", id);
-    if (error){ showToast("Couldn't remove — " + error.message); return; }
-    await fetchRoomData();
+    ROOMMATES = ROOMMATES.filter(n => n !== name);
+    saveCurrentUser();
     renderRoommateManager();
     renderRoomBalances();
   }
@@ -5386,7 +5350,7 @@
     const wrap = document.getElementById("roomLogToggleWrap");
     const paidBySel = document.getElementById("roomExpPaidBy");
     if (!wrap || !paidBySel) return;
-    if (paidBySel.value !== MY_MEMBER_ID){ wrap.innerHTML = ""; return; }
+    if (paidBySel.value !== "Me"){ wrap.innerHTML = ""; return; }
     wrap.innerHTML = `
       <label class="kh-cat-hint" style="display:flex; align-items:center; gap:8px; margin:10px 0 0; cursor:pointer;">
         <input type="checkbox" id="roomLogAsTx" checked style="margin:0;" />
@@ -5398,7 +5362,7 @@
     `;
   }
 
-  async function addRoomExpense(){
+  function addRoomExpense(){
     const desc = document.getElementById("roomExpDesc").value.trim();
     const amount = parseFloat(document.getElementById("roomExpAmount").value);
     const category = document.getElementById("roomExpCategory").value || "Other";
@@ -5410,25 +5374,18 @@
     const splitAmong = [paidBy, ...others];
     ensureCategory(category);
 
-    const logAsTx = paidBy === MY_MEMBER_ID && document.getElementById("roomLogAsTx") && document.getElementById("roomLogAsTx").checked;
+    const logAsTx = paidBy === "Me" && document.getElementById("roomLogAsTx") && document.getElementById("roomLogAsTx").checked;
     let txId = null;
     if (logAsTx){
       const account = document.getElementById("roomLogAccount").value;
       txId = "tx" + (nextTxId++);
       TRANSACTIONS.push({ date: todayStr(), vendor: desc, category, type: "out", amount, account, id: txId });
-      saveCurrentUser();
     }
-
-    const sb = getSb();
-    const { error } = await sb.from("room_expenses").insert({
-      room_id: ROOM_ID, date: todayStr(), description: desc, category, amount,
-      paid_by: paidBy, split_among: splitAmong, created_by: supabaseUserId, tx_id: txId,
-    });
-    if (error){ showToast("Couldn't add expense — " + error.message); return; }
+    ROOM_EXPENSES.unshift({ id: "rx" + (nextRoomExpenseId++), date: todayStr(), desc, category, amount, paidBy, splitAmong, txId });
 
     document.getElementById("roomExpDesc").value = "";
     document.getElementById("roomExpAmount").value = "";
-    await fetchRoomData();
+    saveCurrentUser();
     renderRoomExpenseList();
     renderRoomBalances();
     renderRoomDashCard();
@@ -5462,17 +5419,15 @@
     }).join("");
   }
 
-  async function deleteRoomExpense(id){
-    const removed = ROOM_EXPENSES.find(e => e.id === id);
-    if (!removed) return;
-    const sb = getSb();
-    const { error } = await sb.from("room_expenses").delete().eq("id", id);
-    if (error){ showToast("Couldn't delete — " + error.message); return; }
+  function deleteRoomExpense(id){
+    const idx = ROOM_EXPENSES.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    const [removed] = ROOM_EXPENSES.splice(idx, 1);
     if (removed.txId){
       const txIdx = TRANSACTIONS.findIndex(t => t.id === removed.txId);
-      if (txIdx !== -1){ TRANSACTIONS.splice(txIdx, 1); saveCurrentUser(); }
+      if (txIdx !== -1) TRANSACTIONS.splice(txIdx, 1);
     }
-    await fetchRoomData();
+    saveCurrentUser();
     renderRoomExpenseList();
     renderRoomBalances();
     renderRoomDashCard();
@@ -5480,14 +5435,12 @@
     showToast("Removed");
   }
 
-  async function markRoomSettled(from, to, amount){
-    const sb = getSb();
-    const { error } = await sb.from("room_settlements").insert({ room_id: ROOM_ID, date: todayStr(), from_member: from, to_member: to, amount });
-    if (error){ showToast("Couldn't settle — " + error.message); return; }
-    await fetchRoomData();
+  function markRoomSettled(from, to, amount){
+    ROOM_SETTLEMENTS.push({ id: "rs" + (nextRoomSettlementId++), date: todayStr(), from, to, amount });
+    saveCurrentUser();
     renderRoomBalances();
     renderRoomDashCard();
-    showToast(`Marked ${rs(amount)} settled between ${roommateDisplayName(from)} and ${roommateDisplayName(to)}`);
+    showToast(`Marked ${rs(amount)} settled between ${from} and ${to}`);
   }
 
   function renderRoomBalances(){
@@ -5500,15 +5453,14 @@
       return;
     }
     const net = computeRoomBalances();
-    const rows = ROOMMATES.map(id => {
-      const amt = net[id] || 0;
+    const rows = ROOMMATES.map(name => {
+      const amt = net[name] || 0;
       const pillClass = amt > 0.5 ? "kh-pill-jade" : amt < -0.5 ? "kh-pill-amber" : "kh-pill-dim";
       const label = amt > 0.5 ? `owed ${rs(amt)}` : amt < -0.5 ? `owes ${rs(-amt)}` : "settled up";
-      const dName = roommateDisplayName(id);
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
-          <span class="kh-budget-row-icon" style="background:${roommateColor(id)}">${dName.charAt(0).toUpperCase()}</span>
-          <span class="kh-budget-row-name">${dName}</span>
+          <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
+          <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
           <span class="kh-pill ${pillClass}">${label}</span>
         </div>
       </div>`;
@@ -5576,7 +5528,7 @@
     openPanel("rentsetup");
   }
 
-  async function saveRentSetup(){
+  function saveRentSetup(){
     const rentAmount = parseFloat(document.getElementById("rentAmountInput").value) || 0;
     const utilitiesAmount = parseFloat(document.getElementById("rentUtilitiesInput").value) || 0;
     const dueDay = Math.min(Math.max(1, parseInt(document.getElementById("rentDueDayInput").value, 10) || 1), 32);
@@ -5584,15 +5536,12 @@
       showToast("Enter a rent amount");
       return;
     }
-    const landlordName = document.getElementById("rentLandlordName").value.trim();
-    const landlordPhone = document.getElementById("rentLandlordPhone").value.trim();
-    const sb = getSb();
-    const { error } = await sb.from("room_rent").upsert({
-      room_id: ROOM_ID, rent_amount: rentAmount, utilities_amount: utilitiesAmount, due_day: dueDay,
-      landlord_name: landlordName || null, landlord_phone: landlordPhone || null,
-    });
-    if (error){ showToast("Couldn't save — " + error.message); return; }
-    ROOM_RENT = { rentAmount, utilitiesAmount, dueDay, landlordName, landlordPhone };
+    ROOM_RENT = {
+      rentAmount, utilitiesAmount, dueDay,
+      landlordName: document.getElementById("rentLandlordName").value.trim(),
+      landlordPhone: document.getElementById("rentLandlordPhone").value.trim(),
+    };
+    saveCurrentUser();
     renderRoomRentCard();
     closePanel();
     showToast("Room rent saved");
@@ -5601,7 +5550,7 @@
   // One tap: logs the flat total (rent + utilities) as a Rent shared
   // expense for this cycle, split equally among everyone, paid by
   // whoever the "Who paid the landlord?" select is set to.
-  async function logMonthlyRent(){
+  function logMonthlyRent(){
     if (currentRentExpense()){
       showToast("This month's rent is already logged below");
       return;
@@ -5616,27 +5565,21 @@
       return;
     }
     const payerSel = document.getElementById("rentPayerSelect");
-    const paidBy = (payerSel && ROOMMATES.includes(payerSel.value)) ? payerSel.value : (MY_MEMBER_ID || ROOMMATES[0]);
+    const paidBy = (payerSel && ROOMMATES.includes(payerSel.value)) ? payerSel.value : "Me";
     const others = ROOMMATES.filter(n => n !== paidBy);
     const desc = ROOM_RENT.utilitiesAmount ? "Room rent & utilities" : "Room rent";
     ensureCategory("Rent");
 
     let txId = null;
-    if (paidBy === MY_MEMBER_ID){
+    if (paidBy === "Me"){
       const account = visibleAccounts()[0];
       if (account){
         txId = "tx" + (nextTxId++);
         TRANSACTIONS.push({ date: todayStr(), vendor: desc, category: "Rent", type: "out", amount: total, account, id: txId });
-        saveCurrentUser();
       }
     }
-    const sb = getSb();
-    const { error } = await sb.from("room_expenses").insert({
-      room_id: ROOM_ID, date: todayStr(), description: desc, category: "Rent", amount: total,
-      paid_by: paidBy, split_among: [paidBy, ...others], created_by: supabaseUserId, tx_id: txId,
-    });
-    if (error){ showToast("Couldn't log rent — " + error.message); return; }
-    await fetchRoomData();
+    ROOM_EXPENSES.unshift({ id: "rx" + (nextRoomExpenseId++), date: todayStr(), desc, category: "Rent", amount: total, paidBy, splitAmong: [paidBy, ...others], txId });
+    saveCurrentUser();
     renderRoomExpenseList();
     renderRoomBalances();
     renderRoomDashCard();
@@ -5649,19 +5592,18 @@
   // because it's common for a housemate to pay their landlord or the
   // payer directly (cash, Fonepay, etc.) outside the app; this just
   // records that it happened, with an optional note on how.
-  async function markRentSharePaid(roommate){
+  function markRentSharePaid(roommate){
     const expense = currentRentExpense();
     if (!expense) return;
     const share = expense.amount / expense.splitAmong.length;
     const method = prompt(`How did ${roommateDisplayName(roommate)} pay their ${rs(share)} share?`, "Cash");
     if (method === null) return;
-    const sb = getSb();
-    const { error } = await sb.from("room_settlements").insert({
-      room_id: ROOM_ID, date: todayStr(), from_member: roommate, to_member: expense.paidBy,
-      amount: share, method: method.trim() || "Cash", expense_id: expense.id,
+    ROOM_SETTLEMENTS.push({
+      id: "rs" + (nextRoomSettlementId++), date: todayStr(),
+      from: roommate, to: expense.paidBy, amount: share,
+      method: method.trim() || "Cash", expenseId: expense.id,
     });
-    if (error){ showToast("Couldn't save — " + error.message); return; }
-    await fetchRoomData();
+    saveCurrentUser();
     renderRoomBalances();
     renderRoomDashCard();
     showToast(`Marked ${roommateDisplayName(roommate)}'s rent share paid`);
@@ -5743,32 +5685,31 @@
         <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:12px;" onclick="logMonthlyRent()">＋ Log this month's rent</button>
       `;
     } else {
-      const rows = expense.splitAmong.map(id => {
-        const isPayer = id === expense.paidBy;
-        const settlement = !isPayer ? ROOM_SETTLEMENTS.find(s => s.expenseId === expense.id && s.from === id) : null;
-        const dName = roommateDisplayName(id);
+      const rows = expense.splitAmong.map(name => {
+        const isPayer = name === expense.paidBy;
+        const settlement = !isPayer ? ROOM_SETTLEMENTS.find(s => s.expenseId === expense.id && s.from === name) : null;
         const badge = isPayer
           ? `<span class="kh-pill kh-pill-jade">Payer</span>`
           : settlement ? `<span class="kh-pill kh-pill-jade">Settled ✓</span>` : `<span class="kh-pill kh-pill-amber">Unpaid</span>`;
         const sub = isPayer
           ? `Paid full bill (${rs(expense.amount)})`
           : settlement ? `Paid via ${settlement.method} on ${bsLabel(settlement.date)}`
-          : id === MY_MEMBER_ID ? "You owe your room share" : "Owes their room share";
+          : name === "Me" ? "You owe your room share" : "Owes their room share";
         const amtLabel = isPayer ? "Self covered" : rs(yourShare);
-        const actions = (isPayer || settlement) ? "" : id === MY_MEMBER_ID ? `
+        const actions = (isPayer || settlement) ? "" : name === "Me" ? `
           <div class="kh-rent-person-actions">
-            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid(${attrJson(id)})">✓ I've paid</button>
+            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid('Me')">✓ I've paid</button>
           </div>
         ` : `
           <div class="kh-rent-person-actions">
-            <button type="button" class="kh-rent-nudge-btn" onclick="nudgeRoommate(${attrJson(id)}, ${yourShare})">🔔 Nudge</button>
-            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid(${attrJson(id)})">✓ Mark paid</button>
+            <button type="button" class="kh-rent-nudge-btn" onclick="nudgeRoommate(${attrJson(name)}, ${yourShare})">🔔 Nudge</button>
+            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid(${attrJson(name)})">✓ Mark paid</button>
           </div>
         `;
         return `<div class="kh-budget-row">
           <div class="kh-budget-row-top">
-            <span class="kh-budget-row-icon" style="background:${roommateColor(id)}">${dName.charAt(0).toUpperCase()}</span>
-            <span class="kh-budget-row-name">${dName}</span>
+            <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
+            <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
             ${badge}
           </div>
           <div class="kh-rent-person-sub">${sub} · <b style="color:var(--text)">${amtLabel}</b></div>
@@ -5838,7 +5779,7 @@
       return;
     }
     const totalShared = getScopedRoomExpenses().reduce((s, e) => s + e.amount, 0);
-    const mine = net[MY_MEMBER_ID] || 0;
+    const mine = net["Me"] || 0;
     const pillClass = mine > 0.5 ? "kh-pill-jade" : mine < -0.5 ? "kh-pill-amber" : "kh-pill-dim";
     const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're settled up";
     el.innerHTML = `
@@ -5851,293 +5792,15 @@
     `;
   }
 
-  // Pulls the current room's members/expenses/settlements/rent from
-  // Supabase into the local mirror variables (ROOM_MEMBERS, ROOMMATES,
-  // ROOM_EXPENSES, ROOM_SETTLEMENTS, ROOM_RENT, MY_MEMBER_ID,
-  // ROOM_INVITE_CODE) that every render function above already reads.
-  // Called on room load and after every write/realtime event — a plain
-  // refetch rather than patching state in place, since it's simpler and
-  // the payloads are small.
-  async function fetchRoomData(){
-    if (!ROOM_ID) return;
-    const sb = getSb();
-    if (!sb) return;
-    const [{ data: room }, { data: members }, { data: expenses }, { data: settlements }, { data: rentRow }] = await Promise.all([
-      sb.from("rooms").select("invite_code, name").eq("id", ROOM_ID).maybeSingle(),
-      sb.from("room_members").select("*").eq("room_id", ROOM_ID).order("created_at"),
-      sb.from("room_expenses").select("*").eq("room_id", ROOM_ID).order("date", { ascending: false }),
-      sb.from("room_settlements").select("*").eq("room_id", ROOM_ID),
-      sb.from("room_rent").select("*").eq("room_id", ROOM_ID).maybeSingle(),
-    ]);
-    ROOM_INVITE_CODE = room ? room.invite_code : null;
-    ROOM_MEMBERS = members || [];
-    ROOMMATES = ROOM_MEMBERS.map(m => m.id);
-    MY_MEMBER_ID = (ROOM_MEMBERS.find(m => m.user_id === supabaseUserId) || {}).id || null;
-    ROOM_EXPENSES = (expenses || []).map(e => ({
-      id: e.id, date: e.date, desc: e.description, category: e.category,
-      amount: Number(e.amount), paidBy: e.paid_by, splitAmong: e.split_among || [], txId: e.tx_id || null,
-    }));
-    ROOM_SETTLEMENTS = (settlements || []).map(s => ({
-      id: s.id, date: s.date, from: s.from_member, to: s.to_member,
-      amount: Number(s.amount), method: s.method, expenseId: s.expense_id,
-    }));
-    ROOM_RENT = rentRow
-      ? { rentAmount: Number(rentRow.rent_amount), utilitiesAmount: Number(rentRow.utilities_amount || 0), dueDay: rentRow.due_day, landlordName: rentRow.landlord_name || "", landlordPhone: rentRow.landlord_phone || "" }
-      : { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
-  }
-
-  function makeInviteCode(){
-    return Math.random().toString(36).slice(2, 8).toUpperCase();
-  }
-
-  async function createRoom(){
-    const sb = getSb();
-    if (!sb || !supabaseUserId){ showToast("Sign in required to create a room"); return; }
-    const { data: room, error } = await sb.from("rooms").insert({ created_by: supabaseUserId, invite_code: makeInviteCode() }).select().single();
-    if (error){ showToast("Couldn't create room — " + error.message); return; }
-    const myName = ((PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me").split(" ")[0];
-    const { error: memberErr } = await sb.from("room_members").insert({ room_id: room.id, user_id: supabaseUserId, display_name: myName });
-    if (memberErr){ showToast("Couldn't join your new room — " + memberErr.message); return; }
-    ROOM_ID = room.id;
-    saveCurrentUser();
-    await showRoomPage();
-    showToast("Room created — share the invite code with your roommates");
-  }
-
-  // Turns the pre-migration local ROOMMATES/ROOM_EXPENSES/etc (still
-  // sitting in this account's own private data from before shared rooms
-  // existed — see LEGACY_ROOM_DATA in applyUserDataSnapshot) into a real
-  // room: your own "Me" entry becomes a real member linked to your
-  // account, everyone else becomes a placeholder you can later invite.
-  async function migrateLocalRoomToSupabase(){
-    if (!LEGACY_ROOM_DATA) return;
-    const sb = getSb();
-    if (!sb || !supabaseUserId){ showToast("Sign in required"); return; }
-    const { data: room, error } = await sb.from("rooms").insert({ created_by: supabaseUserId, invite_code: makeInviteCode() }).select().single();
-    if (error){ showToast("Migration failed — " + error.message); return; }
-    const roomId = room.id;
-    const idMap = {};
-    for (const oldName of LEGACY_ROOM_DATA.roommates){
-      const isMe = oldName === "Me";
-      const displayName = isMe ? ((PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me").split(" ")[0] : oldName;
-      const { data: member, error: mErr } = await sb.from("room_members").insert({ room_id: roomId, user_id: isMe ? supabaseUserId : null, display_name: displayName }).select().single();
-      if (mErr){ showToast("Migration failed adding " + oldName); return; }
-      idMap[oldName] = member.id;
-    }
-    for (const e of LEGACY_ROOM_DATA.expenses){
-      await sb.from("room_expenses").insert({
-        room_id: roomId, date: e.date, description: e.desc, category: e.category, amount: e.amount,
-        paid_by: idMap[e.paidBy], split_among: (e.splitAmong || []).map(n => idMap[n]).filter(Boolean),
-        created_by: supabaseUserId,
-      });
-    }
-    for (const s of LEGACY_ROOM_DATA.settlements){
-      await sb.from("room_settlements").insert({
-        room_id: roomId, date: s.date, from_member: idMap[s.from], to_member: idMap[s.to],
-        amount: s.amount, method: s.method || null,
-      });
-    }
-    if (LEGACY_ROOM_DATA.rent && LEGACY_ROOM_DATA.rent.rentAmount){
-      await sb.from("room_rent").upsert({
-        room_id: roomId, rent_amount: LEGACY_ROOM_DATA.rent.rentAmount, utilities_amount: LEGACY_ROOM_DATA.rent.utilitiesAmount || 0,
-        due_day: LEGACY_ROOM_DATA.rent.dueDay || 1, landlord_name: LEGACY_ROOM_DATA.rent.landlordName || null, landlord_phone: LEGACY_ROOM_DATA.rent.landlordPhone || null,
-      });
-    }
-    ROOM_ID = roomId;
-    LEGACY_ROOM_DATA = null;
-    saveCurrentUser();
-    await showRoomPage();
-    showToast("Room created from your existing data");
-  }
-
-  async function joinRoomByCode(){
-    const input = document.getElementById("joinRoomCodeInput");
-    const code = input ? input.value.trim().toUpperCase() : "";
-    if (!code){ showToast("Enter an invite code"); return; }
-    const sb = getSb();
-    if (!sb || !supabaseUserId){ showToast("Sign in required"); return; }
-    const { data: room, error } = await sb.from("rooms").select("id").eq("invite_code", code).maybeSingle();
-    if (error || !room){ showToast("No room found with that code"); return; }
-    const { data: existingMembers } = await sb.from("room_members").select("*").eq("room_id", room.id);
-    PENDING_JOIN_ROOM_ID = room.id;
-    renderJoinClaimPicker(existingMembers || []);
-  }
-
-  // After a code is confirmed valid, ask "is this you?" against any
-  // existing placeholder members before creating a brand-new one — so
-  // "Ram" (added as a placeholder by the room creator) becomes the real
-  // Ram's own member row instead of a duplicate.
-  function renderJoinClaimPicker(members){
-    const placeholders = members.filter(m => !m.user_id);
-    const wrap = document.getElementById("roomJoinClaimWrap");
-    const el = document.getElementById("roomJoinClaimList");
-    if (!wrap || !el) return;
-    el.innerHTML = placeholders.map(m => `<button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:8px;" onclick="claimPlaceholderMember(${attrJson(m.id)})">I'm ${htmlEscape(m.display_name)}</button>`).join("")
-      + `<button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:8px; background:transparent; border:1px solid var(--border); color:var(--text);" onclick="joinRoomAsNewMember()">I'm new here</button>`;
-    wrap.style.display = "";
-  }
-
-  async function claimPlaceholderMember(memberId){
-    const sb = getSb();
-    const myName = ((PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me").split(" ")[0];
-    const { error } = await sb.from("room_members").update({ user_id: supabaseUserId, display_name: myName }).eq("id", memberId);
-    if (error){ showToast("Couldn't join — " + error.message); return; }
-    ROOM_ID = PENDING_JOIN_ROOM_ID;
-    PENDING_JOIN_ROOM_ID = null;
-    saveCurrentUser();
-    await showRoomPage();
-    showToast("Joined the room");
-  }
-
-  async function joinRoomAsNewMember(){
-    const sb = getSb();
-    const myName = ((PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me").split(" ")[0];
-    const { error } = await sb.from("room_members").insert({ room_id: PENDING_JOIN_ROOM_ID, user_id: supabaseUserId, display_name: myName });
-    if (error){ showToast("Couldn't join — " + error.message); return; }
-    ROOM_ID = PENDING_JOIN_ROOM_ID;
-    PENDING_JOIN_ROOM_ID = null;
-    saveCurrentUser();
-    await showRoomPage();
-    showToast("Joined the room");
-  }
-
-  async function leaveRoom(){
-    if (!confirm("Leave this room? You'll need the invite code to rejoin.")) return;
-    const sb = getSb();
-    if (sb && MY_MEMBER_ID) await sb.from("room_members").delete().eq("id", MY_MEMBER_ID);
-    stopRoomRealtimeSync();
-    ROOM_ID = null;
-    ROOM_INVITE_CODE = null;
-    ROOM_MEMBERS = [];
-    ROOMMATES = [];
-    MY_MEMBER_ID = null;
-    ROOM_EXPENSES = [];
-    ROOM_SETTLEMENTS = [];
-    saveCurrentUser();
-    await showRoomPage();
-  }
-
-  function renderRoomSetupScreen(message){
-    const el = document.getElementById("roomSetupScreen");
-    const sections = document.getElementById("roomSections");
-    if (!el || !sections) return;
-    sections.style.display = "none";
-    el.style.display = "";
-    el.innerHTML = `
-      ${message ? `<div class="kh-empty" style="margin-bottom:14px;">${message}</div>` : ""}
-      ${LEGACY_ROOM_DATA ? `
-        <div class="kh-cat-manager" style="margin-top:0;">
-          <p class="kh-cat-title">Continue your existing room setup</p>
-          <p class="kh-cat-hint">You've already got roommates and shared expenses tracked on this device. Turn that into a real room everyone can see and update themselves.</p>
-          <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="migrateLocalRoomToSupabase()">Create a room from my existing data</button>
-        </div>
-      ` : ""}
-      <div class="kh-cat-manager" style="margin-top:${LEGACY_ROOM_DATA ? "14px" : "0"};">
-        <p class="kh-cat-title">Start a new room</p>
-        <p class="kh-cat-hint">You'll get an invite code to share with your roommates.</p>
-        <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="createRoom()">＋ Create a room</button>
-      </div>
-      <div class="kh-cat-manager" style="margin-top:14px;">
-        <p class="kh-cat-title">Join an existing room</p>
-        <div class="kh-cat-form">
-          <input id="joinRoomCodeInput" class="kh-cat-input" placeholder="Invite code" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){ event.preventDefault(); joinRoomByCode(); }" />
-          <button class="kh-cat-add" onclick="joinRoomByCode()">Join</button>
-        </div>
-        <div id="roomJoinClaimWrap" style="display:none; margin-top:10px;">
-          <p class="kh-cat-hint">Are you one of these people already tracked in this room?</p>
-          <div id="roomJoinClaimList"></div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderRoomInviteBanner(){
-    const el = document.getElementById("roomInviteBanner");
-    if (!el) return;
-    if (!ROOM_ID){ el.innerHTML = ""; return; }
-    el.innerHTML = `
-      <span class="kh-cat-hint" style="margin:0;">Invite code: <b style="color:var(--text); letter-spacing:.05em;">${ROOM_INVITE_CODE || "…"}</b></span>
-      <div style="display:flex; gap:6px;">
-        <button type="button" class="kh-rent-edit-btn" onclick="copyRoomInviteCode()">Copy</button>
-        <button type="button" class="kh-rent-edit-btn" onclick="leaveRoom()">Leave room</button>
-      </div>
-    `;
-  }
-
-  function copyRoomInviteCode(){
-    if (!ROOM_INVITE_CODE) return;
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(ROOM_INVITE_CODE).then(() => showToast("Invite code copied")).catch(() => showToast(`Invite code: ${ROOM_INVITE_CODE}`));
-    } else {
-      showToast(`Invite code: ${ROOM_INVITE_CODE}`);
-    }
-  }
-
-  // Live sync for shared room data — any member adding an expense,
-  // marking their share paid, or joining shows up for every other member
-  // without a refresh. Same idea as startRealtimeSync() for personal data
-  // (index.html, Supabase section above), just scoped to this room's rows
-  // across four tables instead of one user_data row.
-  function startRoomRealtimeSync(){
-    const sb = getSb();
-    if (!sb || !ROOM_ID) return;
-    stopRoomRealtimeSync();
-    roomRealtimeChannel = sb
-      .channel(`room_${ROOM_ID}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_expenses", filter: `room_id=eq.${ROOM_ID}` }, handleRoomRealtimeChange)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_settlements", filter: `room_id=eq.${ROOM_ID}` }, handleRoomRealtimeChange)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_members", filter: `room_id=eq.${ROOM_ID}` }, handleRoomRealtimeChange)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_rent", filter: `room_id=eq.${ROOM_ID}` }, handleRoomRealtimeChange)
-      .subscribe();
-  }
-
-  function stopRoomRealtimeSync(){
-    const sb = getSb();
-    if (sb && roomRealtimeChannel) sb.removeChannel(roomRealtimeChannel);
-    roomRealtimeChannel = null;
-  }
-
-  // Debounced because one action (e.g. logging rent) can touch more than
-  // one of the four subscribed tables at once — without this, that one
-  // action would trigger several redundant refetch+re-renders in a row.
-  function handleRoomRealtimeChange(){
-    clearTimeout(roomRealtimeDebounce);
-    roomRealtimeDebounce = setTimeout(async () => {
-      await fetchRoomData();
-      if (currentPage === "room"){
-        renderRoommateManager();
-        renderRoomCategorySelect();
-        renderRoomExpenseList();
-        renderRoomBalances();
-        renderRoomInviteBanner();
-      }
-      renderRoomDashCard();
-    }, 250);
-  }
-
-  async function showRoomPage(){
+  function showRoomPage(){
     closePanel();
     showPage("room");
     applyRoomLayout();
-    if (!supabaseUserId){
-      renderRoomSetupScreen("Room expenses need a connected account — sign out and back in if you're not sure you're connected.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (!ROOM_ID){
-      renderRoomSetupScreen();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    document.getElementById("roomSetupScreen").style.display = "none";
-    document.getElementById("roomSections").style.display = "";
-    await fetchRoomData();
     renderRoommateManager();
     renderRoomCategorySelect();
     renderRoomNepaliMonthFilter();
     renderRoomExpenseList();
     renderRoomBalances();
-    startRoomRealtimeSync();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -6688,13 +6351,6 @@
     document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${firstName}</strong>`;
 
     await loadUserData(user.email);
-    // If this account already belongs to a room, pull it in now (not
-    // just when the Room page is opened) so the Home dash card and
-    // realtime updates are live from the moment you sign in.
-    if (ROOM_ID){
-      await fetchRoomData();
-      startRoomRealtimeSync();
-    }
     renderAll();
     renderCategoryManager();
     renderAccountManager();
@@ -6706,7 +6362,6 @@
   function signOut(){
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
     stopRealtimeSync();
-    stopRoomRealtimeSync();
     const sb = getSb();
     if (sb) sb.auth.signOut().catch(() => {});
     supabaseUserId = null;
