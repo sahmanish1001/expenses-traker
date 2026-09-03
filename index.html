@@ -5388,7 +5388,13 @@
     const dueLabel = daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? "Due today" : `Due in ${daysLeft}d`;
     const expense = currentRentExpense();
     const shareCount = expense ? expense.splitAmong.length : Math.max(ROOMMATES.length, 1);
-    const yourShare = total / shareCount;
+    // Once this cycle's rent is logged, shares must be derived from that
+    // expense's actual amount — not from ROOM_RENT's current settings,
+    // which may have been edited since (e.g. rent went up next cycle).
+    // Otherwise the per-person "share" shown here drifts out of sync with
+    // what markRentSharePaid() records and what computeRoomBalances() uses,
+    // so the displayed amounts (and "settled" totals) stop matching reality.
+    const yourShare = expense ? (expense.amount / shareCount) : (total / shareCount);
 
     const landlordHtml = ROOM_RENT.landlordName ? `
       <div class="kh-landlord-card">
