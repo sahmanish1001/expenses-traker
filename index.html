@@ -386,6 +386,25 @@
   .kh-room-hero-label{font-size:11px; font-weight:700; letter-spacing:.02em; color:var(--dim); text-transform:uppercase; margin:0;}
   .kh-room-hero-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,8vw,32px); font-weight:800; margin:4px 0 0; letter-spacing:-.01em;}
   .kh-room-hero-sub{font-size:12.5px; color:var(--dim); margin:4px 0 0;}
+  .kh-rent-card{margin:0 0 16px; padding:20px; border-radius:24px; background:linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,.15);}
+  .kh-rent-card-top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .kh-rent-card-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,8vw,32px); font-weight:800; margin:10px 0 0; letter-spacing:-.01em;}
+  .kh-rent-share-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
+  .kh-rent-share-label{font-size:10.5px; color:var(--dim); margin:0;}
+  .kh-rent-share-val{font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; margin:3px 0 0;}
+  .kh-landlord-card{display:flex; align-items:center; gap:12px; margin-top:16px; padding:12px; border-radius:16px; background:var(--surface2); border:1px solid var(--border);}
+  .kh-landlord-info{flex:1; min-width:0;}
+  .kh-landlord-name{font-size:13.5px; font-weight:700; margin:0;}
+  .kh-landlord-role{font-size:11px; color:var(--dim); margin:2px 0 0;}
+  .kh-landlord-actions{display:flex; gap:6px; flex-shrink:0;}
+  .kh-landlord-call{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--border); color:var(--text); text-decoration:none; font-size:15px; flex-shrink:0;}
+  .kh-landlord-pay{display:flex; align-items:center; gap:5px; background:var(--accent2); color:#fff; border:none; border-radius:999px; padding:0 14px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .kh-rent-splits-top{display:flex; align-items:center; gap:8px; margin:18px 0 8px; flex-wrap:wrap;}
+  .kh-rent-person-sub{font-size:11.5px; color:var(--dim); margin:4px 0 0; padding-left:41px;}
+  .kh-rent-person-actions{display:flex; gap:8px; margin-top:8px; padding-left:41px;}
+  .kh-rent-nudge-btn{background:none; border:1px solid var(--border); color:var(--dim); border-radius:999px; padding:6px 12px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-rent-nudge-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .kh-rent-paid-btn{background:none; border:1px solid var(--jade-border); color:var(--in); border-radius:999px; padding:6px 12px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-loan-amounts{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-top:12px;}
   .kh-loan-amt-label{display:block; font-size:10px; color:var(--dim);}
   .kh-loan-amt-val{display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(12px,3.5vw,13.5px); font-weight:700; margin-top:2px; white-space:nowrap;}
@@ -1194,6 +1213,8 @@
       <h2>Room expenses</h2>
     </div>
 
+    <div class="kh-rent-card" id="roomRentCard"></div>
+
     <div class="kh-room-hero" id="roomHeroCard"></div>
 
     <div class="kh-np-filter">
@@ -1461,6 +1482,43 @@
     </div>
   </div>
 
+  <div class="kh-panel kh-panel-large" id="panelRentSetup" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title">Room rent & utilities</p>
+    <p class="kh-manual-hint">Set this up once — every month, "Log this month's rent" splits it equally and tracks who's paid.</p>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field">
+        <label for="rentAmountInput">Rent (Rs/month)</label>
+        <input id="rentAmountInput" type="number" min="0" step="any" placeholder="18000" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="rentUtilitiesInput">Utilities — electricity, wifi, etc (Rs/month)</label>
+        <input id="rentUtilitiesInput" type="number" min="0" step="any" placeholder="3500" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="rentDueDayInput">Due day of month</label>
+        <input id="rentDueDayInput" type="number" min="1" max="28" step="1" placeholder="1" />
+      </div>
+      <div class="kh-manual-field full">
+        <label for="rentLandlordName">Landlord name</label>
+        <input id="rentLandlordName" placeholder="e.g. Gopal Shrestha" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="rentLandlordPhone">Landlord phone</label>
+        <input id="rentLandlordPhone" type="tel" placeholder="98XXXXXXXX" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="rentLandlordPayApp">They accept payment via</label>
+        <input id="rentLandlordPayApp" placeholder="e.g. eSewa, Khalti, Bank" />
+      </div>
+    </div>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="saveRentSetup()">Save</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+    </div>
+  </div>
+
   <div class="kh-panel kh-panel-large" id="panelImport" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
@@ -1688,6 +1746,15 @@
   let nextRoomExpenseId = 1;
   let nextRoomSettlementId = 1;
   let activeRoomNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key
+
+  // Room rent & utilities — a recurring monthly bill, distinct from
+  // one-off shared expenses. One AD calendar month = one "billing cycle";
+  // logging it creates a normal Rent-category ROOM_EXPENSE (so it folds
+  // into the balances above too), and per-roommate paydown of THAT
+  // specific bill is tracked via ROOM_SETTLEMENTS entries carrying an
+  // expenseId + optional payment method, so the cycle card can show
+  // "Settled via Fonepay" instead of just a net balance.
+  let ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
 
   // Shared expenses scoped to the room page's own month filter. Balances
   // (who owes whom) deliberately do NOT use this — a debt someone still
@@ -2234,7 +2301,7 @@
     }, 300);
   }
 
-  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate", roomexpense: "panelRoomExpense" };
+  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate", roomexpense: "panelRoomExpense", rentsetup: "panelRentSetup" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -2537,6 +2604,7 @@
       roomSettlements: ROOM_SETTLEMENTS,
       nextRoomExpenseId,
       nextRoomSettlementId,
+      roomRent: ROOM_RENT,
     };
   }
 
@@ -2602,6 +2670,7 @@
     ROOM_SETTLEMENTS = data.roomSettlements || [];
     nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
     nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
@@ -2924,6 +2993,7 @@
     ROOMMATES = ["Me"];
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
+    ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
   }
 
   function saveCurrentUser(){
@@ -2947,6 +3017,7 @@
       roomSettlements: ROOM_SETTLEMENTS,
       nextRoomExpenseId,
       nextRoomSettlementId,
+      roomRent: ROOM_RENT,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
@@ -2981,6 +3052,7 @@
       ROOM_SETTLEMENTS = data.roomSettlements || [];
       nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
       nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -5009,6 +5081,7 @@
     if (ROOMMATES.length < 2){
       el.innerHTML = `<div class="kh-empty">Add at least one roommate above to start splitting costs.</div>`;
       renderRoomHero(null);
+      renderRoomRentCard();
       return;
     }
     const net = computeRoomBalances();
@@ -5025,6 +5098,7 @@
       </div>`;
     }).join("");
     renderRoomHero(net);
+    renderRoomRentCard();
     const settlements = simplifyRoomDebts(net);
     const settleHtml = settlements.length ? `
       <p class="kh-cat-hint" style="margin:14px 2px 8px;">Settle up</p>
@@ -5041,6 +5115,264 @@
       `).join("")}
     ` : `<p class="kh-cat-hint" style="margin:14px 2px 0;">Everyone's settled up. 🎉</p>`;
     el.innerHTML = rows + settleHtml;
+  }
+
+  // ---------------------------------------------------------------------
+  // Room rent & utilities — a recurring monthly bill on top of the
+  // general shared-expense log above. One AD calendar month = one
+  // billing cycle; "Log this month's rent" writes a normal Rent-category
+  // ROOM_EXPENSE (so it's included in the balances/hero above too), and
+  // this card additionally tracks, per roommate, whether THEIR share of
+  // that specific bill has been paid — via ROOM_SETTLEMENTS entries that
+  // carry an expenseId + payment method, not just a running net balance.
+  // ---------------------------------------------------------------------
+  function rentCycleKey(dateStr){ return String(dateStr).slice(0, 7); } // "YYYY-MM"
+  function currentRentCycleKey(){ return rentCycleKey(todayStr()); }
+
+  function currentRentDueDate(){
+    const now = new Date();
+    const day = Math.min(Math.max(1, parseInt(ROOM_RENT.dueDay, 10) || 1), 28);
+    const due = new Date(now.getFullYear(), now.getMonth(), day);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${due.getFullYear()}-${pad(due.getMonth() + 1)}-${pad(due.getDate())}`;
+  }
+
+  function currentRentExpense(){
+    const key = currentRentCycleKey();
+    return ROOM_EXPENSES.find(e => e.category === "Rent" && rentCycleKey(e.date) === key) || null;
+  }
+
+  function openRentSetup(){
+    document.getElementById("rentAmountInput").value = ROOM_RENT.rentAmount || "";
+    document.getElementById("rentUtilitiesInput").value = ROOM_RENT.utilitiesAmount || "";
+    document.getElementById("rentDueDayInput").value = ROOM_RENT.dueDay || 1;
+    document.getElementById("rentLandlordName").value = ROOM_RENT.landlordName || "";
+    document.getElementById("rentLandlordPhone").value = ROOM_RENT.landlordPhone || "";
+    document.getElementById("rentLandlordPayApp").value = ROOM_RENT.landlordPayApp || "";
+    openPanel("rentsetup");
+  }
+
+  function saveRentSetup(){
+    const rentAmount = parseFloat(document.getElementById("rentAmountInput").value) || 0;
+    const utilitiesAmount = parseFloat(document.getElementById("rentUtilitiesInput").value) || 0;
+    const dueDay = Math.min(Math.max(1, parseInt(document.getElementById("rentDueDayInput").value, 10) || 1), 28);
+    if (!rentAmount){
+      showToast("Enter a rent amount");
+      return;
+    }
+    ROOM_RENT = {
+      rentAmount, utilitiesAmount, dueDay,
+      landlordName: document.getElementById("rentLandlordName").value.trim(),
+      landlordPhone: document.getElementById("rentLandlordPhone").value.trim(),
+      landlordPayApp: document.getElementById("rentLandlordPayApp").value.trim(),
+    };
+    saveCurrentUser();
+    renderRoomRentCard();
+    closePanel();
+    showToast("Room rent saved");
+  }
+
+  // One tap: logs the flat total (rent + utilities) as a Rent shared
+  // expense for this cycle, split equally among everyone, paid by
+  // whoever the "Who paid the landlord?" select is set to.
+  function logMonthlyRent(){
+    if (currentRentExpense()){
+      showToast("This month's rent is already logged below");
+      return;
+    }
+    if (ROOMMATES.length < 2){
+      showToast("Add at least one roommate first");
+      return;
+    }
+    const total = (ROOM_RENT.rentAmount || 0) + (ROOM_RENT.utilitiesAmount || 0);
+    if (!total){
+      openRentSetup();
+      return;
+    }
+    const payerSel = document.getElementById("rentPayerSelect");
+    const paidBy = (payerSel && ROOMMATES.includes(payerSel.value)) ? payerSel.value : "Me";
+    const others = ROOMMATES.filter(n => n !== paidBy);
+    const desc = ROOM_RENT.utilitiesAmount ? "Room rent & utilities" : "Room rent";
+    ensureCategory("Rent");
+
+    let txId = null;
+    if (paidBy === "Me"){
+      const account = visibleAccounts()[0];
+      if (account){
+        txId = "tx" + (nextTxId++);
+        TRANSACTIONS.push({ date: todayStr(), vendor: desc, category: "Rent", type: "out", amount: total, account, id: txId });
+      }
+    }
+    ROOM_EXPENSES.unshift({ id: "rx" + (nextRoomExpenseId++), date: todayStr(), desc, category: "Rent", amount: total, paidBy, splitAmong: [paidBy, ...others], txId });
+    saveCurrentUser();
+    renderRoomExpenseList();
+    renderRoomBalances();
+    renderRoomDashCard();
+    if (txId) renderAll();
+    showToast(`Logged ${rs(total)} for ${roommateDisplayName(paidBy)}`);
+  }
+
+  // A roommate's share of THIS cycle's rent bill can be marked paid on
+  // its own — separate from the general "Mark settled" flow above —
+  // because it's common for a housemate to pay their landlord or the
+  // payer directly (cash, Fonepay, etc.) outside the app; this just
+  // records that it happened, with an optional note on how.
+  function markRentSharePaid(roommate){
+    const expense = currentRentExpense();
+    if (!expense) return;
+    const share = expense.amount / expense.splitAmong.length;
+    const method = prompt(`How did ${roommateDisplayName(roommate)} pay their ${rs(share)} share?`, "Cash");
+    if (method === null) return;
+    ROOM_SETTLEMENTS.push({
+      id: "rs" + (nextRoomSettlementId++), date: todayStr(),
+      from: roommate, to: expense.paidBy, amount: share,
+      method: method.trim() || "Cash", expenseId: expense.id,
+    });
+    saveCurrentUser();
+    renderRoomBalances();
+    renderRoomDashCard();
+    showToast(`Marked ${roommateDisplayName(roommate)}'s rent share paid`);
+  }
+
+  // No messaging backend to send a real notification to a roommate, so
+  // this hands the person a ready-to-send reminder instead — through the
+  // OS share sheet on mobile, or the clipboard everywhere else.
+  function nudgeRoommate(roommate, share){
+    const msg = `Hey ${roommateDisplayName(roommate)} — friendly reminder: your room rent share of ${rs(share)} for ${currentBsMonthLabel()} is still pending. Thanks!`;
+    if (navigator.share){
+      navigator.share({ text: msg }).catch(() => {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(msg)
+        .then(() => showToast(`Reminder copied — paste it to ${roommateDisplayName(roommate)}`))
+        .catch(() => showToast(msg));
+      return;
+    }
+    showToast(msg);
+  }
+
+  function renderRoomRentCard(){
+    const el = document.getElementById("roomRentCard");
+    if (!el) return;
+
+    if (!ROOM_RENT.rentAmount){
+      el.innerHTML = `
+        <p class="kh-room-hero-label">Room rent</p>
+        <p class="kh-room-hero-sub" style="margin-top:6px;">Set up your monthly rent & utilities once, and this card will split it, track the due date, and show who's paid.</p>
+        <button type="button" class="kh-manual-btn" style="margin-top:12px;" onclick="openRentSetup()">＋ Set up room rent</button>
+      `;
+      return;
+    }
+
+    const total = ROOM_RENT.rentAmount + (ROOM_RENT.utilitiesAmount || 0);
+    const dueDate = currentRentDueDate();
+    const daysLeft = Math.round(daysBetween(todayStr(), dueDate));
+    const duePillClass = daysLeft < 0 ? "kh-pill-amber" : daysLeft <= 5 ? "kh-pill-amber" : "kh-pill-dim";
+    const dueLabel = daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? "Due today" : `Due in ${daysLeft}d`;
+    const expense = currentRentExpense();
+    const shareCount = expense ? expense.splitAmong.length : Math.max(ROOMMATES.length, 1);
+    const yourShare = total / shareCount;
+
+    const landlordHtml = ROOM_RENT.landlordName ? `
+      <div class="kh-landlord-card">
+        <div class="kh-roommate-avatar" style="width:44px;height:44px;font-size:15px;background:#4B5563">${ROOM_RENT.landlordName.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}</div>
+        <div class="kh-landlord-info">
+          <p class="kh-landlord-name">${ROOM_RENT.landlordName}</p>
+          <p class="kh-landlord-role">Flat owner / landlord</p>
+        </div>
+        <div class="kh-landlord-actions">
+          ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${ROOM_RENT.landlordPhone}" title="Call">📞</a>` : ""}
+          ${ROOM_RENT.landlordPhone ? `<button type="button" class="kh-landlord-pay" onclick="payLandlord()">Pay ${ROOM_RENT.landlordPayApp || ""} →</button>` : ""}
+        </div>
+      </div>
+    ` : "";
+
+    let bodyHtml;
+    if (!expense){
+      bodyHtml = `
+        <div class="kh-rent-share-grid">
+          <div><p class="kh-rent-share-label">Your share (1/${shareCount})</p><p class="kh-rent-share-val">${rs(yourShare)}</p></div>
+          <div><p class="kh-rent-share-label">Target date</p><p class="kh-rent-share-val">${bsLabel(dueDate)}</p></div>
+        </div>
+        ${landlordHtml}
+        ${ROOMMATES.length > 1 ? `
+          <p class="kh-cat-hint" style="margin:14px 0 4px;">Who paid the landlord?</p>
+          <select id="rentPayerSelect" class="kh-cat-input" style="width:100%;">
+            ${ROOMMATES.map(n => `<option value="${n}">${roommateDisplayName(n)}</option>`).join("")}
+          </select>
+        ` : ""}
+        <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:12px;" onclick="logMonthlyRent()">＋ Log this month's rent</button>
+      `;
+    } else {
+      const rows = expense.splitAmong.map(name => {
+        const isPayer = name === expense.paidBy;
+        const settlement = !isPayer ? ROOM_SETTLEMENTS.find(s => s.expenseId === expense.id && s.from === name) : null;
+        const badge = isPayer
+          ? `<span class="kh-pill kh-pill-jade">Payer</span>`
+          : settlement ? `<span class="kh-pill kh-pill-jade">Settled ✓</span>` : `<span class="kh-pill kh-pill-amber">Unpaid</span>`;
+        const sub = isPayer
+          ? `Paid full bill (${rs(expense.amount)})`
+          : settlement ? `Paid via ${settlement.method} on ${bsLabel(settlement.date)}`
+          : name === "Me" ? "You owe your room share" : "Owes their room share";
+        const amtLabel = isPayer ? "Self covered" : rs(yourShare);
+        const actions = (isPayer || settlement) ? "" : name === "Me" ? `
+          <div class="kh-rent-person-actions">
+            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid('Me')">✓ I've paid</button>
+          </div>
+        ` : `
+          <div class="kh-rent-person-actions">
+            <button type="button" class="kh-rent-nudge-btn" onclick="nudgeRoommate(${attrJson(name)}, ${yourShare})">🔔 Nudge</button>
+            <button type="button" class="kh-rent-paid-btn" onclick="markRentSharePaid(${attrJson(name)})">✓ Mark paid</button>
+          </div>
+        `;
+        return `<div class="kh-budget-row">
+          <div class="kh-budget-row-top">
+            <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
+            <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
+            ${badge}
+          </div>
+          <div class="kh-rent-person-sub">${sub} · <b style="color:var(--text)">${amtLabel}</b></div>
+          ${actions}
+        </div>`;
+      }).join("");
+      bodyHtml = `
+        <div class="kh-rent-share-grid">
+          <div><p class="kh-rent-share-label">Your share (1/${shareCount})</p><p class="kh-rent-share-val">${rs(yourShare)}</p></div>
+          <div><p class="kh-rent-share-label">Target date</p><p class="kh-rent-share-val">${bsLabel(dueDate)}</p></div>
+        </div>
+        ${landlordHtml}
+        <div class="kh-rent-splits-top">
+          <p class="kh-cat-title" style="margin:0;">Roommate splits</p>
+          <span class="kh-pill kh-pill-dim">${shareCount} people</span>
+        </div>
+        ${rows}
+      `;
+    }
+
+    el.innerHTML = `
+      <div class="kh-rent-card-top">
+        <p class="kh-room-hero-label">Current billing cycle</p>
+        <span class="kh-pill ${duePillClass}">${dueLabel}</span>
+      </div>
+      <p class="kh-room-hero-label" style="margin-top:8px; text-transform:none; font-weight:600;">Total flat rent & utilities</p>
+      <p class="kh-rent-card-amt">${rs(total)}</p>
+      ${bodyHtml}
+    `;
+  }
+
+  // No real payment-app deep link available, so this hands the person
+  // the landlord's number to pay to and opens their phone's dialer/app
+  // switcher isn't reliable across payment apps — copy is the safe bet.
+  function payLandlord(){
+    const msg = `${ROOM_RENT.landlordPayApp || "Pay"}: ${ROOM_RENT.landlordPhone}`;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ROOM_RENT.landlordPhone)
+        .then(() => showToast(`${ROOM_RENT.landlordName}'s ${ROOM_RENT.landlordPayApp || "payment"} number copied: ${ROOM_RENT.landlordPhone}`))
+        .catch(() => showToast(msg));
+    } else {
+      showToast(msg);
+    }
   }
 
   function setRoomNepaliMonthFilter(key){
