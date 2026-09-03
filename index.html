@@ -399,8 +399,7 @@
   .kh-landlord-name{font-size:13.5px; font-weight:700; margin:0;}
   .kh-landlord-role{font-size:11px; color:var(--dim); margin:2px 0 0;}
   .kh-landlord-actions{display:flex; gap:6px; flex-shrink:0;}
-  .kh-landlord-call{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--border); color:var(--text); text-decoration:none; font-size:15px; flex-shrink:0;}
-  .kh-landlord-pay{display:flex; align-items:center; gap:5px; background:var(--accent2); color:#fff; border:none; border-radius:999px; padding:0 14px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .kh-landlord-call{display:flex; align-items:center; gap:6px; background:var(--accent2); color:#fff; border:none; border-radius:999px; padding:0 16px; height:34px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; text-decoration:none; flex-shrink:0;}
   .kh-rent-splits-top{display:flex; align-items:center; gap:8px; margin:18px 0 8px; flex-wrap:wrap;}
   .kh-rent-person-sub{font-size:11.5px; color:var(--dim); margin:4px 0 0; padding-left:41px;}
   .kh-rent-person-actions{display:flex; gap:8px; margin-top:8px; padding-left:41px;}
@@ -1511,10 +1510,6 @@
         <label for="rentLandlordPhone">Landlord phone</label>
         <input id="rentLandlordPhone" type="tel" placeholder="98XXXXXXXX" />
       </div>
-      <div class="kh-manual-field">
-        <label for="rentLandlordPayApp">They accept payment via</label>
-        <input id="rentLandlordPayApp" placeholder="e.g. eSewa, Khalti, Bank" />
-      </div>
     </div>
     <div class="kh-manual-actions">
       <button type="button" class="kh-manual-btn" onclick="saveRentSetup()">Save</button>
@@ -1757,7 +1752,7 @@
   // specific bill is tracked via ROOM_SETTLEMENTS entries carrying an
   // expenseId + optional payment method, so the cycle card can show
   // "Settled via Fonepay" instead of just a net balance.
-  let ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
+  let ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
 
   // Shared expenses scoped to the room page's own month filter. Balances
   // (who owes whom) deliberately do NOT use this — a debt someone still
@@ -2685,7 +2680,7 @@
     ROOM_SETTLEMENTS = data.roomSettlements || [];
     nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
     nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
-    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
+    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
@@ -3008,7 +3003,7 @@
     ROOMMATES = ["Me"];
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
-    ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
+    ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
   }
 
   function saveCurrentUser(){
@@ -3067,7 +3062,7 @@
       ROOM_SETTLEMENTS = data.roomSettlements || [];
       nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
       nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
-      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
+      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -5172,7 +5167,6 @@
     document.getElementById("rentDueDayInput").value = ROOM_RENT.dueDay || 1;
     document.getElementById("rentLandlordName").value = ROOM_RENT.landlordName || "";
     document.getElementById("rentLandlordPhone").value = ROOM_RENT.landlordPhone || "";
-    document.getElementById("rentLandlordPayApp").value = ROOM_RENT.landlordPayApp || "";
     openPanel("rentsetup");
   }
 
@@ -5188,7 +5182,6 @@
       rentAmount, utilitiesAmount, dueDay,
       landlordName: document.getElementById("rentLandlordName").value.trim(),
       landlordPhone: document.getElementById("rentLandlordPhone").value.trim(),
-      landlordPayApp: document.getElementById("rentLandlordPayApp").value.trim(),
     };
     saveCurrentUser();
     renderRoomRentCard();
@@ -5306,8 +5299,7 @@
           <p class="kh-landlord-role">Flat owner / landlord</p>
         </div>
         <div class="kh-landlord-actions">
-          ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${ROOM_RENT.landlordPhone}" title="Call">📞</a>` : ""}
-          ${ROOM_RENT.landlordPhone ? `<button type="button" class="kh-landlord-pay" onclick="payLandlord()">Pay ${ROOM_RENT.landlordPayApp || ""} →</button>` : ""}
+          ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${ROOM_RENT.landlordPhone}" title="Call">📞 Call</a>` : ""}
         </div>
       </div>
     ` : "";
@@ -5386,20 +5378,6 @@
       <p class="kh-rent-card-amt">${rs(total)}</p>
       ${bodyHtml}
     `;
-  }
-
-  // No real payment-app deep link available, so this hands the person
-  // the landlord's number to pay to and opens their phone's dialer/app
-  // switcher isn't reliable across payment apps — copy is the safe bet.
-  function payLandlord(){
-    const msg = `${ROOM_RENT.landlordPayApp || "Pay"}: ${ROOM_RENT.landlordPhone}`;
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(ROOM_RENT.landlordPhone)
-        .then(() => showToast(`${ROOM_RENT.landlordName}'s ${ROOM_RENT.landlordPayApp || "payment"} number copied: ${ROOM_RENT.landlordPhone}`))
-        .catch(() => showToast(msg));
-    } else {
-      showToast(msg);
-    }
   }
 
   function setRoomNepaliMonthFilter(key){
