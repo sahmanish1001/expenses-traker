@@ -1175,10 +1175,10 @@
         </div>
         <div class="kh-manual-field">
           <label for="roomExpPaidBy">Paid by</label>
-          <select id="roomExpPaidBy" onchange="renderRoomLogToggle()"></select>
+          <select id="roomExpPaidBy" onchange="renderRoomLogToggle(); renderRoomSplitChecks();"></select>
         </div>
       </div>
-      <p class="kh-cat-hint" style="margin:10px 0 4px;">Split equally among</p>
+      <p class="kh-cat-hint" style="margin:10px 0 4px;">Also split equally with (whoever paid is already covering their own share)</p>
       <div class="kh-cat-list" id="roomSplitChecks"></div>
       <div id="roomLogToggleWrap"></div>
       <button type="button" class="kh-cat-add" style="width:100%; margin-top:12px; justify-content:center; padding:11px;" onclick="addRoomExpense()">＋ Add shared expense</button>
@@ -4567,15 +4567,23 @@
     sel.value = names.includes(prev) ? prev : (names.includes("Rent") ? "Rent" : names[0]);
   }
 
-  // Preserves whatever the person already checked/unchecked when the
-  // roommate list re-renders (e.g. after adding someone new), instead of
-  // silently resetting everyone back to checked.
+  // Whoever paid is excluded from this list — they're always in the split
+  // automatically (that's their own share), so only the people who'd owe
+  // the payer something need to be picked here. Preserves whatever the
+  // person already checked/unchecked when the list re-renders (e.g. after
+  // adding a roommate), instead of silently resetting everyone to checked.
   function renderRoomSplitChecks(){
     const el = document.getElementById("roomSplitChecks");
-    if (!el) return;
+    const paidBySel = document.getElementById("roomExpPaidBy");
+    if (!el || !paidBySel) return;
+    const others = ROOMMATES.filter(n => n !== paidBySel.value);
+    if (!others.length){
+      el.innerHTML = `<p class="kh-cat-hint" style="margin:0;">Add another roommate above to split this with.</p>`;
+      return;
+    }
     const checked = {};
     el.querySelectorAll("input[type=checkbox]").forEach(cb => { checked[cb.value] = cb.checked; });
-    el.innerHTML = ROOMMATES.map(n => `
+    el.innerHTML = others.map(n => `
       <label class="kh-cat-tag" style="cursor:pointer;">
         <input type="checkbox" value="${n}" ${(checked[n] !== undefined ? checked[n] : true) ? "checked" : ""} style="margin:0;" />
         ${n}
@@ -4604,10 +4612,11 @@
     const amount = parseFloat(document.getElementById("roomExpAmount").value);
     const category = document.getElementById("roomExpCategory").value || "Other";
     const paidBy = document.getElementById("roomExpPaidBy").value;
-    const splitAmong = Array.from(document.querySelectorAll("#roomSplitChecks input:checked")).map(cb => cb.value);
+    const others = Array.from(document.querySelectorAll("#roomSplitChecks input:checked")).map(cb => cb.value);
     if (!paidBy){ showToast("Add a roommate first"); return; }
     if (!desc || !amount || amount <= 0){ showToast("Enter a description and amount"); return; }
-    if (!splitAmong.length){ showToast("Pick at least one person to split with"); return; }
+    if (!others.length){ showToast("Pick at least one other roommate to split with"); return; }
+    const splitAmong = [paidBy, ...others];
     ensureCategory(category);
 
     const logAsTx = paidBy === "Me" && document.getElementById("roomLogAsTx") && document.getElementById("roomLogAsTx").checked;
@@ -4638,7 +4647,9 @@
     }
     el.innerHTML = ROOM_EXPENSES.map(e => {
       const meta = CAT[e.category] || CAT.Other;
-      const splitLabel = e.splitAmong.length === ROOMMATES.length ? "everyone" : e.splitAmong.join(", ");
+      const otherSplitters = e.splitAmong.filter(n => n !== e.paidBy);
+      const otherRoommates = ROOMMATES.filter(n => n !== e.paidBy);
+      const splitLabel = otherSplitters.length && otherSplitters.length === otherRoommates.length ? "everyone else" : otherSplitters.join(", ");
       return `<div class="kh-row">
         <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
         <div class="kh-row-mid">
