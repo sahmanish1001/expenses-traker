@@ -427,6 +427,14 @@
   .kh-budget-overall-set{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;}
   .kh-budget-overall-set input{flex:1; min-width:110px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:8px 10px; font-size:12.5px; font-family:inherit;}
   .kh-budget-warn{font-size:11px; margin-top:8px; font-weight:600;}
+  .kh-budget-pace{margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);}
+  .kh-budget-pace-row{display:flex; justify-content:space-between; align-items:baseline; font-size:11.5px; color:var(--dim); margin-bottom:6px;}
+  .kh-budget-pace-track{height:6px; border-radius:4px; background:var(--surface2); position:relative; overflow:visible;}
+  .kh-budget-pace-fill{height:100%; border-radius:4px; background:var(--dim); opacity:.55; transition:width .3s;}
+  .kh-budget-pace-marker{position:absolute; top:-3px; width:2px; height:12px; background:var(--text); border-radius:1px; opacity:.6;}
+  .kh-budget-pace-note{font-size:11.5px; margin-top:8px; font-weight:600; line-height:1.5;}
+  .kh-budget-sort-toggle{display:block; background:var(--surface); border:1px solid var(--border); color:var(--dim); font-size:12px; font-weight:600; padding:9px 12px; border-radius:10px; cursor:pointer; font-family:inherit; text-align:center;}
+  .kh-budget-sort-toggle.active{background:rgba(16,185,129,.14); border-color:var(--accent); color:var(--accent);}
   .kh-budget-row{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:10px;}
   .kh-budget-row-top{display:flex; align-items:center; gap:9px;}
   .kh-budget-row-icon{width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;}
@@ -691,6 +699,7 @@
         <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span><span class="kh-settings-tab-label">Wallets</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span><span class="kh-settings-tab-label">Categories</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnLayout" onclick="showSettingsDetail('layout')"><span class="kh-settings-tab-icon">🧩</span><span class="kh-settings-tab-label">Home Layout</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnBudgetorder" onclick="showSettingsDetail('budgetorder')"><span class="kh-settings-tab-icon">📊</span><span class="kh-settings-tab-label">Budget Order</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span><span class="kh-settings-tab-label">Data</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span><span class="kh-settings-tab-label">About</span><span class="kh-settings-tab-chevron">›</span></button>
       </div>
@@ -910,6 +919,19 @@
       </div>
       <div class="kh-layout-list" id="homeLayoutList"></div>
       <button class="kh-more-item" style="margin-top:12px;" onclick="resetHomeLayout()">↺ Reset to default order</button>
+    </div>
+
+    <!-- ===================== BUDGET CATEGORY ORDER ===================== -->
+    <div class="kh-settings-section" id="settingsSectionBudgetorder">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📊</span>
+        <div class="kh-ssh-text">
+          <h3>Budget category order</h3>
+          <p>By default, categories on the Budget page are sorted by this month's spending — most spent first. Switch to manual to set your own fixed order instead.</p>
+        </div>
+      </div>
+      <button type="button" class="kh-budget-sort-toggle" id="budgetSortToggle" onclick="toggleBudgetAutoSort()" style="width:100%; margin-bottom:12px;">🔥 Auto: most spent first</button>
+      <div class="kh-layout-list" id="budgetOrderList"></div>
     </div>
 
     <div class="kh-settings-section" id="settingsSectionData">
@@ -1150,6 +1172,7 @@
       </div>
       <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" id="budgetOverallBar" style="width:0%; background:var(--in);"></div></div>
       <div id="budgetOverallWarn"></div>
+      <div id="budgetPaceWrap"></div>
       <div class="kh-budget-overall-set">
         <input id="budgetOverallInput" type="number" min="0" step="any" placeholder="e.g. 20000" />
         <button type="button" class="kh-loan-btn" onclick="setOverallBudget()">Save limit</button>
@@ -1157,7 +1180,10 @@
       </div>
     </div>
 
-    <p class="kh-section-title">By category</p>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:24px 0 10px;">
+      <p class="kh-section-title" style="margin:0;">By category</p>
+      <button type="button" class="kh-budget-sort-toggle" id="budgetSortToggleQuick" onclick="toggleBudgetAutoSort()" style="font-size:11px; padding:6px 10px;">🔥 Most spent first</button>
+    </div>
     <div id="budgetCatList"></div>
   </div>
 
@@ -2268,7 +2294,7 @@
   }
 
   function setSettingsTab(tab){
-    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "data", "about"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "budgetorder", "data", "about"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
@@ -2416,6 +2442,7 @@
     populateAppearanceNotifCalendarUI();
     renderCategoryManager();
     renderAccountManager();
+    renderBudgetOrderManager();
     if (tab){
       showSettingsDetail(tab);
     } else {
@@ -2499,6 +2526,7 @@
       nextLoanId,
       budgets: BUDGETS,
       budgetOverall: BUDGET_OVERALL,
+      budgetCategoryOrder: BUDGET_CATEGORY_ORDER,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -2568,6 +2596,7 @@
     nextLoanId = data.nextLoanId || (LOANS.length + 1);
     BUDGETS = data.budgets || {};
     BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+    BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
     ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
     ROOM_EXPENSES = data.roomExpenses || [];
     ROOM_SETTLEMENTS = data.roomSettlements || [];
@@ -2907,6 +2936,7 @@
       nextLoanId,
       budgets: BUDGETS,
       budgetOverall: BUDGET_OVERALL,
+      budgetCategoryOrder: BUDGET_CATEGORY_ORDER,
       profile: PROFILE,
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
@@ -2945,6 +2975,7 @@
       nextLoanId = data.nextLoanId || 1;
       BUDGETS = data.budgets || {};
       BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+    BUDGET_CATEGORY_ORDER = Array.isArray(data.budgetCategoryOrder) ? data.budgetCategoryOrder : null;
       ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
       ROOM_EXPENSES = data.roomExpenses || [];
       ROOM_SETTLEMENTS = data.roomSettlements || [];
@@ -2964,6 +2995,7 @@
       nextLoanId = 1;
       BUDGETS = {};
       BUDGET_OVERALL = null;
+      BUDGET_CATEGORY_ORDER = null;
       PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       noteEl.innerHTML = 'New account — nothing here yet. Use "＋ Import" to paste in statement rows, or <button class="kh-np-filter-clear" style="display:inline" onclick="loadDemoData()">load a demo dataset</button> to see how it looks.';
     }
@@ -4522,6 +4554,119 @@
     return JSON.stringify(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
   }
 
+  // null = auto-sort categories by this month's spend (most -> least);
+  // an array = the user's own manual order, set from Settings -> Budget
+  // Order. Persisted the same way as HOME_LAYOUT.
+  let BUDGET_CATEGORY_ORDER = null;
+
+  // How far into the *current Nepali (BS) month* today is, reusing the
+  // same BS_MONTH_STARTS boundaries adToBs() is built on. Returns null if
+  // it somehow can't be resolved (shouldn't normally happen).
+  function bsMonthProgress(){
+    const todayD = new Date(todayStr() + "T00:00:00Z");
+    const adYear = todayD.getUTCFullYear();
+    const candidates = [
+      ...bsBoundariesForBaisakhYear(adYear - 1),
+      ...bsBoundariesForBaisakhYear(adYear),
+      ...bsBoundariesForBaisakhYear(adYear + 1),
+    ].sort((a, b) => a.date - b.date);
+    let idx = -1;
+    for (let i = 0; i < candidates.length; i++){
+      if (candidates[i].date <= todayD) idx = i; else break;
+    }
+    if (idx === -1 || idx + 1 >= candidates.length) return null;
+    const start = candidates[idx].date, end = candidates[idx + 1].date;
+    const daysTotal = Math.max(1, Math.round((end - start) / 86400000));
+    const daysElapsed = Math.min(daysTotal, Math.round((todayD - start) / 86400000) + 1);
+    return { daysElapsed, daysTotal };
+  }
+
+  // Renders the "day X of Y" pacing bar plus a projected month-end total,
+  // based on the overall budget only (per-category pacing would get noisy
+  // fast with small limits).
+  function renderBudgetPace(spent, limit){
+    const prog = bsMonthProgress();
+    if (!limit || limit <= 0 || !prog) return "";
+    const spentPct = Math.min(100, (spent / limit) * 100);
+    const pacePct = Math.min(100, (prog.daysElapsed / prog.daysTotal) * 100);
+    const projected = prog.daysElapsed > 0 ? (spent / prog.daysElapsed) * prog.daysTotal : spent;
+    const overProjected = projected > limit;
+    const aheadOfPace = spentPct <= pacePct;
+    const noteColor = overProjected ? "var(--out)" : (aheadOfPace ? "var(--in)" : "var(--accent)");
+    const noteText = overProjected
+      ? `At this pace you'll spend ${rs(projected)} by month end — ${rs(projected - limit)} over your limit.`
+      : `At this pace you'll finish around ${rs(projected)}, under your ${rs(limit)} limit.`;
+    return `
+      <div class="kh-budget-pace">
+        <div class="kh-budget-pace-row">
+          <span>Day ${prog.daysElapsed} of ${prog.daysTotal}</span>
+          <span>${Math.round(spentPct)}% of budget used</span>
+        </div>
+        <div class="kh-budget-pace-track">
+          <div class="kh-budget-pace-fill" style="width:${spentPct}%; background:${noteColor};"></div>
+          <div class="kh-budget-pace-marker" style="left:${pacePct}%;"></div>
+        </div>
+        <div class="kh-budget-pace-note" style="color:${noteColor};">${noteText}</div>
+      </div>`;
+  }
+
+  // Resolves the category name list to render on the Budget page, in the
+  // right order — auto (this month's spend, highest first) or manual
+  // (BUDGET_CATEGORY_ORDER, with any newly-added categories appended at
+  // the end so nothing silently disappears from the list).
+  function getOrderedCategoryNames(){
+    const all = Object.keys(CAT);
+    if (!BUDGET_CATEGORY_ORDER){
+      return [...all].sort((a, b) => spendThisMonth(b) - spendThisMonth(a));
+    }
+    const valid = BUDGET_CATEGORY_ORDER.filter(n => all.includes(n));
+    all.forEach(n => { if (!valid.includes(n)) valid.push(n); });
+    BUDGET_CATEGORY_ORDER = valid;
+    return valid;
+  }
+
+  function toggleBudgetAutoSort(){
+    BUDGET_CATEGORY_ORDER = BUDGET_CATEGORY_ORDER ? null : getOrderedCategoryNames();
+    saveCurrentUser();
+    renderBudgetPage();
+    renderBudgetOrderManager();
+  }
+
+  function moveBudgetCategory(name, dir){
+    if (!BUDGET_CATEGORY_ORDER) return;
+    const idx = BUDGET_CATEGORY_ORDER.indexOf(name);
+    const swapIdx = idx + dir;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= BUDGET_CATEGORY_ORDER.length) return;
+    [BUDGET_CATEGORY_ORDER[idx], BUDGET_CATEGORY_ORDER[swapIdx]] = [BUDGET_CATEGORY_ORDER[swapIdx], BUDGET_CATEGORY_ORDER[idx]];
+    saveCurrentUser();
+    renderBudgetOrderManager();
+    renderBudgetPage();
+  }
+
+  function renderBudgetOrderManager(){
+    const el = document.getElementById("budgetOrderList");
+    const toggleBtn = document.getElementById("budgetSortToggle");
+    if (!el || !toggleBtn) return;
+    toggleBtn.textContent = BUDGET_CATEGORY_ORDER ? "↕ Manual order (tap to switch to auto)" : "🔥 Auto: most spent first (tap for manual)";
+    toggleBtn.classList.toggle("active", !!BUDGET_CATEGORY_ORDER);
+    if (!BUDGET_CATEGORY_ORDER){
+      el.innerHTML = `<p class="kh-cat-hint" style="margin:8px 0 0;">Categories are ordered by this month's spending, highest first. Switch to manual to set a fixed order instead.</p>`;
+      return;
+    }
+    const names = getOrderedCategoryNames();
+    el.innerHTML = names.map((name, i) => {
+      const meta = CAT[name] || CAT.Other;
+      return `<div class="kh-layout-row">
+        <span class="kh-layout-row-icon">${meta.icon}</span>
+        <span class="kh-layout-row-label">${name}</span>
+        <div class="kh-layout-row-btns">
+          <button class="kh-layout-btn" onclick="moveBudgetCategory(${attrJson(name)}, -1)" ${i === 0 ? "disabled" : ""} title="Move up">↑</button>
+          <button class="kh-layout-btn" onclick="moveBudgetCategory(${attrJson(name)}, 1)" ${i === names.length - 1 ? "disabled" : ""} title="Move down">↓</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
   function renderBudgetPage(){
     const monthLabelEl = document.getElementById("budgetMonthLabel");
     if (monthLabelEl) monthLabelEl.textContent = currentBsMonthLabel() + " BS";
@@ -4542,9 +4687,17 @@
     } else {
       warnEl.innerHTML = "";
     }
+    const paceEl = document.getElementById("budgetPaceWrap");
+    if (paceEl) paceEl.innerHTML = BUDGET_OVERALL ? renderBudgetPace(overallSpent, BUDGET_OVERALL) : "";
+
+    const quickToggle = document.getElementById("budgetSortToggleQuick");
+    if (quickToggle){
+      quickToggle.textContent = BUDGET_CATEGORY_ORDER ? "↕ Manual order" : "🔥 Most spent first";
+      quickToggle.classList.toggle("active", !!BUDGET_CATEGORY_ORDER);
+    }
 
     const listEl = document.getElementById("budgetCatList");
-    const cats = Object.keys(CAT);
+    const cats = getOrderedCategoryNames();
     if (!cats.length){
       listEl.innerHTML = `<div class="kh-empty">No categories yet.</div>`;
       return;
