@@ -1639,7 +1639,7 @@
   let PROFILE = { name: "", age: "", email: "", currency: "NPR", monthlyIncome: "" };
 
   let activeAccount = "All";
-  let activeNepaliMonth = "All"; // "All" or a "bsYear-bsMonth" key like "2083-5"
+  let activeNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key like "2083-5"
   const rs = (n) => {
     const symbol = CURRENCY_SYMBOLS[PROFILE.currency] || "Rs";
     const locale = CURRENCY_LOCALES[PROFILE.currency] || "en-IN";
@@ -2412,7 +2412,7 @@
     ROOM_EXPENSES.length = 0;
     ROOM_SETTLEMENTS.length = 0;
     activeAccount = "All";
-    activeNepaliMonth = "All";
+    activeNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     saveCurrentUser();
     renderAll();
@@ -2507,7 +2507,7 @@
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
-    activeNepaliMonth = "All";
+    activeNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     saveCurrentUser();
     renderAll();
@@ -2858,7 +2858,7 @@
     try{ data = JSON.parse(localStorage.getItem(dataKeyFor(email))); }catch(e){}
 
     activeAccount = "All";
-    activeNepaliMonth = "All";
+    activeNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     const noteEl = document.getElementById("demoNote");
 
@@ -3556,6 +3556,10 @@
     return `${bs.year}-${bs.month}`;
   }
 
+  function currentBsMonthKey(){
+    return bsMonthKey(todayStr());
+  }
+
   function getScoped(){
     if (activeAccount !== "All" && HIDDEN_ACCOUNTS.includes(activeAccount)) activeAccount = "All";
     let list = activeAccount === "All"
@@ -3573,8 +3577,12 @@
   function renderNepaliMonthFilter(){
     const el = document.getElementById("npMonthFilter");
     if (!el) return;
-    // Every BS month present in the data, in chronological order.
+    // Every BS month present in the data, plus the current month (so it's
+    // always selectable as the default even before any transactions exist
+    // in it), in chronological order.
     const seen = new Map();
+    const todayBs = adToBs(todayStr());
+    seen.set(`${todayBs.year}-${todayBs.month}`, { y: todayBs.year, m: todayBs.month, label: `${NEPALI_MONTHS[todayBs.month - 1].name} ${todayBs.year}` });
     TRANSACTIONS.forEach(t => {
       const bs = adToBs(t.date);
       const key = `${bs.year}-${bs.month}`;
@@ -3583,8 +3591,10 @@
     const months = [...seen.values()].sort((a, b) => (a.y - b.y) || (a.m - b.m));
     el.innerHTML = `<option value="All">All months</option>` +
       months.map(mo => `<option value="${mo.y}-${mo.m}">${mo.label}</option>`).join("");
-    el.value = months.some(mo => `${mo.y}-${mo.m}` === activeNepaliMonth) ? activeNepaliMonth : "All";
-    if (el.value === "All") activeNepaliMonth = "All";
+    el.value = (activeNepaliMonth === "All" || months.some(mo => `${mo.y}-${mo.m}` === activeNepaliMonth))
+      ? activeNepaliMonth
+      : currentBsMonthKey();
+    activeNepaliMonth = el.value;
   }
 
   function renderStats(){
@@ -3605,9 +3615,6 @@
         <div><div class="kh-stat-head">Money out</div><div class="kh-stat-amt">${rs(totalOut)}</div></div>
       </div>
       <div class="kh-stat"><div class="kh-stat-head">${netLabel}</div><div class="kh-stat-amt" style="color:${net >= 0 ? "var(--in)" : "var(--out)"}">${net >= 0 ? "" : "−"}${rs(Math.abs(net))}</div></div>`;
-    if (activeAccount !== "All" && BALANCES[activeAccount] != null){
-      html += `<div class="kh-stat"><div class="kh-stat-head">Last balance</div><div class="kh-stat-amt">${rs(BALANCES[activeAccount])}</div></div>`;
-    }
     document.getElementById("stats").innerHTML = html;
   }
 
