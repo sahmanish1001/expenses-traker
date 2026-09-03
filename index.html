@@ -4986,12 +4986,28 @@
     const mine = computeRoomBalances()["Me"] || 0;
     const color = mine > 0.5 ? "var(--in)" : mine < -0.5 ? "var(--amber)" : "var(--dim)";
     const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're all settled up";
+    // Surface the same rent due date shown on the Room page, so it's
+    // visible from Home without having to drill in.
+    let dueHtml = "";
+    if (ROOM_RENT.rentAmount){
+      const dueDate = currentRentDueDate();
+      const daysLeft = Math.round(daysBetween(todayStr(), dueDate));
+      const duePillClass = daysLeft < 0 ? "kh-pill-amber" : daysLeft <= 5 ? "kh-pill-amber" : "kh-pill-dim";
+      const dueLabel = daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? "Due today" : `Due in ${daysLeft}d`;
+      dueHtml = `
+        <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+          <span class="kh-pill ${duePillClass}">Rent · ${dueLabel}</span>
+          <span class="kh-room-hero-sub" style="margin:0;">${bsLabel(dueDate)}</span>
+        </div>
+      `;
+    }
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">Room expenses</span>
         <button type="button" class="kh-loan-dash-link" onclick="showRoomPage()">Manage →</button>
       </div>
       <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:${color}">${label}</div>
+      ${dueHtml}
     `;
   }
 
