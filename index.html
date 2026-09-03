@@ -623,6 +623,10 @@
         <div class="kh-loan-dash-card" id="budgetDashCard"></div>
       </div>
 
+      <div class="kh-home-section" data-section="room" id="homeSectionRoom">
+        <div class="kh-loan-dash-card" id="roomDashCard"></div>
+      </div>
+
       <div class="kh-home-section" data-section="transactions" id="homeSectionTransactions">
         <p class="kh-section-title">Transactions</p>
         <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
@@ -1134,6 +1138,56 @@
     <div id="budgetCatList"></div>
   </div>
 
+  <div class="kh-page" id="roomPage">
+    <div class="kh-loan-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Shared with roommates</p>
+      <h2>Room expenses</h2>
+    </div>
+
+    <p class="kh-section-title">Roommates</p>
+    <div class="kh-cat-manager" style="margin-top:0;">
+      <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
+      <div class="kh-cat-form">
+        <input id="roommateInput" class="kh-cat-input" placeholder="e.g. Ramesh, Sita" onkeydown="if(event.key==='Enter') addRoommate()" />
+        <button class="kh-cat-add" onclick="addRoommate()">＋ Add</button>
+      </div>
+      <div class="kh-cat-list" id="roommateList"></div>
+    </div>
+
+    <p class="kh-section-title">Balances</p>
+    <div id="roomBalances"></div>
+
+    <p class="kh-section-title">Add a shared expense</p>
+    <div class="kh-cat-manager" style="margin-top:0;">
+      <div class="kh-manual-form">
+        <div class="kh-manual-field">
+          <label for="roomExpDesc">What was it for</label>
+          <input id="roomExpDesc" placeholder="e.g. Room rent, Wifi, Groceries" />
+        </div>
+        <div class="kh-manual-field">
+          <label for="roomExpAmount">Amount (Rs)</label>
+          <input id="roomExpAmount" type="number" min="0" step="any" placeholder="0" />
+        </div>
+        <div class="kh-manual-field">
+          <label for="roomExpCategory">Category</label>
+          <select id="roomExpCategory"></select>
+        </div>
+        <div class="kh-manual-field">
+          <label for="roomExpPaidBy">Paid by</label>
+          <select id="roomExpPaidBy" onchange="renderRoomLogToggle()"></select>
+        </div>
+      </div>
+      <p class="kh-cat-hint" style="margin:10px 0 4px;">Split equally among</p>
+      <div class="kh-cat-list" id="roomSplitChecks"></div>
+      <div id="roomLogToggleWrap"></div>
+      <button type="button" class="kh-cat-add" style="width:100%; margin-top:12px; justify-content:center; padding:11px;" onclick="addRoomExpense()">＋ Add shared expense</button>
+    </div>
+
+    <p class="kh-section-title">Recent shared expenses</p>
+    <div id="roomExpenseList"></div>
+  </div>
+
   <div class="kh-page" id="insightsPage">
     <div class="kh-budget-page-head">
       <p class="kh-eyebrow">Patterns & trends</p>
@@ -1420,6 +1474,7 @@
     "Wallet Top-up":    { color: "#7E22CE", icon: "📱" },
     "Shopping":         { color: "#C2410C", icon: "🛍️" },
     "Transport":        { color: "#0E7490", icon: "⛽" },
+    "Rent":             { color: "#9D174D", icon: "🏠" },
     "Other":            { color: "#374151", icon: "❔" },
   };
   const DEFAULT_CATEGORIES = Object.keys(CAT);
@@ -1433,6 +1488,7 @@
     { id: "stats",        label: "Total & summary",  icon: "📊" },
     { id: "loans",         label: "Loan overview",    icon: "🤝" },
     { id: "budget",        label: "Budget",           icon: "🎯" },
+    { id: "room",          label: "Room expenses",    icon: "🏠" },
     { id: "transactions",  label: "Transactions",     icon: "🧾" },
     { id: "pie",           label: "Spending pie chart", icon: "🥧" },
     { id: "nppie",          label: "Nepali month pie chart", icon: "📆" },
@@ -1542,6 +1598,21 @@
   let lastLoanCalc = null; // last result from the standalone EMI calculator, for "track this" 
   let BUDGETS = {}; // categoryName -> monthly limit (Rs, in whatever currency)
   let BUDGET_OVERALL = null; // number or null
+
+  // Room expenses — shared-flat cost splitting between roommates. "Me"
+  // always represents the signed-in user and can't be renamed/removed.
+  // Each expense is paid by one roommate and split (equally, by default)
+  // among a subset of roommates; balances are derived, not stored.
+  let ROOMMATES = ["Me"];
+  let ROOM_EXPENSES = []; // { id, date, desc, category, amount, paidBy, splitAmong: [names], txId? }
+  let ROOM_SETTLEMENTS = []; // { id, date, from, to, amount } — a debt paydown between two roommates
+  let nextRoomExpenseId = 1;
+  let nextRoomSettlementId = 1;
+  const ROOMMATE_PALETTE = ["#0F766E","#B45309","#7E22CE","#1D4ED8","#B91C1C","#15803D","#C2410C","#0E7490","#9D174D","#4B5563"];
+  function roommateColor(name){
+    const idx = ROOMMATES.indexOf(name);
+    return ROOMMATE_PALETTE[(idx < 0 ? 0 : idx) % ROOMMATE_PALETTE.length];
+  }
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
   const CURRENCY_LOCALES = { NPR: "en-IN", INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
@@ -2153,6 +2224,7 @@
     document.getElementById("homePage").classList.toggle("active", name === "home");
     document.getElementById("loanPage").classList.toggle("active", name === "loans");
     document.getElementById("budgetPage").classList.toggle("active", name === "budget");
+    document.getElementById("roomPage").classList.toggle("active", name === "room");
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     document.getElementById("settingsPage").classList.toggle("active", name === "settings");
     currentPage = name;
@@ -2161,7 +2233,7 @@
       const label = name === "loans" ? "Add loan" : "Add transaction manually";
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = (name === "budget" || name === "insights" || name === "settings") ? "none" : "";
+      fab.style.display = (name === "budget" || name === "room" || name === "insights" || name === "settings") ? "none" : "";
     }
   }
 
@@ -2257,6 +2329,8 @@
     TRANSACTIONS.length = 0;
     Object.keys(BALANCES).forEach(k => delete BALANCES[k]);
     LOANS.length = 0;
+    ROOM_EXPENSES.length = 0;
+    ROOM_SETTLEMENTS.length = 0;
     activeAccount = "All";
     activeNepaliMonth = "All";
     loanFilter = "all";
@@ -2281,6 +2355,11 @@
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
       homeLayout: HOME_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
+      roommates: ROOMMATES,
+      roomExpenses: ROOM_EXPENSES,
+      roomSettlements: ROOM_SETTLEMENTS,
+      nextRoomExpenseId,
+      nextRoomSettlementId,
     };
   }
 
@@ -2340,6 +2419,11 @@
     nextLoanId = data.nextLoanId || (LOANS.length + 1);
     BUDGETS = data.budgets || {};
     BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+    ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+    ROOM_EXPENSES = data.roomExpenses || [];
+    ROOM_SETTLEMENTS = data.roomSettlements || [];
+    nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+    nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
@@ -2658,6 +2742,9 @@
     HIDDEN_ACCOUNTS = [];
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
     HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
+    ROOMMATES = ["Me"];
+    ROOM_EXPENSES = [];
+    ROOM_SETTLEMENTS = [];
   }
 
   function saveCurrentUser(){
@@ -2675,6 +2762,11 @@
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
       homeLayout: HOME_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
+      roommates: ROOMMATES,
+      roomExpenses: ROOM_EXPENSES,
+      roomSettlements: ROOM_SETTLEMENTS,
+      nextRoomExpenseId,
+      nextRoomSettlementId,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
@@ -2702,6 +2794,11 @@
       nextLoanId = data.nextLoanId || 1;
       BUDGETS = data.budgets || {};
       BUDGET_OVERALL = data.budgetOverall != null ? data.budgetOverall : null;
+      ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+      ROOM_EXPENSES = data.roomExpenses || [];
+      ROOM_SETTLEMENTS = data.roomSettlements || [];
+      nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+      nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -4339,6 +4436,293 @@
     `;
   }
 
+  // ---------------------------------------------------------------------
+  // Room expenses — shared-flat cost splitting.
+  // Balances are always derived from ROOM_EXPENSES + ROOM_SETTLEMENTS
+  // rather than stored, so they can never drift out of sync with the log.
+  // ---------------------------------------------------------------------
+  function computeRoomBalances(){
+    const net = {};
+    ROOMMATES.forEach(n => { net[n] = 0; });
+    ROOM_EXPENSES.forEach(e => {
+      const participants = (e.splitAmong && e.splitAmong.length)
+        ? e.splitAmong.filter(n => ROOMMATES.includes(n))
+        : ROOMMATES.slice();
+      if (!participants.length) return;
+      const share = e.amount / participants.length;
+      participants.forEach(p => { net[p] = (net[p] || 0) - share; });
+      net[e.paidBy] = (net[e.paidBy] || 0) + e.amount;
+    });
+    ROOM_SETTLEMENTS.forEach(s => {
+      net[s.from] = (net[s.from] || 0) + s.amount;
+      net[s.to] = (net[s.to] || 0) - s.amount;
+    });
+    return net;
+  }
+
+  // Greedily matches the biggest creditor against the biggest debtor each
+  // round, which minimizes the number of settle-up transactions needed —
+  // the same trick Splitwise uses instead of listing every pairwise debt.
+  function simplifyRoomDebts(net){
+    const creditors = [], debtors = [];
+    Object.entries(net).forEach(([name, amt]) => {
+      if (amt > 0.5) creditors.push({ name, amt });
+      else if (amt < -0.5) debtors.push({ name, amt: -amt });
+    });
+    creditors.sort((a, b) => b.amt - a.amt);
+    debtors.sort((a, b) => b.amt - a.amt);
+    const settlements = [];
+    let ci = 0, di = 0;
+    while (ci < creditors.length && di < debtors.length){
+      const c = creditors[ci], d = debtors[di];
+      const amt = Math.min(c.amt, d.amt);
+      settlements.push({ from: d.name, to: c.name, amount: amt });
+      c.amt -= amt; d.amt -= amt;
+      if (c.amt < 0.5) ci++;
+      if (d.amt < 0.5) di++;
+    }
+    return settlements;
+  }
+
+  function renderRoomDashCard(){
+    const el = document.getElementById("roomDashCard");
+    if (!el) return;
+    if (ROOMMATES.length < 2 && !ROOM_EXPENSES.length){
+      el.innerHTML = `<div class="kh-loan-dash-empty">No room expenses tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showRoomPage()">Set up your room →</button></div>`;
+      return;
+    }
+    const mine = computeRoomBalances()["Me"] || 0;
+    const color = mine > 0.5 ? "var(--in)" : mine < -0.5 ? "var(--out)" : "var(--dim)";
+    const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're all settled up";
+    el.innerHTML = `
+      <div class="kh-loan-dash-top">
+        <span class="kh-loan-dash-title">Room expenses</span>
+        <button type="button" class="kh-loan-dash-link" onclick="showRoomPage()">Manage →</button>
+      </div>
+      <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:${color}">${label}</div>
+    `;
+  }
+
+  function renderRoommateManager(){
+    const el = document.getElementById("roommateList");
+    if (!el) return;
+    el.innerHTML = ROOMMATES.map(name => {
+      const canRemove = name !== "Me";
+      return `<span class="kh-cat-tag-vibrant" style="background:${roommateColor(name)}">
+        <span>${name === "Me" ? "🙋" : "👤"}</span>
+        ${name}
+        ${canRemove ? `<button class="kh-cat-remove-v" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
+      </span>`;
+    }).join("");
+    renderRoomPaidBySelect();
+    renderRoomSplitChecks();
+  }
+
+  function addRoommate(){
+    const input = document.getElementById("roommateInput");
+    const name = input.value.trim();
+    if (!name) return;
+    if (ROOMMATES.includes(name)){ showToast("Already added"); return; }
+    ROOMMATES.push(name);
+    input.value = "";
+    saveCurrentUser();
+    renderRoommateManager();
+    renderRoomBalances();
+    showToast(`Added ${name}`);
+  }
+
+  function removeRoommate(name){
+    if (name === "Me") return;
+    const net = computeRoomBalances();
+    if (Math.abs(net[name] || 0) > 0.5){
+      showToast(`Settle up with ${name} before removing them`);
+      return;
+    }
+    const used = ROOM_EXPENSES.some(e => e.paidBy === name || (e.splitAmong || []).includes(name));
+    if (used){
+      showToast(`${name} is on past shared expenses — can't remove`);
+      return;
+    }
+    ROOMMATES = ROOMMATES.filter(n => n !== name);
+    saveCurrentUser();
+    renderRoommateManager();
+    renderRoomBalances();
+  }
+
+  function renderRoomPaidBySelect(){
+    const sel = document.getElementById("roomExpPaidBy");
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = ROOMMATES.map(n => `<option value="${n}">${n}</option>`).join("");
+    sel.value = ROOMMATES.includes(prev) ? prev : ROOMMATES[0];
+    renderRoomLogToggle();
+  }
+
+  function renderRoomCategorySelect(){
+    const sel = document.getElementById("roomExpCategory");
+    if (!sel) return;
+    const prev = sel.value;
+    const names = Object.keys(CAT);
+    sel.innerHTML = names.map(n => `<option value="${n}">${CAT[n].icon} ${n}</option>`).join("");
+    sel.value = names.includes(prev) ? prev : (names.includes("Rent") ? "Rent" : names[0]);
+  }
+
+  // Preserves whatever the person already checked/unchecked when the
+  // roommate list re-renders (e.g. after adding someone new), instead of
+  // silently resetting everyone back to checked.
+  function renderRoomSplitChecks(){
+    const el = document.getElementById("roomSplitChecks");
+    if (!el) return;
+    const checked = {};
+    el.querySelectorAll("input[type=checkbox]").forEach(cb => { checked[cb.value] = cb.checked; });
+    el.innerHTML = ROOMMATES.map(n => `
+      <label class="kh-cat-tag" style="cursor:pointer;">
+        <input type="checkbox" value="${n}" ${(checked[n] !== undefined ? checked[n] : true) ? "checked" : ""} style="margin:0;" />
+        ${n}
+      </label>
+    `).join("");
+  }
+
+  function renderRoomLogToggle(){
+    const wrap = document.getElementById("roomLogToggleWrap");
+    const paidBySel = document.getElementById("roomExpPaidBy");
+    if (!wrap || !paidBySel) return;
+    if (paidBySel.value !== "Me"){ wrap.innerHTML = ""; return; }
+    wrap.innerHTML = `
+      <label class="kh-cat-hint" style="display:flex; align-items:center; gap:8px; margin:10px 0 0; cursor:pointer;">
+        <input type="checkbox" id="roomLogAsTx" checked style="margin:0;" />
+        Also log this as my own expense, from
+      </label>
+      <select id="roomLogAccount" class="kh-cat-input" style="margin-top:6px; width:100%;">
+        ${visibleAccounts().map(a => `<option value="${a}">${a}</option>`).join("")}
+      </select>
+    `;
+  }
+
+  function addRoomExpense(){
+    const desc = document.getElementById("roomExpDesc").value.trim();
+    const amount = parseFloat(document.getElementById("roomExpAmount").value);
+    const category = document.getElementById("roomExpCategory").value || "Other";
+    const paidBy = document.getElementById("roomExpPaidBy").value;
+    const splitAmong = Array.from(document.querySelectorAll("#roomSplitChecks input:checked")).map(cb => cb.value);
+    if (!paidBy){ showToast("Add a roommate first"); return; }
+    if (!desc || !amount || amount <= 0){ showToast("Enter a description and amount"); return; }
+    if (!splitAmong.length){ showToast("Pick at least one person to split with"); return; }
+    ensureCategory(category);
+
+    const logAsTx = paidBy === "Me" && document.getElementById("roomLogAsTx") && document.getElementById("roomLogAsTx").checked;
+    let txId = null;
+    if (logAsTx){
+      const account = document.getElementById("roomLogAccount").value;
+      txId = "tx" + (nextTxId++);
+      TRANSACTIONS.push({ date: todayStr(), vendor: desc, category, type: "out", amount, account, id: txId });
+    }
+    ROOM_EXPENSES.unshift({ id: "rx" + (nextRoomExpenseId++), date: todayStr(), desc, category, amount, paidBy, splitAmong, txId });
+
+    document.getElementById("roomExpDesc").value = "";
+    document.getElementById("roomExpAmount").value = "";
+    saveCurrentUser();
+    renderRoomExpenseList();
+    renderRoomBalances();
+    renderRoomDashCard();
+    if (logAsTx) renderAll();
+    showToast("Shared expense added");
+  }
+
+  function renderRoomExpenseList(){
+    const el = document.getElementById("roomExpenseList");
+    if (!el) return;
+    if (!ROOM_EXPENSES.length){
+      el.innerHTML = `<div class="kh-empty">No shared expenses logged yet.</div>`;
+      return;
+    }
+    el.innerHTML = ROOM_EXPENSES.map(e => {
+      const meta = CAT[e.category] || CAT.Other;
+      const splitLabel = e.splitAmong.length === ROOMMATES.length ? "everyone" : e.splitAmong.join(", ");
+      return `<div class="kh-row">
+        <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
+        <div class="kh-row-mid">
+          <div class="kh-row-vendor">${e.desc}</div>
+          <div class="kh-row-cat">Paid by ${e.paidBy} · split with ${splitLabel}</div>
+        </div>
+        <div class="kh-row-amt" style="color:var(--out)">${rs(e.amount)}</div>
+        <button class="kh-row-del" onclick="deleteRoomExpense(${attrJson(e.id)})" title="Delete">✕</button>
+      </div>`;
+    }).join("");
+  }
+
+  function deleteRoomExpense(id){
+    const idx = ROOM_EXPENSES.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    const [removed] = ROOM_EXPENSES.splice(idx, 1);
+    if (removed.txId){
+      const txIdx = TRANSACTIONS.findIndex(t => t.id === removed.txId);
+      if (txIdx !== -1) TRANSACTIONS.splice(txIdx, 1);
+    }
+    saveCurrentUser();
+    renderRoomExpenseList();
+    renderRoomBalances();
+    renderRoomDashCard();
+    if (removed.txId) renderAll();
+    showToast("Removed");
+  }
+
+  function markRoomSettled(from, to, amount){
+    ROOM_SETTLEMENTS.push({ id: "rs" + (nextRoomSettlementId++), date: todayStr(), from, to, amount });
+    saveCurrentUser();
+    renderRoomBalances();
+    renderRoomDashCard();
+    showToast(`Marked ${rs(amount)} settled between ${from} and ${to}`);
+  }
+
+  function renderRoomBalances(){
+    const el = document.getElementById("roomBalances");
+    if (!el) return;
+    if (ROOMMATES.length < 2){
+      el.innerHTML = `<div class="kh-empty">Add at least one roommate above to start splitting costs.</div>`;
+      return;
+    }
+    const net = computeRoomBalances();
+    const rows = ROOMMATES.map(name => {
+      const amt = net[name] || 0;
+      const color = amt > 0.5 ? "var(--in)" : amt < -0.5 ? "var(--out)" : "var(--dim)";
+      const label = amt > 0.5 ? `owed ${rs(amt)}` : amt < -0.5 ? `owes ${rs(-amt)}` : "settled up";
+      return `<div class="kh-budget-row">
+        <div class="kh-budget-row-top">
+          <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
+          <span class="kh-budget-row-name">${name}</span>
+          <span class="kh-budget-row-amt" style="color:${color}">${label}</span>
+        </div>
+      </div>`;
+    }).join("");
+    const settlements = simplifyRoomDebts(net);
+    const settleHtml = settlements.length ? `
+      <p class="kh-cat-hint" style="margin:14px 2px 8px;">Settle up</p>
+      ${settlements.map(s => `
+        <div class="kh-budget-row">
+          <div class="kh-budget-row-top">
+            <span class="kh-budget-row-name">${s.from} → ${s.to}</span>
+            <span class="kh-budget-row-amt">${rs(s.amount)}</span>
+          </div>
+          <div class="kh-budget-row-set">
+            <button type="button" class="kh-loan-btn" style="width:100%; justify-content:center;" onclick="markRoomSettled(${attrJson(s.from)}, ${attrJson(s.to)}, ${s.amount})">Mark settled</button>
+          </div>
+        </div>
+      `).join("")}
+    ` : `<p class="kh-cat-hint" style="margin:14px 2px 0;">Everyone's settled up. 🎉</p>`;
+    el.innerHTML = rows + settleHtml;
+  }
+
+  function showRoomPage(){
+    closePanel();
+    showPage("room");
+    renderRoommateManager();
+    renderRoomCategorySelect();
+    renderRoomExpenseList();
+    renderRoomBalances();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function renderInsightsPage(){
     const cur = adToBs(new Date().toISOString().slice(0,10));
     const curKey = `${cur.year}-${cur.month}`;
@@ -4484,6 +4868,7 @@
     renderTx();
     renderLoanDashCard();
     renderBudgetDashCard();
+    renderRoomDashCard();
     renderHomeLayoutManager();
   }
 
