@@ -14,7 +14,6 @@
 <meta name="theme-color" content="#fbf9f6" />
 <script>(function(){try{var t=localStorage.getItem("kh_theme")||"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -1516,18 +1515,6 @@
         <label for="rentLandlordPayApp">They accept payment via</label>
         <input id="rentLandlordPayApp" placeholder="e.g. eSewa, Khalti, Bank" />
       </div>
-      <div class="kh-manual-field full">
-        <label for="rentBankName">Bank details (optional) — for a scannable QR of their account info</label>
-        <input id="rentBankName" placeholder="Bank name, e.g. NIC Asia Bank" />
-      </div>
-      <div class="kh-manual-field">
-        <label for="rentBankAccountName">Account holder name</label>
-        <input id="rentBankAccountName" placeholder="e.g. Gopal Shrestha" />
-      </div>
-      <div class="kh-manual-field">
-        <label for="rentBankAccountNumber">Account number</label>
-        <input id="rentBankAccountNumber" placeholder="e.g. 0123456789012" />
-      </div>
     </div>
     <div class="kh-manual-actions">
       <button type="button" class="kh-manual-btn" onclick="saveRentSetup()">Save</button>
@@ -1770,7 +1757,7 @@
   // specific bill is tracked via ROOM_SETTLEMENTS entries carrying an
   // expenseId + optional payment method, so the cycle card can show
   // "Settled via Fonepay" instead of just a net balance.
-  let ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "", bankName: "", bankAccountName: "", bankAccountNumber: "" };
+  let ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
 
   // Shared expenses scoped to the room page's own month filter. Balances
   // (who owes whom) deliberately do NOT use this — a debt someone still
@@ -2698,7 +2685,7 @@
     ROOM_SETTLEMENTS = data.roomSettlements || [];
     nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
     nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
-    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "", bankName: "", bankAccountName: "", bankAccountNumber: "" };
+    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
     PROFILE = data.profile || PROFILE;
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
@@ -3021,7 +3008,7 @@
     ROOMMATES = ["Me"];
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
-    ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "", bankName: "", bankAccountName: "", bankAccountNumber: "" };
+    ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
   }
 
   function saveCurrentUser(){
@@ -3080,7 +3067,7 @@
       ROOM_SETTLEMENTS = data.roomSettlements || [];
       nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
       nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
-      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "", bankName: "", bankAccountName: "", bankAccountNumber: "" };
+      ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "", landlordPayApp: "" };
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -5186,9 +5173,6 @@
     document.getElementById("rentLandlordName").value = ROOM_RENT.landlordName || "";
     document.getElementById("rentLandlordPhone").value = ROOM_RENT.landlordPhone || "";
     document.getElementById("rentLandlordPayApp").value = ROOM_RENT.landlordPayApp || "";
-    document.getElementById("rentBankName").value = ROOM_RENT.bankName || "";
-    document.getElementById("rentBankAccountName").value = ROOM_RENT.bankAccountName || "";
-    document.getElementById("rentBankAccountNumber").value = ROOM_RENT.bankAccountNumber || "";
     openPanel("rentsetup");
   }
 
@@ -5205,9 +5189,6 @@
       landlordName: document.getElementById("rentLandlordName").value.trim(),
       landlordPhone: document.getElementById("rentLandlordPhone").value.trim(),
       landlordPayApp: document.getElementById("rentLandlordPayApp").value.trim(),
-      bankName: document.getElementById("rentBankName").value.trim(),
-      bankAccountName: document.getElementById("rentBankAccountName").value.trim(),
-      bankAccountNumber: document.getElementById("rentBankAccountNumber").value.trim(),
     };
     saveCurrentUser();
     renderRoomRentCard();
@@ -5326,11 +5307,9 @@
         </div>
         <div class="kh-landlord-actions">
           ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${ROOM_RENT.landlordPhone}" title="Call">📞</a>` : ""}
-          ${ROOM_RENT.bankAccountNumber ? `<button type="button" class="kh-landlord-pay" onclick="toggleBankQr()">QR to pay ▾</button>`
-            : ROOM_RENT.landlordPhone ? `<button type="button" class="kh-landlord-pay" onclick="payLandlord()">Pay ${ROOM_RENT.landlordPayApp || ""} →</button>` : ""}
+          ${ROOM_RENT.landlordPhone ? `<button type="button" class="kh-landlord-pay" onclick="payLandlord()">Pay ${ROOM_RENT.landlordPayApp || ""} →</button>` : ""}
         </div>
       </div>
-      <div id="roomBankQr" style="display:none;"></div>
     ` : "";
 
     let bodyHtml;
@@ -5421,45 +5400,6 @@
     } else {
       showToast(msg);
     }
-  }
-
-  // Nepal's interoperable "scan any app to pay" QR (the kind Fonepay,
-  // eSewa, and bank apps all read) is issued to a REGISTERED MERCHANT by
-  // their bank/Fonepay — an individual landlord's plain bank account
-  // can't generate one from just an account number, and faking that
-  // format would risk someone thinking a scan-to-pay worked when it
-  // didn't. So this instead makes a plain, honest QR that just encodes
-  // the bank details as text — any QR scanner can read it and the
-  // roommate copies the details in like they would off a screenshot,
-  // just faster and typo-free.
-  function toggleBankQr(){
-    const el = document.getElementById("roomBankQr");
-    if (!el) return;
-    const showing = el.style.display !== "none";
-    if (showing){
-      el.style.display = "none";
-      return;
-    }
-    if (typeof qrcode !== "function"){
-      showToast("QR generator failed to load — check your connection");
-      return;
-    }
-    const lines = [
-      ROOM_RENT.bankName && `Bank: ${ROOM_RENT.bankName}`,
-      `A/C Name: ${ROOM_RENT.bankAccountName || ROOM_RENT.landlordName}`,
-      `A/C No: ${ROOM_RENT.bankAccountNumber}`,
-    ].filter(Boolean);
-    const qr = qrcode(0, "M");
-    qr.addData(lines.join("\n"));
-    qr.make();
-    el.innerHTML = `
-      <div style="margin-top:12px; padding:14px; border-radius:14px; background:#fff; text-align:center;">
-        ${qr.createSvgTag({ cellSize: 4, margin: 2 })}
-        <p style="margin:8px 0 0; font-size:11px; color:#3a3a3a; line-height:1.5;">${lines.join(" · ")}</p>
-      </div>
-      <p class="kh-cat-hint" style="margin:6px 2px 0;">This is a plain info QR (bank name + account) for any scanner to read and copy — not an interoperable payment QR, since only your bank/Fonepay can issue one of those to a registered merchant.</p>
-    `;
-    el.style.display = "";
   }
 
   function setRoomNepaliMonthFilter(key){
