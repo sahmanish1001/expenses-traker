@@ -338,6 +338,18 @@
   .kh-cat-tag-vibrant .kh-cat-edit-v, .kh-cat-tag-vibrant .kh-cat-remove-v{border:none;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;padding:2px 6px;font-size:11px;line-height:1.4;border-radius:999px;}
   .kh-cat-tag-vibrant .kh-cat-edit-v:hover, .kh-cat-tag-vibrant .kh-cat-remove-v:hover{background:rgba(255,255,255,.4);}
 
+  /* Roommate face cards — avatar + name, with "Me" visually distinguished */
+  .kh-roommate-grid{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;}
+  .kh-roommate-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;width:66px;}
+  .kh-roommate-avatar{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.15);}
+  .kh-roommate-avatar.me{border:2.5px solid var(--accent);box-shadow:0 4px 10px rgba(0,0,0,.15),0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);}
+  .kh-roommate-name{font-size:11.5px;font-weight:600;color:var(--text);text-align:center;max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .kh-roommate-remove{position:absolute;top:-2px;right:2px;width:19px;height:19px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--dim);font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;}
+  .kh-roommate-remove:hover{color:var(--out);border-color:var(--out);}
+  .kh-roommate-add-card{cursor:pointer;background:none;border:none;font-family:inherit;padding:0;}
+  .kh-roommate-add-card .kh-roommate-avatar{background:var(--surface2);border:2px dashed var(--border);color:var(--dim);font-size:22px;}
+  .kh-roommate-add-card:hover .kh-roommate-avatar{border-color:var(--accent);color:var(--accent);}
+
   /* Loans tab */
   .kh-loan-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
   .kh-loan-summary-item{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center;}
@@ -1163,11 +1175,7 @@
     <p class="kh-section-title">Roommates</p>
     <div class="kh-cat-manager" style="margin-top:0;">
       <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
-      <div class="kh-cat-form">
-        <input id="roommateInput" class="kh-cat-input" placeholder="e.g. Ramesh, Sita" onkeydown="if(event.key==='Enter') addRoommate()" />
-        <button class="kh-cat-add" onclick="addRoommate()">＋ Add</button>
-      </div>
-      <div class="kh-cat-list" id="roommateList"></div>
+      <div class="kh-roommate-grid" id="roommateList"></div>
     </div>
 
     <p class="kh-section-title">Balances</p>
@@ -1399,6 +1407,23 @@
       <button type="button" class="kh-manual-btn" id="manualSaveBtn" onclick="addManualTransaction()">Add transaction</button>
       <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       <span class="kh-manual-status" id="manualStatus"></span>
+    </div>
+  </div>
+
+  <div class="kh-panel" id="panelRoommate" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title">Add roommate</p>
+    <p class="kh-manual-hint">Add someone you split room costs with — you can add more later.</p>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full">
+        <label for="roommateInput">Name</label>
+        <input id="roommateInput" placeholder="e.g. Ramesh" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addRoommate(); }" />
+      </div>
+    </div>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="addRoommate()">Add roommate</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
     </div>
   </div>
 
@@ -2152,7 +2177,7 @@
     }, 300);
   }
 
-  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment" };
+  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -2162,7 +2187,11 @@
     el.classList.add("show");
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
-    setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : name);
+    setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : (name === "roommate" ? "room" : name));
+    if (name === "roommate"){
+      document.getElementById("roommateInput").value = "";
+      setTimeout(() => document.getElementById("roommateInput").focus(), 300);
+    }
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
       document.getElementById("manualStatus").className = "kh-manual-status";
@@ -4594,13 +4623,16 @@
     const el = document.getElementById("roommateList");
     if (!el) return;
     el.innerHTML = ROOMMATES.map(name => {
-      const canRemove = name !== "Me";
-      return `<span class="kh-cat-tag-vibrant" style="background:${roommateColor(name)}">
-        <span>${name === "Me" ? "🙋" : "👤"}</span>
-        ${name}
-        ${canRemove ? `<button class="kh-cat-remove-v" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
-      </span>`;
-    }).join("");
+      const isMe = name === "Me";
+      return `<div class="kh-roommate-card">
+        ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
+        <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : name.charAt(0).toUpperCase()}</div>
+        <span class="kh-roommate-name">${name}</span>
+      </div>`;
+    }).join("") + `<button type="button" class="kh-roommate-add-card" onclick="openPanel('roommate')" title="Add roommate">
+      <div class="kh-roommate-avatar">＋</div>
+      <span class="kh-roommate-name">Add</span>
+    </button>`;
     renderRoomPaidBySelect();
     renderRoomSplitChecks();
   }
@@ -4615,6 +4647,7 @@
     saveCurrentUser();
     renderRoommateManager();
     renderRoomBalances();
+    closePanel();
     showToast(`Added ${name}`);
   }
 
