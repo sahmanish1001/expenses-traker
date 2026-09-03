@@ -1181,32 +1181,6 @@
     <p class="kh-section-title">Balances</p>
     <div id="roomBalances"></div>
 
-    <p class="kh-section-title">Add a shared expense</p>
-    <div class="kh-cat-manager" style="margin-top:0;">
-      <div class="kh-manual-form">
-        <div class="kh-manual-field">
-          <label for="roomExpDesc">What was it for</label>
-          <input id="roomExpDesc" placeholder="e.g. Room rent, Wifi, Groceries" />
-        </div>
-        <div class="kh-manual-field">
-          <label for="roomExpAmount">Amount (Rs)</label>
-          <input id="roomExpAmount" type="number" min="0" step="any" placeholder="0" />
-        </div>
-        <div class="kh-manual-field">
-          <label for="roomExpCategory">Category</label>
-          <select id="roomExpCategory"></select>
-        </div>
-        <div class="kh-manual-field">
-          <label for="roomExpPaidBy">Paid by</label>
-          <select id="roomExpPaidBy" onchange="renderRoomLogToggle(); renderRoomSplitChecks();"></select>
-        </div>
-      </div>
-      <p class="kh-cat-hint" style="margin:10px 0 4px;">Also split equally with (whoever paid is already covering their own share)</p>
-      <div class="kh-cat-list" id="roomSplitChecks"></div>
-      <div id="roomLogToggleWrap"></div>
-      <button type="button" class="kh-cat-add" style="width:100%; margin-top:12px; justify-content:center; padding:11px;" onclick="addRoomExpense()">＋ Add shared expense</button>
-    </div>
-
     <p class="kh-section-title">Recent shared expenses</p>
     <div id="roomExpenseList"></div>
   </div>
@@ -1407,6 +1381,37 @@
       <button type="button" class="kh-manual-btn" id="manualSaveBtn" onclick="addManualTransaction()">Add transaction</button>
       <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       <span class="kh-manual-status" id="manualStatus"></span>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelRoomExpense" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title">Add a shared expense</p>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full">
+        <label for="roomExpDesc">What was it for</label>
+        <input id="roomExpDesc" placeholder="e.g. Room rent, Wifi, Groceries" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addRoomExpense(); }" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="roomExpAmount">Amount (Rs)</label>
+        <input id="roomExpAmount" type="number" min="0" step="any" placeholder="0" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addRoomExpense(); }" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="roomExpCategory">Category</label>
+        <select id="roomExpCategory"></select>
+      </div>
+      <div class="kh-manual-field full">
+        <label for="roomExpPaidBy">Paid by</label>
+        <select id="roomExpPaidBy" onchange="renderRoomLogToggle(); renderRoomSplitChecks();"></select>
+      </div>
+    </div>
+    <p class="kh-cat-hint" style="margin:10px 0 4px;">Also split equally with (whoever paid is already covering their own share)</p>
+    <div class="kh-cat-list" id="roomSplitChecks"></div>
+    <div id="roomLogToggleWrap"></div>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="addRoomExpense()">Add shared expense</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
     </div>
   </div>
 
@@ -1996,6 +2001,8 @@
   function toggleManualAdd(){
     if (currentPage === "loans"){
       openPanel("loanform");
+    } else if (currentPage === "room"){
+      openPanel("roomexpense");
     } else {
       const wasOpen = openPanelName === "manual";
       openPanel("manual");
@@ -2177,7 +2184,7 @@
     }, 300);
   }
 
-  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate" };
+  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate", roomexpense: "panelRoomExpense" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -2187,10 +2194,18 @@
     el.classList.add("show");
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
-    setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : (name === "roommate" ? "room" : name));
+    setActiveNav(["loanform", "loanpay"].includes(name) ? "loans" : (["roommate", "roomexpense"].includes(name) ? "room" : name));
     if (name === "roommate"){
       document.getElementById("roommateInput").value = "";
       setTimeout(() => document.getElementById("roommateInput").focus(), 300);
+    }
+    if (name === "roomexpense"){
+      document.getElementById("roomExpDesc").value = "";
+      document.getElementById("roomExpAmount").value = "";
+      renderRoomCategorySelect();
+      renderRoomPaidBySelect();
+      renderRoomSplitChecks();
+      setTimeout(() => document.getElementById("roomExpDesc").focus(), 300);
     }
     if (name === "manual"){
       document.getElementById("manualStatus").textContent = "";
@@ -2332,10 +2347,10 @@
     currentPage = name;
     const fab = document.getElementById("manualFab");
     if (fab){
-      const label = name === "loans" ? "Add loan" : "Add transaction manually";
+      const label = name === "loans" ? "Add loan" : (name === "room" ? "Add shared expense" : "Add transaction manually");
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = (name === "budget" || name === "room" || name === "insights" || name === "settings") ? "none" : "";
+      fab.style.display = (name === "budget" || name === "insights" || name === "settings") ? "none" : "";
     }
   }
 
@@ -4755,6 +4770,7 @@
     renderRoomBalances();
     renderRoomDashCard();
     if (logAsTx) renderAll();
+    closePanel();
     showToast("Shared expense added");
   }
 
