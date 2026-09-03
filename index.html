@@ -67,9 +67,15 @@
   .kh-top-btns{display:flex; gap:8px; flex-shrink:0;}
   .kh-clear-btn{display:flex; align-items:center; gap:6px; background:var(--surface); color:var(--out); border:1px solid var(--border); border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
   .kh-demo-note{margin-top:12px; font-size:12px; color:var(--dim); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 12px; line-height:1.5;}
-  .kh-balance-card{margin-top:16px; padding:26px 20px; border-radius:24px; text-align:center; background:linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 20px rgba(28,28,26,.03);}
-  .kh-balance-label{margin:0 0 8px; font-size:11px; color:var(--dim); font-weight:600;}
-  .kh-balance-amt{margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,9vw,34px); font-weight:800; letter-spacing:-.01em; white-space:nowrap;}
+  .kh-balance-card{margin-top:16px; padding:28px 22px; border-radius:26px; text-align:center; position:relative; overflow:hidden; background:linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 24px rgba(0,0,0,.08);}
+  .kh-balance-card::before{content:""; position:absolute; inset:-40% -20% auto -20%; height:150px; background:radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent); pointer-events:none;}
+  .kh-balance-top{display:flex; align-items:center; justify-content:center; gap:8px; position:relative;}
+  .kh-balance-label{margin:0; font-size:11px; color:var(--dim); font-weight:700; letter-spacing:.05em; text-transform:uppercase;}
+  .kh-balance-eye{position:absolute; right:0; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--dim); font-size:15px; cursor:pointer; padding:4px; line-height:1;}
+  .kh-balance-eye:hover{color:var(--accent);}
+  .kh-balance-amt{margin:10px 0 0; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(30px,10vw,40px); font-weight:800; letter-spacing:-.02em; white-space:nowrap; position:relative;}
+  .kh-balance-amt.kh-balance-amt-masked{letter-spacing:.08em;}
+  .kh-balance-trend{margin-top:12px; display:flex; justify-content:center; position:relative;}
   .kh-chips{display:flex; gap:8px; overflow-x:auto; margin-top:16px; padding-bottom:2px;}
   .kh-chip{display:flex; align-items:center; gap:6px; flex-shrink:0; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); font-size:12.5px; font-weight:500; color:var(--dim); cursor:pointer; font-family:inherit;}
   .kh-chip.active{color:#12141c; border-color:transparent;}
@@ -285,9 +291,12 @@
   .kh-account-name{font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;}
   .kh-signout-btn{background:var(--surface); color:var(--dim); border:1px solid var(--border); border-radius:12px; padding:9px 11px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;}
 
-  .kh-np-filter{display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
-  .kh-np-filter label{font-size:11px; color:var(--dim); }
-  .kh-np-filter select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-size:16px; font-family:inherit;}
+  .kh-np-filter{display:flex; align-items:center; gap:8px; margin-top:10px; padding:9px 14px; border-radius:999px; background:var(--surface2); border:1px solid var(--border); flex-wrap:wrap; transition:background .2s, border-color .2s;}
+  .kh-np-filter.kh-np-filter-active{border-color:color-mix(in srgb, var(--accent) 45%, var(--border)); background:color-mix(in srgb, var(--accent) 10%, var(--surface2));}
+  .kh-np-filter label{font-size:11px; color:var(--dim); font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .kh-np-filter label::before{content:"📅"; font-size:12px;}
+  .kh-np-filter select{flex:1; min-width:0; background:transparent; color:var(--text); border:none; padding:2px 0; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .kh-np-filter select:focus{outline:none;}
   .kh-section-title{font-size:12px; color:var(--dim); margin:24px 0 10px;}
   .kh-empty{font-size:13.5px; color:var(--dim); background:var(--surface); border:1px dashed var(--border); border-radius:14px; padding:22px 16px; text-align:center; line-height:1.5;}
   .kh-day{margin-bottom:16px;}
@@ -652,13 +661,17 @@
     <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
     <div class="kh-demo-note" id="demoNote"></div>
     <div class="kh-balance-card" id="balanceCard">
-      <p class="kh-balance-label" id="balanceLabel">Total Balance</p>
+      <div class="kh-balance-top">
+        <p class="kh-balance-label" id="balanceLabel">Total Balance</p>
+        <button type="button" class="kh-balance-eye" id="balanceEyeBtn" onclick="toggleBalanceVisibility()" title="Show/hide balance">👁</button>
+      </div>
       <h2 class="kh-balance-amt" id="balanceAmt">Rs 0</h2>
+      <div class="kh-balance-trend" id="balanceTrend" style="display:none;"></div>
     </div>
 
     <div class="kh-chips" id="chips"></div>
 
-    <div class="kh-np-filter">
+    <div class="kh-np-filter" id="npFilterHome">
       <label for="npMonthFilter">Nepali month</label>
       <select id="npMonthFilter" onchange="setNepaliMonthFilter(this.value)"></select>
     </div>
@@ -4066,6 +4079,8 @@
       ? activeNepaliMonth
       : currentBsMonthKey();
     activeNepaliMonth = el.value;
+    const filterEl = document.getElementById("npFilterHome");
+    if (filterEl) filterEl.classList.toggle("kh-np-filter-active", activeNepaliMonth !== "All");
   }
 
   function renderStats(){
@@ -6031,11 +6046,28 @@
   }
 
 
+  function getBalanceHidden(){
+    try{ return localStorage.getItem("kh_balance_hidden") === "1"; }catch(e){ return false; }
+  }
+  function toggleBalanceVisibility(){
+    const hidden = !getBalanceHidden();
+    try{ localStorage.setItem("kh_balance_hidden", hidden ? "1" : "0"); }catch(e){}
+    renderBalanceCard();
+  }
+
   function renderBalanceCard(){
     const labelEl = document.getElementById("balanceLabel");
     const amtEl = document.getElementById("balanceAmt");
+    const trendEl = document.getElementById("balanceTrend");
+    const eyeBtn = document.getElementById("balanceEyeBtn");
     if (!labelEl || !amtEl) return;
     let amount;
+    // The "this month" trend only makes sense against the true, unfiltered
+    // total — a scoped view (one account, or a picked Nepali month) already
+    // shows its own Money in/out/net in the stats cards right below, so
+    // showing a second, differently-scoped number here would just confuse.
+    let showTrend = false;
+    let trendAmount = 0;
     if (activeAccount !== "All" && BALANCES[activeAccount] != null){
       labelEl.textContent = `${activeAccount} Balance`;
       amount = BALANCES[activeAccount];
@@ -6045,8 +6077,30 @@
       const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
       const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
       amount = totalIn - totalOut;
+      if (activeNepaliMonth === "All"){
+        showTrend = true;
+        const curKey = currentBsMonthKey();
+        const monthTx = TRANSACTIONS.filter(t => !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === curKey);
+        trendAmount = monthTx.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0)
+          - monthTx.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
+      }
     }
-    amtEl.textContent = (amount < 0 ? "− " : "") + rs(Math.abs(amount));
+
+    const hidden = getBalanceHidden();
+    amtEl.textContent = hidden ? "Rs ••••••" : (amount < 0 ? "− " : "") + rs(Math.abs(amount));
+    amtEl.classList.toggle("kh-balance-amt-masked", hidden);
+    if (eyeBtn) eyeBtn.textContent = hidden ? "🙈" : "👁";
+
+    if (trendEl){
+      if (showTrend && !hidden){
+        const pillClass = trendAmount > 0 ? "kh-pill-jade" : trendAmount < 0 ? "kh-pill-amber" : "kh-pill-dim";
+        const arrow = trendAmount > 0 ? "▲" : trendAmount < 0 ? "▼" : "•";
+        trendEl.innerHTML = `<span class="kh-pill ${pillClass}">${arrow} ${rs(Math.abs(trendAmount))} this month</span>`;
+        trendEl.style.display = "";
+      } else {
+        trendEl.style.display = "none";
+      }
+    }
   }
 
   function renderAll(){
