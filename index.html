@@ -614,15 +614,13 @@
     </div>
   </div>
 
-  <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
-
   <button class="kh-manual-fab" id="manualFab" onclick="toggleManualAdd()" title="Add transaction manually" aria-label="Add transaction manually">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
 
-  <div class="kh-demo-note" id="demoNote"></div>
-
   <div class="kh-page active" id="homePage">
+    <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
+    <div class="kh-demo-note" id="demoNote"></div>
     <div class="kh-balance-card" id="balanceCard">
       <p class="kh-balance-label" id="balanceLabel">Total Balance</p>
       <h2 class="kh-balance-amt" id="balanceAmt">Rs 0</h2>
@@ -1172,6 +1170,11 @@
 
     <div class="kh-room-hero" id="roomHeroCard"></div>
 
+    <div class="kh-np-filter">
+      <label for="roomNpMonthFilter">Nepali month</label>
+      <select id="roomNpMonthFilter" onchange="setRoomNepaliMonthFilter(this.value)"></select>
+    </div>
+
     <p class="kh-section-title">Roommates</p>
     <div class="kh-cat-manager" style="margin-top:0;">
       <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
@@ -1658,10 +1661,31 @@
   let ROOM_SETTLEMENTS = []; // { id, date, from, to, amount } — a debt paydown between two roommates
   let nextRoomExpenseId = 1;
   let nextRoomSettlementId = 1;
+  let activeRoomNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key
+
+  // Shared expenses scoped to the room page's own month filter. Balances
+  // (who owes whom) deliberately do NOT use this — a debt someone still
+  // owes doesn't stop being owed just because you've filtered the view to
+  // a different month, so computeRoomBalances always looks at everything.
+  // This scoping is only for the "this cycle" total and the visible list.
+  function getScopedRoomExpenses(){
+    if (activeRoomNepaliMonth === "All") return ROOM_EXPENSES;
+    return ROOM_EXPENSES.filter(e => bsMonthKey(e.date) === activeRoomNepaliMonth);
+  }
   const ROOMMATE_PALETTE = ["#0F766E","#B45309","#7E22CE","#1D4ED8","#B91C1C","#15803D","#C2410C","#0E7490","#9D174D","#4B5563"];
   function roommateColor(name){
     const idx = ROOMMATES.indexOf(name);
     return ROOMMATE_PALETTE[(idx < 0 ? 0 : idx) % ROOMMATE_PALETTE.length];
+  }
+  // "Me" is always the storage key for the signed-in person (so saved
+  // expenses/splits stay stable even if they rename themselves), but
+  // wherever we show it to the user we swap in their actual name —
+  // whatever they've set under Settings → Name, falling back to their
+  // Google account name, falling back to plain "Me".
+  function roommateDisplayName(name){
+    if (name !== "Me") return name;
+    const n = (PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me";
+    return n.split(" ")[0];
   }
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
@@ -2457,6 +2481,7 @@
     ROOM_SETTLEMENTS.length = 0;
     activeAccount = "All";
     activeNepaliMonth = "current"; // reset -> default to current month
+    activeRoomNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     saveCurrentUser();
     renderAll();
@@ -2552,6 +2577,7 @@
     TRANSACTIONS.forEach(t => { if (t.account) ensureAccount(t.account); });
     activeAccount = "All";
     activeNepaliMonth = "current"; // reset -> default to current month
+    activeRoomNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     saveCurrentUser();
     renderAll();
@@ -2903,6 +2929,7 @@
 
     activeAccount = "All";
     activeNepaliMonth = "current"; // reset -> default to current month
+    activeRoomNepaliMonth = "current"; // reset -> default to current month
     loanFilter = "all";
     const noteEl = document.getElementById("demoNote");
 
@@ -4642,7 +4669,7 @@
       return `<div class="kh-roommate-card">
         ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
         <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : name.charAt(0).toUpperCase()}</div>
-        <span class="kh-roommate-name">${name}</span>
+        <span class="kh-roommate-name">${roommateDisplayName(name)}</span>
       </div>`;
     }).join("") + `<button type="button" class="kh-roommate-add-card" onclick="openPanel('roommate')" title="Add roommate">
       <div class="kh-roommate-avatar">＋</div>
@@ -4688,7 +4715,7 @@
     const sel = document.getElementById("roomExpPaidBy");
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = ROOMMATES.map(n => `<option value="${n}">${n}</option>`).join("");
+    sel.innerHTML = ROOMMATES.map(n => `<option value="${n}">${roommateDisplayName(n)}</option>`).join("");
     sel.value = ROOMMATES.includes(prev) ? prev : ROOMMATES[0];
     renderRoomLogToggle();
   }
@@ -4721,7 +4748,7 @@
     el.innerHTML = others.map(n => `
       <label class="kh-cat-tag" style="cursor:pointer;">
         <input type="checkbox" value="${n}" ${(checked[n] !== undefined ? checked[n] : true) ? "checked" : ""} style="margin:0;" />
-        ${n}
+        ${roommateDisplayName(n)}
       </label>
     `).join("");
   }
@@ -4777,20 +4804,21 @@
   function renderRoomExpenseList(){
     const el = document.getElementById("roomExpenseList");
     if (!el) return;
-    if (!ROOM_EXPENSES.length){
-      el.innerHTML = `<div class="kh-empty">No shared expenses logged yet.</div>`;
+    const scoped = getScopedRoomExpenses();
+    if (!scoped.length){
+      el.innerHTML = `<div class="kh-empty">${ROOM_EXPENSES.length ? "No shared expenses in this month." : "No shared expenses logged yet."}</div>`;
       return;
     }
-    el.innerHTML = ROOM_EXPENSES.map(e => {
+    el.innerHTML = scoped.map(e => {
       const meta = CAT[e.category] || CAT.Other;
       const otherSplitters = e.splitAmong.filter(n => n !== e.paidBy);
       const otherRoommates = ROOMMATES.filter(n => n !== e.paidBy);
-      const splitLabel = otherSplitters.length && otherSplitters.length === otherRoommates.length ? "everyone else" : otherSplitters.join(", ");
+      const splitLabel = otherSplitters.length && otherSplitters.length === otherRoommates.length ? "everyone else" : otherSplitters.map(roommateDisplayName).join(", ");
       return `<div class="kh-row">
         <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
         <div class="kh-row-mid">
           <div class="kh-row-vendor">${e.desc}</div>
-          <div class="kh-row-cat">Paid by ${e.paidBy} · split with ${splitLabel}</div>
+          <div class="kh-row-cat">Paid by ${roommateDisplayName(e.paidBy)} · split with ${splitLabel}</div>
         </div>
         <div class="kh-row-amt" style="color:var(--out)">${rs(e.amount)}</div>
         <button class="kh-row-del" onclick="deleteRoomExpense(${attrJson(e.id)})" title="Delete">✕</button>
@@ -4838,7 +4866,7 @@
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
           <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
-          <span class="kh-budget-row-name">${name}</span>
+          <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
           <span class="kh-pill ${pillClass}">${label}</span>
         </div>
       </div>`;
@@ -4850,7 +4878,7 @@
       ${settlements.map(s => `
         <div class="kh-budget-row">
           <div class="kh-budget-row-top">
-            <span class="kh-budget-row-name">${s.from} → ${s.to}</span>
+            <span class="kh-budget-row-name">${roommateDisplayName(s.from)} → ${roommateDisplayName(s.to)}</span>
             <span class="kh-budget-row-amt">${rs(s.amount)}</span>
           </div>
           <div class="kh-budget-row-set">
@@ -4862,6 +4890,33 @@
     el.innerHTML = rows + settleHtml;
   }
 
+  function setRoomNepaliMonthFilter(key){
+    activeRoomNepaliMonth = key;
+    renderRoomNepaliMonthFilter();
+    renderRoomExpenseList();
+    renderRoomBalances();
+  }
+
+  function renderRoomNepaliMonthFilter(){
+    const el = document.getElementById("roomNpMonthFilter");
+    if (!el) return;
+    const seen = new Map();
+    const todayBs = adToBs(todayStr());
+    seen.set(`${todayBs.year}-${todayBs.month}`, { y: todayBs.year, m: todayBs.month, label: `${NEPALI_MONTHS[todayBs.month - 1].name} ${todayBs.year}` });
+    ROOM_EXPENSES.forEach(e => {
+      const bs = adToBs(e.date);
+      const key = `${bs.year}-${bs.month}`;
+      if (!seen.has(key)) seen.set(key, { y: bs.year, m: bs.month, label: `${NEPALI_MONTHS[bs.month - 1].name} ${bs.year}` });
+    });
+    const months = [...seen.values()].sort((a, b) => (a.y - b.y) || (a.m - b.m));
+    el.innerHTML = `<option value="All">All months</option>` +
+      months.map(mo => `<option value="${mo.y}-${mo.m}">${mo.label}</option>`).join("");
+    el.value = (activeRoomNepaliMonth === "All" || months.some(mo => `${mo.y}-${mo.m}` === activeRoomNepaliMonth))
+      ? activeRoomNepaliMonth
+      : currentBsMonthKey();
+    activeRoomNepaliMonth = el.value;
+  }
+
   function renderRoomHero(net){
     const el = document.getElementById("roomHeroCard");
     if (!el) return;
@@ -4869,7 +4924,7 @@
       el.innerHTML = `<p class="kh-room-hero-label">Your room balance</p><p class="kh-room-hero-amt" style="color:var(--dim)">—</p><p class="kh-room-hero-sub">Add roommates to start splitting shared costs</p>`;
       return;
     }
-    const totalShared = ROOM_EXPENSES.reduce((s, e) => s + e.amount, 0);
+    const totalShared = getScopedRoomExpenses().reduce((s, e) => s + e.amount, 0);
     const mine = net["Me"] || 0;
     const pillClass = mine > 0.5 ? "kh-pill-jade" : mine < -0.5 ? "kh-pill-amber" : "kh-pill-dim";
     const label = mine > 0.5 ? `You're owed ${rs(mine)}` : mine < -0.5 ? `You owe ${rs(-mine)}` : "You're settled up";
@@ -4888,6 +4943,7 @@
     showPage("room");
     renderRoommateManager();
     renderRoomCategorySelect();
+    renderRoomNepaliMonthFilter();
     renderRoomExpenseList();
     renderRoomBalances();
     window.scrollTo({ top: 0, behavior: "smooth" });
