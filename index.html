@@ -719,6 +719,7 @@
         <button class="kh-settings-tab" id="settingsTabBtnWallets" onclick="showSettingsDetail('wallets')"><span class="kh-settings-tab-icon">💳</span><span class="kh-settings-tab-label">Wallets</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnCategories" onclick="showSettingsDetail('categories')"><span class="kh-settings-tab-icon">🏷️</span><span class="kh-settings-tab-label">Categories</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnLayout" onclick="showSettingsDetail('layout')"><span class="kh-settings-tab-icon">🧩</span><span class="kh-settings-tab-label">Home Layout</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnRoomlayout" onclick="showSettingsDetail('roomlayout')"><span class="kh-settings-tab-icon">🏠</span><span class="kh-settings-tab-label">Room Layout</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnBudgetorder" onclick="showSettingsDetail('budgetorder')"><span class="kh-settings-tab-icon">📊</span><span class="kh-settings-tab-label">Budget Order</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span><span class="kh-settings-tab-label">Data</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span><span class="kh-settings-tab-label">About</span><span class="kh-settings-tab-chevron">›</span></button>
@@ -939,6 +940,19 @@
       </div>
       <div class="kh-layout-list" id="homeLayoutList"></div>
       <button class="kh-more-item" style="margin-top:12px;" onclick="resetHomeLayout()">↺ Reset to default order</button>
+    </div>
+
+    <!-- ===================== ROOM PAGE LAYOUT ===================== -->
+    <div class="kh-settings-section" id="settingsSectionRoomlayout">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🏠</span>
+        <div class="kh-ssh-text">
+          <h3>Room page order</h3>
+          <p>Choose the order Balance summary, Roommates, Balances, Recent shared expenses, and Room rent appear in on the Room page. Saved to your account, so it stays this way next time you sign in.</p>
+        </div>
+      </div>
+      <div class="kh-layout-list" id="roomLayoutList"></div>
+      <button class="kh-more-item" style="margin-top:12px;" onclick="resetRoomLayout()">↺ Reset to default order</button>
     </div>
 
     <!-- ===================== BUDGET CATEGORY ORDER ===================== -->
@@ -1214,27 +1228,38 @@
       <h2>Room expenses</h2>
     </div>
 
-    <div class="kh-room-hero" id="roomHeroCard"></div>
+    <div class="kh-room-sections" id="roomSections">
+      <div class="kh-home-section" data-section="hero" id="roomSectionHero">
+        <div class="kh-room-hero" id="roomHeroCard"></div>
+      </div>
 
-    <div class="kh-np-filter">
-      <label for="roomNpMonthFilter">Nepali month</label>
-      <select id="roomNpMonthFilter" onchange="setRoomNepaliMonthFilter(this.value)"></select>
+      <div class="kh-home-section" data-section="roommates" id="roomSectionRoommates">
+        <p class="kh-section-title">Roommates</p>
+        <div class="kh-cat-manager" style="margin-top:0;">
+          <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
+          <div class="kh-roommate-grid" id="roommateList"></div>
+        </div>
+      </div>
+
+      <div class="kh-home-section" data-section="balances" id="roomSectionBalances">
+        <p class="kh-section-title">Balances</p>
+        <div id="roomBalances"></div>
+      </div>
+
+      <div class="kh-home-section" data-section="expenses" id="roomSectionExpenses">
+        <div class="kh-np-filter">
+          <label for="roomNpMonthFilter">Nepali month</label>
+          <select id="roomNpMonthFilter" onchange="setRoomNepaliMonthFilter(this.value)"></select>
+        </div>
+        <p class="kh-section-title">Recent shared expenses</p>
+        <div id="roomExpenseList"></div>
+      </div>
+
+      <div class="kh-home-section" data-section="rent" id="roomSectionRent">
+        <p class="kh-section-title">Room rent</p>
+        <div class="kh-rent-card" id="roomRentCard"></div>
+      </div>
     </div>
-
-    <p class="kh-section-title">Roommates</p>
-    <div class="kh-cat-manager" style="margin-top:0;">
-      <p class="kh-cat-hint">"Me" is always you. Add everyone you split room costs with.</p>
-      <div class="kh-roommate-grid" id="roommateList"></div>
-    </div>
-
-    <p class="kh-section-title">Balances</p>
-    <div id="roomBalances"></div>
-
-    <p class="kh-section-title">Recent shared expenses</p>
-    <div id="roomExpenseList"></div>
-
-    <p class="kh-section-title">Room rent</p>
-    <div class="kh-rent-card" id="roomRentCard"></div>
   </div>
 
   <div class="kh-page" id="insightsPage">
@@ -1683,6 +1708,75 @@
         <div class="kh-layout-row-btns">
           <button class="kh-layout-btn" onclick="moveHomeSection(${attrJson(id)}, -1)" ${i === 0 ? "disabled" : ""} title="Move up">↑</button>
           <button class="kh-layout-btn" onclick="moveHomeSection(${attrJson(id)}, 1)" ${i === HOME_LAYOUT.length - 1 ? "disabled" : ""} title="Move down">↓</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // The Room page (Balance summary / Roommates / Balances / Recent shared
+  // expenses / Room rent) is reorderable the same way the Home tab is —
+  // same wrapper-div + move-by-index approach as HOME_LAYOUT above, just
+  // scoped to #roomSections instead of #homeSections.
+  const ROOM_SECTIONS = [
+    { id: "hero",       label: "Balance summary",       icon: "💰" },
+    { id: "roommates",  label: "Roommates",              icon: "👥" },
+    { id: "balances",   label: "Balances & settle up",   icon: "⚖️" },
+    { id: "expenses",   label: "Recent shared expenses", icon: "🧾" },
+    { id: "rent",       label: "Room rent",              icon: "🏠" },
+  ];
+  const DEFAULT_ROOM_LAYOUT = ROOM_SECTIONS.map(s => s.id);
+  let ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
+
+  function normalizeRoomLayout(saved){
+    if (!Array.isArray(saved)) return [...DEFAULT_ROOM_LAYOUT];
+    const valid = saved.filter(id => DEFAULT_ROOM_LAYOUT.includes(id));
+    DEFAULT_ROOM_LAYOUT.forEach(id => { if (!valid.includes(id)) valid.push(id); });
+    return valid;
+  }
+
+  function roomSectionElId(id){
+    return "roomSection" + id.charAt(0).toUpperCase() + id.slice(1);
+  }
+
+  function applyRoomLayout(){
+    const container = document.getElementById("roomSections");
+    if (!container) return;
+    ROOM_LAYOUT.forEach(id => {
+      const el = document.getElementById(roomSectionElId(id));
+      if (el) container.appendChild(el);
+    });
+  }
+
+  function moveRoomSection(id, dir){
+    const idx = ROOM_LAYOUT.indexOf(id);
+    const swapIdx = idx + dir;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= ROOM_LAYOUT.length) return;
+    [ROOM_LAYOUT[idx], ROOM_LAYOUT[swapIdx]] = [ROOM_LAYOUT[swapIdx], ROOM_LAYOUT[idx]];
+    applyRoomLayout();
+    renderRoomLayoutManager();
+    saveCurrentUser();
+  }
+
+  function resetRoomLayout(){
+    ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
+    applyRoomLayout();
+    renderRoomLayoutManager();
+    saveCurrentUser();
+    showToast("Room layout reset");
+  }
+
+  function renderRoomLayoutManager(){
+    const el = document.getElementById("roomLayoutList");
+    if (!el) return;
+    el.innerHTML = ROOM_LAYOUT.map((id, i) => {
+      const sec = ROOM_SECTIONS.find(s => s.id === id);
+      if (!sec) return "";
+      return `<div class="kh-layout-row">
+        <span class="kh-layout-row-icon">${sec.icon}</span>
+        <span class="kh-layout-row-label">${sec.label}</span>
+        <div class="kh-layout-row-btns">
+          <button class="kh-layout-btn" onclick="moveRoomSection(${attrJson(id)}, -1)" ${i === 0 ? "disabled" : ""} title="Move up">↑</button>
+          <button class="kh-layout-btn" onclick="moveRoomSection(${attrJson(id)}, 1)" ${i === ROOM_LAYOUT.length - 1 ? "disabled" : ""} title="Move down">↓</button>
         </div>
       </div>`;
     }).join("");
@@ -2371,7 +2465,7 @@
   }
 
   function setSettingsTab(tab){
-    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "budgetorder", "data", "about"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "roomlayout", "budgetorder", "data", "about"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
@@ -2608,6 +2702,7 @@
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
       homeLayout: HOME_LAYOUT,
+      roomLayout: ROOM_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
       roommates: ROOMMATES,
       roomExpenses: ROOM_EXPENSES,
@@ -2666,6 +2761,7 @@
     (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
     (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
     HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
+    ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
     HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
     TRANSACTIONS = data.transactions || [];
     BALANCES = data.balances || {};
@@ -3000,6 +3096,7 @@
     HIDDEN_ACCOUNTS = [];
     Object.keys(CAT).forEach(k => { if (!DEFAULT_CATEGORIES.includes(k)) delete CAT[k]; });
     HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
+    ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
     ROOMMATES = ["Me"];
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
@@ -3021,6 +3118,7 @@
       customAccounts: ACCOUNT_LIST.filter(n => !DEFAULT_ACCOUNTS.includes(n)).map(n => ({ name: n, color: ACCOUNTS[n].color, icon: ACCOUNTS[n].icon })),
       customCategories: Object.keys(CAT).filter(n => !DEFAULT_CATEGORIES.includes(n)).map(n => ({ name: n, color: CAT[n].color, icon: CAT[n].icon })),
       homeLayout: HOME_LAYOUT,
+      roomLayout: ROOM_LAYOUT,
       hiddenAccounts: HIDDEN_ACCOUNTS,
       roommates: ROOMMATES,
       roomExpenses: ROOM_EXPENSES,
@@ -3048,6 +3146,7 @@
       (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
       (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
       HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
+      ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
       HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
@@ -5431,6 +5530,7 @@
   function showRoomPage(){
     closePanel();
     showPage("room");
+    applyRoomLayout();
     renderRoommateManager();
     renderRoomCategorySelect();
     renderRoomNepaliMonthFilter();
@@ -5586,6 +5686,7 @@
     renderBudgetDashCard();
     renderRoomDashCard();
     renderHomeLayoutManager();
+    renderRoomLayoutManager();
   }
 
   // ---------------------------------------------------------------------
