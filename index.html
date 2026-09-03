@@ -389,6 +389,8 @@
   .kh-room-hero-sub{font-size:12.5px; color:var(--dim); margin:4px 0 0;}
   .kh-rent-card{margin:0 0 16px; padding:20px; border-radius:24px; background:linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,.15);}
   .kh-rent-card-top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .kh-rent-edit-btn{background:none; border:1px solid var(--border); color:var(--dim); border-radius:999px; padding:5px 11px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .kh-rent-edit-btn:hover{border-color:var(--accent); color:var(--accent);}
   .kh-rent-card-amt{font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(26px,8vw,32px); font-weight:800; margin:10px 0 0; letter-spacing:-.01em;}
   .kh-rent-share-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
   .kh-rent-share-label{font-size:10.5px; color:var(--dim); margin:0;}
@@ -5396,7 +5398,10 @@
     el.innerHTML = `
       <div class="kh-rent-card-top">
         <p class="kh-room-hero-label">Current billing cycle</p>
-        <span class="kh-pill ${duePillClass}">${dueLabel}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="kh-pill ${duePillClass}">${dueLabel}</span>
+          <button type="button" class="kh-rent-edit-btn" onclick="openRentSetup()" title="Edit rent, utilities, due date & landlord details">✎ Edit</button>
+        </div>
       </div>
       <p class="kh-room-hero-label" style="margin-top:8px; text-transform:none; font-weight:600;">Total flat rent & utilities</p>
       <p class="kh-rent-card-amt">${rs(total)}</p>
