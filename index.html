@@ -14,6 +14,7 @@
 <meta name="theme-color" content="#fbf9f6" />
 <script>(function(){try{var t=localStorage.getItem("kh_theme")||"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -3328,12 +3329,36 @@
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
+
+    // Fire-and-forget, same "best effort" contract as the localStorage
+    // write above — callers never awaited this before and still don't
+    // have to; a failed cloud save just means this device's copy (saved
+    // above) is what's current until the next successful save.
+    const sb = getSb();
+    if (sb && supabaseUserId){
+      sb.from("user_data")
+        .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: new Date().toISOString() })
+        .then(({ error }) => { if (error) console.warn("Kharcha: Supabase save failed —", error.message); });
+    }
   }
 
-  function loadUserData(email){
+  async function loadUserData(email){
     resetAccountsAndCategoriesToDefault();
     let data = null;
-    try{ data = JSON.parse(localStorage.getItem(dataKeyFor(email))); }catch(e){}
+
+    const sb = getSb();
+    if (sb && supabaseUserId){
+      try{
+        const { data: row, error } = await sb.from("user_data").select("data").eq("id", supabaseUserId).maybeSingle();
+        if (error) throw error;
+        if (row) data = row.data;
+      }catch(e){
+        console.warn("Kharcha: couldn't load from Supabase — falling back to this device's saved copy.", e);
+      }
+    }
+    if (!data){
+      try{ data = JSON.parse(localStorage.getItem(dataKeyFor(email))); }catch(e){}
+    }
 
     activeAccount = "All";
     activeNepaliMonth = "current"; // reset -> default to current month
@@ -6139,15 +6164,43 @@
   //      (file://) — it has to be served over http/https.
   //   3. Paste that Client ID into GOOGLE_CLIENT_ID below.
   //
-  // Sign-in itself only proves who the user is; this file has no server,
-  // so each person's data lives in their own browser's localStorage, keyed
-  // by their Google email (see saveCurrentUser/loadUserData above). That
-  // means the same person switching devices/browsers starts fresh unless
-  // this app is later connected to a real backend.
+  // Sign-in proves who the user is; their data is now backed by Supabase
+  // (see the block right below), synced across devices/browsers for the
+  // same Google account. A per-device copy still lives in localStorage
+  // too (see saveCurrentUser/loadUserData above) as an offline fallback
+  // and for the brief moment before the first Supabase round-trip lands.
   // ---------------------------------------------------------------------
   const GOOGLE_CLIENT_ID = "207990075260-58efvs88f4j4fucnrolk1c4q6ufoc9b3.apps.googleusercontent.com";
   const CURRENT_USER_KEY = "kharcha_current_user";
   let currentUser = null;
+
+  // ---------------------------------------------------------------------
+  // Supabase — real backend storage + auth, layered underneath the same
+  // Google Sign-In flow above. The Google ID token from handleCredentialResponse
+  // is handed straight to Supabase Auth (signInWithIdToken) instead of a
+  // separate login screen, which gives us a real auth.uid() for Row Level
+  // Security. localStorage stays as an offline/fallback cache — every
+  // save/load below tries Supabase first and falls back to it.
+  //
+  // Admin access needs no extra code here: browsing/editing every user's
+  // row is just the Supabase dashboard's own Table Editor (Project →
+  // Table Editor → user_data), since the dashboard uses your project's
+  // service role and isn't subject to the RLS policies below.
+  // ---------------------------------------------------------------------
+  const SUPABASE_URL = "https://xmigqaikyvjrxpzgdkmv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaWdxYWlreXZqcnhwemdka212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MzkxNDIsImV4cCI6MjEwNDAxNTE0Mn0.O_6OJcyYHoCtBMjUJKzmM7ZCeXn_Q4FDPAfPNbhQcEc";
+  let sbClient = null;
+  // Lazy + guarded rather than initialized at load time, because the
+  // Supabase script tag is async/defer (like the Google one above it) —
+  // it may not have finished loading yet wherever this first gets called.
+  function getSb(){
+    if (sbClient) return sbClient;
+    if (window.supabase && window.supabase.createClient){
+      sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return sbClient;
+  }
+  let supabaseUserId = null; // auth.uid() once signed in through Supabase; null = local-only mode (offline, or Supabase unreachable)
 
   // Builds the account-panel avatar with real DOM nodes (not an innerHTML
   // string) so nothing breaks on names/URLs containing quotes, and falls
@@ -6201,12 +6254,25 @@
     return JSON.parse(json);
   }
 
-  function handleCredentialResponse(response){
+  async function handleCredentialResponse(response){
     const claims = decodeJwt(response.credential);
-    signIn({ email: claims.email, name: claims.name || claims.email, picture: claims.picture || "" });
+    const user = { email: claims.email, name: claims.name || claims.email, picture: claims.picture || "" };
+
+    const sb = getSb();
+    if (sb){
+      try{
+        const { data, error } = await sb.auth.signInWithIdToken({ provider: "google", token: response.credential });
+        if (error) throw error;
+        supabaseUserId = data.user.id;
+      }catch(e){
+        console.warn("Kharcha: Supabase sign-in failed — continuing in local-only (this device) mode.", e);
+        supabaseUserId = null;
+      }
+    }
+    await signIn(user);
   }
 
-  function signIn(user){
+  async function signIn(user){
     currentUser = user;
     try{ localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user)); }catch(e){}
 
@@ -6235,7 +6301,7 @@
     const firstName = (user.name || user.email.split("@")[0]).split(" ")[0];
     document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${firstName}</strong>`;
 
-    loadUserData(user.email);
+    await loadUserData(user.email);
     renderAll();
     renderCategoryManager();
     renderAccountManager();
@@ -6245,6 +6311,9 @@
 
   function signOut(){
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    const sb = getSb();
+    if (sb) sb.auth.signOut().catch(() => {});
+    supabaseUserId = null;
     currentUser = null;
     driveAccessToken = null;
     driveTokenExpiresAt = 0;
@@ -6256,7 +6325,7 @@
     document.getElementById("authScreen").style.display = "flex";
   }
 
-  function initAuth(){
+  async function initAuth(){
     const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
     if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
       document.getElementById("authFallbackNote").innerHTML = placeholderId
@@ -6269,11 +6338,35 @@
     google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
     google.accounts.id.prompt(); // One Tap, if the browser already has a Google session
 
-    // Resume a session already established earlier in this browser.
-    try{
-      const saved = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
-      if (saved && saved.email) signIn(saved);
-    }catch(e){}
+    // Resume a session: prefer a still-valid Supabase session (this is
+    // what makes the same account pick up its data on a different
+    // device/browser), falling back to this browser's own cached
+    // sign-in if Supabase is unreachable or has no session yet.
+    let resumed = false;
+    const sb = getSb();
+    if (sb){
+      try{
+        const { data: { session } } = await sb.auth.getSession();
+        if (session && session.user){
+          supabaseUserId = session.user.id;
+          const meta = session.user.user_metadata || {};
+          await signIn({
+            email: session.user.email,
+            name: meta.full_name || meta.name || session.user.email,
+            picture: meta.avatar_url || meta.picture || "",
+          });
+          resumed = true;
+        }
+      }catch(e){
+        console.warn("Kharcha: Supabase session check failed — falling back to local sign-in.", e);
+      }
+    }
+    if (!resumed){
+      try{
+        const saved = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
+        if (saved && saved.email) await signIn(saved);
+      }catch(e){}
+    }
   }
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
