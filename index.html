@@ -129,6 +129,7 @@
   .kh-manual-type-btn{flex:1; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-manual-type-btn.active-out{background:rgba(239,111,108,.16); border-color:var(--out); color:var(--out);}
   .kh-manual-type-btn.active-in{background:rgba(95,209,164,.16); border-color:var(--in); color:var(--in);}
+  .kh-manual-type-btn.active-transfer{background:rgba(107,142,111,.18); border-color:var(--accent); color:var(--accent);}
   .kh-manual-form{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px;}
   .kh-manual-field{display:flex; flex-direction:column; gap:5px; min-width:0;}
   .kh-manual-field.full{grid-column:1 / -1;}
@@ -1366,9 +1367,10 @@
     <div class="kh-manual-type">
       <button type="button" class="kh-manual-type-btn active-out" id="manualTypeOutBtn" onclick="setManualType('out')">− Money out</button>
       <button type="button" class="kh-manual-type-btn" id="manualTypeInBtn" onclick="setManualType('in')">+ Money in</button>
+      <button type="button" class="kh-manual-type-btn" id="manualTypeTransferBtn" onclick="setManualType('transfer')">⇄ Transfer</button>
     </div>
     <div class="kh-manual-form">
-      <div class="kh-manual-field full">
+      <div class="kh-manual-field full" id="manualVendorField">
         <label for="manualVendor">Vendor / description</label>
         <input id="manualVendor" placeholder="e.g. Chai Town" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addManualTransaction(); }" />
       </div>
@@ -1380,11 +1382,15 @@
         <label for="manualDate">Date</label>
         <input id="manualDate" type="date" />
       </div>
-      <div class="kh-manual-field">
-        <label for="manualAccount">Account</label>
+      <div class="kh-manual-field" id="manualAccountField">
+        <label for="manualAccount" id="manualAccountLabel">Account</label>
         <select id="manualAccount"></select>
       </div>
-      <div class="kh-manual-field">
+      <div class="kh-manual-field" id="manualToAccountField" style="display:none;">
+        <label for="manualToAccount">To account</label>
+        <select id="manualToAccount"></select>
+      </div>
+      <div class="kh-manual-field" id="manualCategoryField">
         <label for="manualCategory">Category</label>
         <select id="manualCategory"></select>
       </div>
@@ -1966,7 +1972,13 @@
     if (currentPage === "loans"){
       openPanel("loanform");
     } else {
+      const wasOpen = openPanelName === "manual";
       openPanel("manual");
+      if (!wasOpen && !editingTxId){
+        document.getElementById("panelManualTitle").textContent = "Add transaction manually";
+        document.getElementById("manualSaveBtn").textContent = "Add transaction";
+        setManualType("out");
+      }
     }
   }
 
@@ -1974,11 +1986,22 @@
     manualType = type;
     document.getElementById("manualTypeOutBtn").className = "kh-manual-type-btn" + (type === "out" ? " active-out" : "");
     document.getElementById("manualTypeInBtn").className = "kh-manual-type-btn" + (type === "in" ? " active-in" : "");
+    document.getElementById("manualTypeTransferBtn").className = "kh-manual-type-btn" + (type === "transfer" ? " active-transfer" : "");
+    const isTransfer = type === "transfer";
+    document.getElementById("manualToAccountField").style.display = isTransfer ? "" : "none";
+    document.getElementById("manualCategoryField").style.display = isTransfer ? "none" : "";
+    document.getElementById("manualAccountLabel").textContent = isTransfer ? "From account" : "Account";
+    document.getElementById("manualVendorField").querySelector("label").textContent = isTransfer ? "Note (optional)" : "Vendor / description";
+    document.getElementById("manualVendor").placeholder = isTransfer ? "e.g. Monthly savings" : "e.g. Chai Town";
   }
 
   function editTx(id){
     const t = TRANSACTIONS.find(x => x.id === id);
     if (!t) return;
+    if (t.transferId){
+      showToast("Transfers can't be edited — delete it and add a new one instead.");
+      return;
+    }
     openPanel("manual");
     editingTxId = id;
     setManualType(t.type);
@@ -1997,6 +2020,12 @@
     accSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${name}"${name === activeAccount ? " selected" : ""}>${name}</option>`).join("");
     if (activeAccount === "All" && ACCOUNT_LIST.length) accSel.value = ACCOUNT_LIST[0];
 
+    const toAccSel = document.getElementById("manualToAccount");
+    toAccSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${name}">${name}</option>`).join("");
+    // Default "to" to a different account than "from" so a fresh transfer
+    // form doesn't start pointed at the same wallet on both sides.
+    toAccSel.value = ACCOUNT_LIST.find(n => n !== accSel.value) || ACCOUNT_LIST[0];
+
     const catSel = document.getElementById("manualCategory");
     catSel.innerHTML = Object.keys(CAT).map(name => `<option value="${name}">${name}</option>`).join("");
 
@@ -2010,13 +2039,14 @@
 
   function addManualTransaction(){
     const status = document.getElementById("manualStatus");
+    const isTransfer = manualType === "transfer";
     const vendor = document.getElementById("manualVendor").value.trim();
     const amount = parseAmount(document.getElementById("manualAmount").value);
     const date = document.getElementById("manualDate").value || null;
     const account = document.getElementById("manualAccount").value;
     const category = document.getElementById("manualCategory").value;
 
-    if (!vendor){
+    if (!vendor && !isTransfer){
       status.textContent = "Enter a vendor or description.";
       status.className = "kh-manual-status err";
       document.getElementById("manualVendor").focus();
@@ -2036,6 +2066,35 @@
     if (!account){
       status.textContent = "Pick an account.";
       status.className = "kh-manual-status err";
+      return;
+    }
+
+    if (isTransfer){
+      const toAccount = document.getElementById("manualToAccount").value;
+      if (!toAccount || toAccount === account){
+        status.textContent = "Pick two different accounts to transfer between.";
+        status.className = "kh-manual-status err";
+        return;
+      }
+      ensureAccount(account);
+      ensureAccount(toAccount);
+      ensureCategory("Transfer Out");
+      ensureCategory("Transfer In");
+      const transferId = "trf" + (nextTxId);
+      const note = vendor || `${account} → ${toAccount}`;
+      TRANSACTIONS.push({
+        date, vendor: note, category: "Transfer Out", type: "out", amount, account,
+        id: "tx" + (nextTxId++), transferId,
+      });
+      TRANSACTIONS.push({
+        date, vendor: note, category: "Transfer In", type: "in", amount, account: toAccount,
+        id: "tx" + (nextTxId++), transferId,
+      });
+      saveCurrentUser();
+      renderAll();
+      renderAccountManager();
+      showToast(`Transferred ${rs(amount)} to ${toAccount}`);
+      closePanel();
       return;
     }
 
@@ -2332,10 +2391,17 @@
   function deleteTx(id){
     const idx = TRANSACTIONS.findIndex(t => t.id === id);
     if (idx === -1) return;
-    TRANSACTIONS.splice(idx, 1);
+    const [removed] = TRANSACTIONS.splice(idx, 1);
+    // A transfer is two linked legs (money out of one account, into
+    // another) — deleting just one would leave the other account's side
+    // of the transfer stranded, so both go together.
+    if (removed.transferId){
+      const otherIdx = TRANSACTIONS.findIndex(t => t.transferId === removed.transferId);
+      if (otherIdx !== -1) TRANSACTIONS.splice(otherIdx, 1);
+    }
     saveCurrentUser();
     renderAll();
-    showToast("Transaction deleted");
+    showToast(removed.transferId ? "Transfer deleted" : "Transaction deleted");
   }
 
   function clearAllData(){
