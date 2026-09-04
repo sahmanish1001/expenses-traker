@@ -6730,11 +6730,22 @@
       sections.forEach(el => el.classList.add("kh-inview"));
       return;
     }
-    // A gentle stagger (capped so a long page doesn't end up with a
+    // A gentle stagger (capped, so a long page doesn't end up with a
     // multi-second tail) makes sections that enter together — e.g. several
     // already visible on first load — settle in one after another instead
-    // of all snapping at once, which reads as noticeably smoother.
-    sections.forEach((el, i) => { el.style.transitionDelay = Math.min(i * 70, 280) + "ms"; });
+    // of all snapping at once, which reads as noticeably smoother. That
+    // delay is only meant for that shared first moment, though: once a
+    // section has revealed itself for the first time, its delay is reset
+    // to 0 so later, one-at-a-time scroll reveals (which the transactions
+    // list — being further down the page — mostly gets) fire immediately
+    // instead of lagging behind everything above it every single time.
+    sections.forEach((el, i) => {
+      el.style.transitionDelay = Math.min(i * 70, 280) + "ms";
+      el.addEventListener("transitionend", function clearDelay(){
+        el.style.transitionDelay = "0ms";
+        el.removeEventListener("transitionend", clearDelay);
+      }, { once: true });
+    });
     const io = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         entry.target.classList.toggle("kh-inview", entry.isIntersecting);
