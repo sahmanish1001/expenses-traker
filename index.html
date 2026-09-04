@@ -208,7 +208,7 @@
      crosses into the viewport — so it plays on first load AND again
      every time the user scrolls back up/down past it, not just once
      when the tab becomes active. */
-  .kh-home-section{opacity:0; transform:translateY(22px); transition:opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1);}
+  .kh-home-section{opacity:0; transform:translateY(28px) scale(.985); will-change:opacity, transform; transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);}
   .kh-home-section.kh-inview{opacity:1; transform:none;}
   .kh-balance-trend .kh-pill{animation:khFadeUp .35s ease-out both;}
   .kh-row, .kh-stat, .kh-loan-dash-card, .kh-budget-row{transition:transform .15s ease;}
@@ -6730,11 +6730,16 @@
       sections.forEach(el => el.classList.add("kh-inview"));
       return;
     }
+    // A gentle stagger (capped so a long page doesn't end up with a
+    // multi-second tail) makes sections that enter together — e.g. several
+    // already visible on first load — settle in one after another instead
+    // of all snapping at once, which reads as noticeably smoother.
+    sections.forEach((el, i) => { el.style.transitionDelay = Math.min(i * 70, 280) + "ms"; });
     const io = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         entry.target.classList.toggle("kh-inview", entry.isIntersecting);
       });
-    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    }, { threshold: 0.12, rootMargin: "0px 0px -60px 0px" });
     sections.forEach(el => io.observe(el));
   }
   setupScrollReveal();
