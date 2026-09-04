@@ -696,7 +696,6 @@
   .kh-desktop .kd-ledger-filters button{flex-shrink:0; white-space:nowrap; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); border-radius:8px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-desktop .kd-ledger-filters button.active{color:var(--kd-text); background:var(--kd-surface-hi); border-color:var(--kd-border-hi);}
   .kh-desktop .kd-ledger-list{display:flex; flex-direction:column; gap:6px; max-height:560px; overflow-y:auto;}
-  .kh-desktop .kd-ledger-list.kd-ledger-list-expanded{max-height:calc(100vh - 320px);}
   .kh-desktop .kd-ledger-footer{margin-top:10px; font-size:11.5px; color:var(--kd-dim); text-align:center;}
   .kh-desktop .kd-ledger-day{font-size:11px; font-weight:700; color:var(--kd-dim); text-transform:uppercase; letter-spacing:.03em; padding:10px 2px 4px; border-bottom:1px solid var(--kd-border);}
   .kh-desktop .kd-row{display:flex; align-items:center; gap:12px; padding:9px 8px; border-radius:10px; cursor:pointer;}
@@ -750,12 +749,17 @@
   @media (max-width:1023.98px){ .kh-desktop{ display:none !important; } }
   @media (min-width:1024px){
     #appRoot > .kh-top{ display:none !important; }
-    #appRoot #homePage{ display:none !important; }
+    /* Home is normally replaced by the dashboard — hidden regardless of
+       its own .active state — except when "View all" on the Ledger Feed
+       card explicitly asks to see the full mobile Home view (same total
+       balance/stats/pie/ledger/room/budget cards, just laid out the way
+       every other page here already is). See showFullHomePage(). */
+    #appRoot:not(.kh-show-full-home) #homePage{ display:none !important; }
     /* With Home hidden, #appRoot would otherwise still occupy its own
        top/bottom padding (reserved for the mobile header/bottom-nav) as
        an empty gap above the dashboard. Collapse it to nothing until an
        actual page (Loans/Budget/Room/...) is open — see showPage(). */
-    #appRoot:not(.kh-page-open){ padding:0 !important; min-height:0 !important; }
+    #appRoot:not(.kh-page-open):not(.kh-show-full-home){ padding:0 !important; min-height:0 !important; }
   }
 
 </style>
@@ -1903,7 +1907,7 @@
         <div class="kd-card kd-card-tall">
           <div class="kd-card-head">
             <h2>📒 Ledger Feed</h2>
-            <button class="kd-link" id="kdLedgerToggle" onclick="toggleDesktopLedgerExpanded()">View all →</button>
+            <button class="kd-link" id="kdLedgerToggle" onclick="showFullHomePage()">View all →</button>
           </div>
           <div class="kd-ledger-filters" id="kdLedgerFilters"></div>
           <div class="kd-ledger-list" id="kdLedgerList"></div>
@@ -3131,6 +3135,10 @@
     const desktopDashboardEl = document.getElementById("desktopDashboard");
     if (desktopDashboardEl && currentUser) desktopDashboardEl.style.display = (name === "home") ? "block" : "none";
     document.getElementById("appRoot").classList.toggle("kh-page-open", name !== "home");
+    // Any normal navigation (including back to Home, which re-shows the
+    // dashboard) drops the "View all" full-mobile-Home override — that
+    // view is only ever entered explicitly via showFullHomePage().
+    document.getElementById("appRoot").classList.remove("kh-show-full-home");
     const fab = document.getElementById("manualFab");
     if (fab){
       const label = name === "loans" ? "Add loan" : (name === "room" ? "Add shared expense" : "Add transaction manually");
@@ -6713,15 +6721,21 @@
     renderDesktopDashboard();
   }
 
-  // "View all" used to route to a mobile-only "transactions" page that
-  // doesn't exist in showPage()'s list — every mobile page (and the
-  // dashboard itself) would end up hidden with nothing shown in their
-  // place. It just expands this same card in place instead: same design,
-  // full list, with its own scroll instead of a fixed-height crop.
-  let desktopLedgerExpanded = false;
-  function toggleDesktopLedgerExpanded(){
-    desktopLedgerExpanded = !desktopLedgerExpanded;
-    renderDesktopDashboard();
+  // "View all" opens a real page, same pattern as every other "Open →"
+  // card (Room/Loans/Budget/Recurring) — not an in-place expansion. The
+  // full mobile Home view already has everything that belongs on a "see
+  // everything" page (total balance, stats, pie charts, the complete
+  // ledger, and the room/loan/budget/recurring cards), so it's reused
+  // as-is rather than building a second copy of all of that.
+  function showFullHomePage(){
+    closePanel();
+    document.getElementById("desktopDashboard").style.display = "none";
+    const appRootEl = document.getElementById("appRoot");
+    appRootEl.classList.add("kh-page-open", "kh-show-full-home");
+    document.getElementById("homePage").classList.add("active");
+    currentPage = "home";
+    renderAll();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function renderDesktopDashboard(){
@@ -6798,22 +6812,18 @@
       }).join("");
     }
 
-    // Ledger — same grouped-by-day transaction list as mobile. Collapsed
-    // shows a short preview (5 rows) with a "Showing X of Y" footer, same
-    // as the reference design; "View all" expands the same card in place
-    // to the full list with its own internal scroll, rather than routing
-    // to a separate page.
+    // Ledger — a short preview (5 rows) with a "Showing X of Y" footer,
+    // same as the reference design. "View all" doesn't expand this card;
+    // it opens the full Home page instead — see showFullHomePage().
     const ledgerEl = document.getElementById("kdLedgerList");
     const ledgerFooterEl = document.getElementById("kdLedgerFooter");
-    const toggleEl = document.getElementById("kdLedgerToggle");
     if (ledgerEl){
       let list = [...scoped].sort((a,b) => a.date < b.date ? 1 : -1);
       if (desktopLedgerCategory !== "All") list = list.filter(t => t.category === desktopLedgerCategory);
       if (txSearchQuery) list = list.filter(t => t.vendor.toLowerCase().includes(txSearchQuery) || t.category.toLowerCase().includes(txSearchQuery));
       const total = list.length;
       const PREVIEW_COUNT = 5;
-      const visible = desktopLedgerExpanded ? list : list.slice(0, PREVIEW_COUNT);
-      ledgerEl.classList.toggle("kd-ledger-list-expanded", desktopLedgerExpanded);
+      const visible = list.slice(0, PREVIEW_COUNT);
       if (!list.length){
         ledgerEl.innerHTML = `<div class="kd-empty">No transactions yet.</div>`;
       } else {
@@ -6835,11 +6845,8 @@
         `).join("");
       }
       if (ledgerFooterEl){
-        ledgerFooterEl.innerHTML = (!desktopLedgerExpanded && total > PREVIEW_COUNT)
-          ? `<span>Showing ${visible.length} of ${total} items</span>`
-          : "";
+        ledgerFooterEl.innerHTML = total > PREVIEW_COUNT ? `<span>Showing ${visible.length} of ${total} items</span>` : "";
       }
-      if (toggleEl) toggleEl.textContent = desktopLedgerExpanded ? "← Show less" : "View all →";
     }
 
     // Room card — reuse computeRoomBalances(), same net figures as mobile.
