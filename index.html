@@ -12,6 +12,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Kharchā" />
 <meta name="theme-color" content="#fbf9f6" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%23191c27%22/%3E%3Cg%20transform%3D%22rotate%28-90%20256%20256%29%22%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%23f2a93b%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22502.65%201005.31%22%20stroke-dashoffset%3D%220%22/%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%235fd1a4%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22301.59%201005.31%22%20stroke-dashoffset%3D%22-506.65%22/%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%23ef6f6c%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22197.06%201005.31%22%20stroke-dashoffset%3D%22-812.24%22/%3E%3C/g%3E%3Crect%20x%3D%22228%22%20y%3D%22242%22%20width%3D%2256%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%23f2f0ea%22%20transform%3D%22rotate%28-18%20256%20256%29%22/%3E%3C/svg%3E" />
 <script>(function(){try{var t=localStorage.getItem("kh_theme")||"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" async defer></script>
@@ -6612,22 +6615,14 @@
   }
 
   async function initAuth(){
-    const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
-    if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
-      document.getElementById("authFallbackNote").innerHTML = placeholderId
-        ? "Google Sign-In isn't configured yet — set GOOGLE_CLIENT_ID near the bottom of the script (see the comment above it for setup steps)."
-        : "Couldn't load Google Sign-In (are you offline, or is this opened as a local file instead of served over https?).";
-      return;
-    }
-
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
-    google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
-    google.accounts.id.prompt(); // One Tap, if the browser already has a Google session
-
-    // Resume a session: prefer a still-valid Supabase session (this is
-    // what makes the same account pick up its data on a different
-    // device/browser), falling back to this browser's own cached
-    // sign-in if Supabase is unreachable or has no session yet.
+    // Resuming an already-signed-in session must NOT depend on Google's
+    // sign-in script having loaded/initialized successfully — third-party
+    // scripts like GSI are more likely to misbehave inside an iOS "Add to
+    // Home Screen" standalone web app (different storage/network context
+    // than a regular Safari tab), and a failure there used to abort this
+    // whole function before it ever checked for an existing session —
+    // forcing a fresh sign-in on every single open even with a perfectly
+    // valid saved one. So this always runs first, independent of GSI.
     let resumed = false;
     const sb = getSb();
     if (sb){
@@ -6652,6 +6647,24 @@
         const saved = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
         if (saved && saved.email) await signIn(saved);
       }catch(e){}
+    }
+
+    // Google's own sign-in button/One Tap — kept separate and defensively
+    // wrapped so any failure here (script blocked, unsupported in this
+    // webview, etc.) can never affect the session-resume logic above.
+    try{
+      const placeholderId = GOOGLE_CLIENT_ID.startsWith("YOUR_");
+      if (placeholderId || !window.google || !google.accounts || !google.accounts.id){
+        document.getElementById("authFallbackNote").innerHTML = placeholderId
+          ? "Google Sign-In isn't configured yet — set GOOGLE_CLIENT_ID near the bottom of the script (see the comment above it for setup steps)."
+          : "Couldn't load Google Sign-In (are you offline, or is this opened as a local file instead of served over https?).";
+        return;
+      }
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
+      google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
+      google.accounts.id.prompt(); // One Tap, if the browser already has a Google session
+    }catch(e){
+      console.warn("Kharcha: Google Sign-In failed to initialize — the app still works if you already have a saved session.", e);
     }
   }
 
