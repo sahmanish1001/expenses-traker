@@ -48,6 +48,13 @@
   /* Keeps iOS Safari from auto-zooming the page when a form field is
      focused — any input smaller than 16px triggers that zoom. */
   input, select, textarea{font-size:16px;}
+  /* Reserves the vertical scrollbar's width permanently instead of only
+     when content overflows — without this, switching between the (short)
+     desktop dashboard Home view and a (tall) page like Room/Loans keeps
+     toggling the scrollbar on/off, which shifts the whole page sideways
+     by ~15px on every navigation — read as a flickering strip on the
+     right edge. */
+  html{ scrollbar-gutter: stable; }
   body{
     margin:0; background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -684,8 +691,9 @@
   .kh-desktop .kd-link{background:none; border:none; color:var(--kd-primary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
   .kh-desktop .kd-link:hover{text-decoration:underline;}
 
-  .kh-desktop .kd-ledger-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
-  .kh-desktop .kd-ledger-filters button{background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); border-radius:8px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-desktop .kd-ledger-filters{display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:12px; -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent 100%); mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);}
+  .kh-desktop .kd-ledger-filters::-webkit-scrollbar{display:none;}
+  .kh-desktop .kd-ledger-filters button{flex-shrink:0; white-space:nowrap; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); border-radius:8px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-desktop .kd-ledger-filters button.active{color:var(--kd-text); background:var(--kd-surface-hi); border-color:var(--kd-border-hi);}
   .kh-desktop .kd-ledger-list{display:flex; flex-direction:column; gap:6px; max-height:560px; overflow-y:auto;}
   .kh-desktop .kd-ledger-day{font-size:11px; font-weight:700; color:var(--kd-dim); text-transform:uppercase; letter-spacing:.03em; padding:10px 2px 4px; border-bottom:1px solid var(--kd-border);}
@@ -6696,6 +6704,12 @@
     renderDesktopDashboard();
   }
 
+  let desktopLedgerCategory = "All";
+  function setDesktopLedgerCategory(cat){
+    desktopLedgerCategory = cat;
+    renderDesktopDashboard();
+  }
+
   function switchToMobileTransactionsView(){
     showPage("transactions");
   }
@@ -6760,11 +6774,26 @@
         </div>`;
     }
 
+    // Ledger category filter chips — a horizontally-scrollable row (same
+    // "slide to see more" pattern as the mobile account chips) so it works
+    // whether there are 3 categories or 10, instead of wrapping or
+    // squeezing everything into view at once.
+    const filtersEl = document.getElementById("kdLedgerFilters");
+    if (filtersEl){
+      const catsInScope = [...new Set(scoped.map(t => t.category))];
+      filtersEl.innerHTML = [`All (${scoped.length})`, ...catsInScope].map((label, i) => {
+        const cat = i === 0 ? "All" : label;
+        const active = desktopLedgerCategory === cat;
+        return `<button type="button" class="${active ? "active" : ""}" onclick="setDesktopLedgerCategory('${cat.replace(/'/g,"\\'")}')">${label}</button>`;
+      }).join("");
+    }
+
     // Ledger — same grouped-by-day transaction list as mobile, capped so the
     // card stays a fixed, scrollable height instead of growing unbounded.
     const ledgerEl = document.getElementById("kdLedgerList");
     if (ledgerEl){
       let list = [...scoped].sort((a,b) => a.date < b.date ? 1 : -1);
+      if (desktopLedgerCategory !== "All") list = list.filter(t => t.category === desktopLedgerCategory);
       if (txSearchQuery) list = list.filter(t => t.vendor.toLowerCase().includes(txSearchQuery) || t.category.toLowerCase().includes(txSearchQuery));
       if (!list.length){
         ledgerEl.innerHTML = `<div class="kd-empty">No transactions yet.</div>`;
