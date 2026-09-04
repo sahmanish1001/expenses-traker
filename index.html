@@ -196,6 +196,29 @@
   /* Full pages (Home / Loans) that swap in the main content area, as
      opposed to the slide-up overlay panels used for Settings/More/forms. */
   .kh-page:not(.active){display:none !important;}
+  /* Motion: pages fade in when shown, Home cards stagger up on entry, and
+     tappable rows/cards give a slight press. All fixed-position chrome (top
+     bar, bottom nav, FAB, panels) sits OUTSIDE .kh-page, so the transforms
+     here can't disturb their positioning. */
+  @keyframes khPageIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @keyframes khFadeUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+  .kh-page.active{animation:khPageIn .28s ease-out;}
+  .kh-page.active .kh-home-section{animation:khFadeUp .5s cubic-bezier(.22,1,.36,1) both;}
+  .kh-page.active .kh-home-section:nth-child(1){animation-delay:.03s;}
+  .kh-page.active .kh-home-section:nth-child(2){animation-delay:.09s;}
+  .kh-page.active .kh-home-section:nth-child(3){animation-delay:.15s;}
+  .kh-page.active .kh-home-section:nth-child(4){animation-delay:.21s;}
+  .kh-page.active .kh-home-section:nth-child(5){animation-delay:.27s;}
+  .kh-page.active .kh-home-section:nth-child(6){animation-delay:.33s;}
+  .kh-page.active .kh-home-section:nth-child(7){animation-delay:.39s;}
+  .kh-page.active .kh-home-section:nth-child(n+8){animation-delay:.45s;}
+  .kh-balance-trend .kh-pill{animation:khFadeUp .35s ease-out both;}
+  .kh-row, .kh-stat, .kh-loan-dash-card, .kh-budget-row{transition:transform .15s ease;}
+  .kh-row:active, .kh-stat:active, .kh-loan-dash-card:active, .kh-budget-row:active{transform:scale(.985);}
+  @media (prefers-reduced-motion: reduce){
+    .kh-page.active, .kh-page.active .kh-home-section, .kh-balance-trend .kh-pill{animation:none;}
+    .kh-row, .kh-stat, .kh-loan-dash-card, .kh-budget-row{transition:none;}
+  }
   .kh-loan-page-head{margin:0 0 16px;}
   .kh-loan-page-head .kh-eyebrow{margin:0 0 2px;}
   .kh-loan-page-head h2{font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:700; margin:0;}
@@ -1752,6 +1775,14 @@
   function applyHomeLayout(){
     const container = document.getElementById("homeSections");
     if (!container) return;
+    // Only touch the DOM when the order actually differs. appendChild on
+    // an existing child detaches and re-inserts it, which restarts any
+    // CSS animation on that node — and renderAll() calls this on every
+    // data refresh, so without this guard the section entrance animation
+    // would replay every time a transaction was added.
+    const wanted = HOME_LAYOUT.map(homeSectionElId);
+    const current = Array.from(container.children).map(el => el.id);
+    if (wanted.length === current.length && wanted.every((id, i) => id === current[i])) return;
     HOME_LAYOUT.forEach(id => {
       const el = document.getElementById(homeSectionElId(id));
       if (el) container.appendChild(el);
@@ -4299,17 +4330,23 @@
     const netLabel = activeAccount === "All" ? "Net (all accounts)" : "Money left";
     const arrowDown = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4v16M6 14l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     const arrowUp = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 20V4M6 10l6-6 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    // Rendered with the final text already in place (so there's never a
+    // flash of an empty card), then animateAmount() takes over the digits.
     let html = `
       <div class="kh-stat kh-stat-icon">
         <div class="kh-stat-icon-circle" style="background:color-mix(in srgb, var(--in) 16%, transparent); color:var(--in)">${arrowDown}</div>
-        <div><div class="kh-stat-head">Money in</div><div class="kh-stat-amt">${rs(totalIn)}</div></div>
+        <div><div class="kh-stat-head">Money in</div><div class="kh-stat-amt" id="statInAmt">${rs(totalIn)}</div></div>
       </div>
       <div class="kh-stat kh-stat-icon">
         <div class="kh-stat-icon-circle" style="background:color-mix(in srgb, var(--out) 16%, transparent); color:var(--out)">${arrowUp}</div>
-        <div><div class="kh-stat-head">Money out</div><div class="kh-stat-amt">${rs(totalOut)}</div></div>
+        <div><div class="kh-stat-head">Money out</div><div class="kh-stat-amt" id="statOutAmt">${rs(totalOut)}</div></div>
       </div>
-      <div class="kh-stat"><div class="kh-stat-head">${netLabel}</div><div class="kh-stat-amt" style="color:${net >= 0 ? "var(--in)" : "var(--out)"}">${net >= 0 ? "" : "−"}${rs(Math.abs(net))}</div></div>`;
+      <div class="kh-stat"><div class="kh-stat-head">${netLabel}</div><div class="kh-stat-amt" id="statNetAmt" style="color:${net >= 0 ? "var(--in)" : "var(--out)"}">${net >= 0 ? "" : "−"}${rs(Math.abs(net))}</div></div>`;
     document.getElementById("stats").innerHTML = html;
+    const unsigned = v => rs(Math.max(0, v));
+    animateAmount(document.getElementById("statInAmt"), "statIn", totalIn, unsigned);
+    animateAmount(document.getElementById("statOutAmt"), "statOut", totalOut, unsigned);
+    animateAmount(document.getElementById("statNetAmt"), "statNet", net, v => (v < 0 ? "−" : "") + rs(Math.abs(v)));
   }
 
   function renderPie(){
@@ -6289,35 +6326,49 @@
     renderBalanceCard();
   }
 
-  // Counts the Total Balance figure up/down from whatever it last showed
-  // to the new amount, instead of just snapping to the new digits — a
-  // small touch that makes it read as "the number changed" rather than
-  // "the page changed". Reads/writes the previous value off the element
-  // itself (`_rawAmount`) so repeated renders (switching account filters,
-  // a transaction landing via realtime, etc.) always animate from
-  // wherever it visually is right now, not from zero.
-  function animateBalanceAmount(el, to){
-    const from = el._rawAmount != null ? el._rawAmount : to;
-    cancelAnimationFrame(el._animFrame);
-    el._rawAmount = to;
-    if (Math.abs(to - from) < 1){
-      el.textContent = (to < 0 ? "− " : "") + rs(Math.abs(to));
+  // Count-up/down number animation, shared by the Total Balance figure and
+  // the Money in / Money out / Net stat cards.
+  //
+  // Previous values live in a keyed store (PREV_AMOUNTS) rather than on
+  // the element: renderStats() rebuilds its cards via innerHTML on every
+  // render, so an element-level property would be lost each time and the
+  // number would re-count from zero on every refresh. Keying by a stable
+  // name means a re-render animates from whatever was last shown to the
+  // new value (a small, quiet delta), while the very first render — no
+  // previous value yet — counts up from 0, which is the moment the effect
+  // is actually expected. `format` turns a raw number into display text,
+  // so signed/unsigned variants don't need separate copies of this.
+  const PREV_AMOUNTS = {};
+  const AMOUNT_ANIM_FRAMES = {};
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  function cancelAmountAnimation(key){
+    if (AMOUNT_ANIM_FRAMES[key]) cancelAnimationFrame(AMOUNT_ANIM_FRAMES[key]);
+    AMOUNT_ANIM_FRAMES[key] = null;
+  }
+
+  function animateAmount(el, key, to, format){
+    const from = PREV_AMOUNTS[key] != null ? PREV_AMOUNTS[key] : 0;
+    cancelAmountAnimation(key);
+    PREV_AMOUNTS[key] = to;
+    if (REDUCED_MOTION || Math.abs(to - from) < 1){
+      el.textContent = format(to);
       return;
     }
-    const duration = 700;
+    const duration = 750;
     const start = performance.now();
     const step = (now) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic — fast start, gentle settle
-      const current = from + (to - from) * eased;
-      el.textContent = (current < 0 ? "− " : "") + rs(Math.abs(current));
+      el.textContent = format(from + (to - from) * eased);
       if (t < 1){
-        el._animFrame = requestAnimationFrame(step);
+        AMOUNT_ANIM_FRAMES[key] = requestAnimationFrame(step);
       } else {
-        el.textContent = (to < 0 ? "− " : "") + rs(Math.abs(to));
+        el.textContent = format(to);
+        AMOUNT_ANIM_FRAMES[key] = null;
       }
     };
-    el._animFrame = requestAnimationFrame(step);
+    AMOUNT_ANIM_FRAMES[key] = requestAnimationFrame(step);
   }
 
   function renderBalanceCard(){
@@ -6353,10 +6404,10 @@
 
     const hidden = getBalanceHidden();
     if (hidden){
-      cancelAnimationFrame(amtEl._animFrame);
+      cancelAmountAnimation("balance");
       amtEl.textContent = "Rs ••••••";
     } else {
-      animateBalanceAmount(amtEl, amount);
+      animateAmount(amtEl, "balance", amount, v => (v < 0 ? "− " : "") + rs(Math.abs(v)));
     }
     amtEl.classList.toggle("kh-balance-amt-masked", hidden);
     if (eyeBtn) eyeBtn.innerHTML = hidden ? ICON_EYE_OFF : ICON_EYE;
