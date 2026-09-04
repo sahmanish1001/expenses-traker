@@ -657,8 +657,12 @@
   .kh-desktop .kd-brand-name{font-size:18px; font-weight:800; letter-spacing:-.01em; color:var(--kd-text);}
   .kh-desktop .kd-brand-sub{font-size:11px; color:var(--kd-dim); font-weight:500;}
   .kh-desktop .kd-badge{font-size:10px; font-weight:700; letter-spacing:.03em; padding:2px 8px; border-radius:999px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim);}
-  .kh-desktop .kd-search-wrap{flex:1; max-width:420px;}
+  .kh-desktop .kd-search-wrap{flex:0 1 220px; max-width:220px;}
   .kh-desktop .kd-search{width:100%; background:var(--kd-surface-lowest); border:1px solid var(--kd-border); border-radius:10px; padding:9px 14px; color:var(--kd-text); font-family:inherit; font-size:13.5px;}
+  .kh-desktop .kd-nav{display:flex; align-items:center; gap:4px; flex:1; justify-content:center;}
+  .kh-desktop .kd-nav-btn{background:none; border:none; color:var(--kd-dim); font-family:inherit; font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer;}
+  .kh-desktop .kd-nav-btn:hover{color:var(--kd-text); background:var(--kd-surface-solid);}
+  .kh-desktop .kd-nav-btn.active{color:var(--kd-on-primary); background:var(--kd-primary);}
   .kh-desktop .kd-search:focus{outline:none; border-color:var(--kd-primary);}
   .kh-desktop .kd-search::placeholder{color:var(--kd-muted);}
   .kh-desktop .kd-topbar-actions{display:flex; align-items:center; gap:10px; flex-shrink:0;}
@@ -760,6 +764,9 @@
   @media (max-width:1023.98px){ .kh-desktop{ display:none !important; } }
   @media (min-width:1024px){
     #appRoot > .kh-top{ display:none !important; }
+    /* Navigation lives in the dashboard's topbar (Home/Loans/Budget/...)
+       instead — the floating mobile pill nav would just duplicate it. */
+    #bottomNav{ display:none !important; }
     /* Home is normally replaced by the dashboard — hidden regardless of
        its own .active state — except when "View all" on the Ledger Feed
        card explicitly asks to see the full mobile Home view (same total
@@ -1891,8 +1898,15 @@
         <span class="kd-brand-sub">Multi-wallet tracker</span>
       </div>
     </div>
+    <nav class="kd-nav" id="kdNav">
+      <button type="button" class="kd-nav-btn" id="kdNavHome" onclick="goHome()">Home</button>
+      <button type="button" class="kd-nav-btn" id="kdNavLoans" onclick="showLoanPage()">Loans</button>
+      <button type="button" class="kd-nav-btn" id="kdNavBudget" onclick="showBudgetPage()">Budget</button>
+      <button type="button" class="kd-nav-btn" id="kdNavInsights" onclick="showInsightsPage()">Insights</button>
+      <button type="button" class="kd-nav-btn" id="kdNavSettings" onclick="showSettingsPage()">Settings</button>
+    </nav>
     <div class="kd-search-wrap">
-      <input id="kdSearch" class="kd-search" type="text" placeholder="Search transactions or vendors…" oninput="setTxSearch(this.value); syncDesktopSearch(this.value);" />
+      <input id="kdSearch" class="kd-search" type="text" placeholder="Search…" oninput="setTxSearch(this.value); syncDesktopSearch(this.value);" />
     </div>
     <div class="kd-topbar-actions">
       <button class="kd-btn kd-btn-primary" onclick="toggleManualAdd()">＋ Log Tx</button>
@@ -3152,6 +3166,12 @@
     const kdHomeContentEl = document.getElementById("kdHomeContent");
     if (kdHomeContentEl && currentUser) kdHomeContentEl.style.display = (name === "home") ? "" : "none";
     document.getElementById("appRoot").classList.toggle("kh-page-open", name !== "home");
+    const kdNavMap = { home: "kdNavHome", loans: "kdNavLoans", budget: "kdNavBudget", insights: "kdNavInsights", settings: "kdNavSettings" };
+    document.querySelectorAll(".kd-nav-btn").forEach(b => b.classList.remove("active"));
+    if (kdNavMap[name]){
+      const activeBtn = document.getElementById(kdNavMap[name]);
+      if (activeBtn) activeBtn.classList.add("active");
+    }
     // Any normal navigation (including back to Home, which re-shows the
     // dashboard) drops the "View all" full-mobile-Home override — that
     // view is only ever entered explicitly via showFullHomePage().
@@ -6762,6 +6782,16 @@
 
     const bsMonthEl = document.getElementById("kdBsMonth");
     if (bsMonthEl) bsMonthEl.textContent = currentBsMonthLabel();
+
+    // Keep the topbar's own nav highlighted in sync with currentPage on
+    // every render, not just on navigation — covers the very first paint
+    // (Home is active by default before showPage() ever runs).
+    const kdNavMap = { home: "kdNavHome", loans: "kdNavLoans", budget: "kdNavBudget", insights: "kdNavInsights", settings: "kdNavSettings" };
+    document.querySelectorAll(".kd-nav-btn").forEach(b => b.classList.remove("active"));
+    if (kdNavMap[currentPage]){
+      const activeNavBtn = document.getElementById(kdNavMap[currentPage]);
+      if (activeNavBtn) activeNavBtn.classList.add("active");
+    }
 
     const avatarEl = document.getElementById("kdAvatar");
     const avatarImgEl = document.getElementById("kdAvatarImg");
