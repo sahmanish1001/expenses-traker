@@ -6710,8 +6710,15 @@
         return;
       }
       google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
+      // Still render the button even when already resumed, so it's ready
+      // and working the moment someone signs out — but never fire the
+      // floating One Tap prompt in that case. It's Google's own overlay,
+      // injected straight into <body> regardless of our own auth screen
+      // being hidden, so with a session already resumed it would show up
+      // as a stray, badly-positioned popup on top of the app the person
+      // is already using — not sitting where a real sign-in prompt should.
       google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
-      google.accounts.id.prompt(); // One Tap, if the browser already has a Google session
+      if (!resumed) google.accounts.id.prompt(); // One Tap, only when we actually need a sign-in
     }catch(e){
       console.warn("Kharcha: Google Sign-In failed to initialize — the app still works if you already have a saved session.", e);
     }
