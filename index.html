@@ -727,9 +727,26 @@
   .kh-desktop .kd-fab:hover{filter:brightness(1.08);}
   .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--kd-border); color:var(--kd-dim); font-size:12px;}
 
-  /* The actual mobile/desktop switch. */
+  /* The actual mobile/desktop switch.
+     At desktop widths the dashboard replaces only the mobile top bar and
+     the Home page — every other mobile page (Loans/Budget/Room/Recurring/
+     Insights/Settings) and every overlay panel (add transaction, edit
+     loan, etc.) still lives inside #appRoot and still works exactly as
+     before, so #appRoot itself must stay interactive rather than being
+     force-hidden — hiding it wholesale was what made every desktop
+     dashboard button that opens one of those pages/panels a dead click.
+     showPage() (see below) hides #desktopDashboard while a non-home page
+     is open, and restores it on the way back to Home. */
   @media (max-width:1023.98px){ .kh-desktop{ display:none !important; } }
-  @media (min-width:1024px){ #appRoot{ display:none !important; } }
+  @media (min-width:1024px){
+    #appRoot > .kh-top{ display:none !important; }
+    #appRoot #homePage{ display:none !important; }
+    /* With Home hidden, #appRoot would otherwise still occupy its own
+       top/bottom padding (reserved for the mobile header/bottom-nav) as
+       an empty gap above the dashboard. Collapse it to nothing until an
+       actual page (Loans/Budget/Room/...) is open — see showPage(). */
+    #appRoot:not(.kh-page-open){ padding:0 !important; min-height:0 !important; }
+  }
 
 </style>
 </head>
@@ -3096,6 +3113,13 @@
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     document.getElementById("settingsPage").classList.toggle("active", name === "settings");
     currentPage = name;
+    // Desktop dashboard stands in for the Home page only — any other page
+    // needs #appRoot's own (already desktop-responsive) layout instead, so
+    // hide the dashboard while one is open and bring it back on the way
+    // home. No-op on mobile, where .kh-desktop is force-hidden by CSS.
+    const desktopDashboardEl = document.getElementById("desktopDashboard");
+    if (desktopDashboardEl && currentUser) desktopDashboardEl.style.display = (name === "home") ? "block" : "none";
+    document.getElementById("appRoot").classList.toggle("kh-page-open", name !== "home");
     const fab = document.getElementById("manualFab");
     if (fab){
       const label = name === "loans" ? "Add loan" : (name === "room" ? "Add shared expense" : "Add transaction manually");
