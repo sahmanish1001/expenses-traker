@@ -640,10 +640,16 @@
   }
   .kh-desktop .kd-topbar{
     display:flex; align-items:center; gap:20px; justify-content:space-between;
-    padding:14px 32px; position:sticky; top:0; z-index:20;
+    padding:14px 32px; position:fixed; top:0; left:0; right:0; z-index:500;
     background:rgba(17,19,27,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     border-bottom:1px solid var(--kd-border);
   }
+  /* The topbar is fixed (stays put across every page, not just Home) so
+     whatever sits below it — the dashboard's own content, or #appRoot
+     when a mobile page like Room/Loans is open — needs matching top
+     clearance instead of relying on document flow. */
+  .kh-desktop #kdHomeContent{padding-top:74px;}
+  @media (min-width:1024px){ #appRoot.kh-page-open, #appRoot.kh-show-full-home{ padding-top:calc(74px + env(safe-area-inset-top)) !important; } }
   .kh-desktop .kd-brand{display:flex; align-items:center; gap:10px; flex-shrink:0;}
   .kh-desktop .kd-brand-mark{width:38px; height:38px; border-radius:12px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); display:flex; align-items:center; justify-content:center;}
   .kh-desktop .kd-brand-ring{width:20px; height:20px; border-radius:50%; border:3px solid var(--kd-primary); border-top-color:var(--kd-secondary); border-right-color:var(--kd-tertiary); display:block;}
@@ -661,7 +667,8 @@
   .kh-desktop .kd-btn-primary:hover{filter:brightness(1.08);}
   .kh-desktop .kd-icon-btn{width:36px; height:36px; border-radius:10px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-text); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
   .kh-desktop .kd-icon-btn:hover{border-color:var(--kd-border-hi);}
-  .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center;}
+  .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;}
+  .kh-desktop .kd-avatar img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
 
   .kh-desktop .kd-ribbon{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 32px; background:rgba(12,14,22,.6); border-bottom:1px solid var(--kd-border);}
   .kh-desktop .kd-wallets{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
@@ -1890,10 +1897,15 @@
     <div class="kd-topbar-actions">
       <button class="kd-btn kd-btn-primary" onclick="toggleManualAdd()">＋ Log Tx</button>
       <button class="kd-icon-btn" title="Settings" onclick="showSettingsPage()">⚙️</button>
-      <div class="kd-avatar" id="kdAvatar">?</div>
+      <div class="kd-avatar" id="kdAvatar"><img id="kdAvatarImg" alt="" style="display:none;" /><span id="kdAvatarFallback">?</span></div>
     </div>
   </header>
 
+  <!-- Everything below the topbar is the dashboard's "Home" content — this
+       is the part that hides when a mobile page (Room/Loans/Settings/...)
+       opens; the topbar itself is fixed and stays visible on every page,
+       see showPage()/showFullHomePage(). -->
+  <div id="kdHomeContent">
   <section class="kd-ribbon">
     <div class="kd-wallets" id="kdWalletChips"></div>
     <div class="kd-quick-actions">
@@ -1953,6 +1965,7 @@
     <span class="kd-brand-name">Kharchā</span>
     <span class="kd-footer-sub">Private, local-first expense tracking — your data stays on your device.</span>
   </footer>
+  </div>
 </div>
 
 <div class="kh-toast" id="toast">Imported</div>
@@ -3132,12 +3145,12 @@
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     document.getElementById("settingsPage").classList.toggle("active", name === "settings");
     currentPage = name;
-    // Desktop dashboard stands in for the Home page only — any other page
-    // needs #appRoot's own (already desktop-responsive) layout instead, so
-    // hide the dashboard while one is open and bring it back on the way
-    // home. No-op on mobile, where .kh-desktop is force-hidden by CSS.
-    const desktopDashboardEl = document.getElementById("desktopDashboard");
-    if (desktopDashboardEl && currentUser) desktopDashboardEl.style.display = (name === "home") ? "block" : "none";
+    // The dashboard's topbar (search/settings/avatar) is fixed and stays
+    // visible on every page — only its Home content underneath swaps out
+    // for #appRoot's own (already desktop-responsive) page layout. No-op
+    // on mobile, where .kh-desktop is force-hidden by CSS.
+    const kdHomeContentEl = document.getElementById("kdHomeContent");
+    if (kdHomeContentEl && currentUser) kdHomeContentEl.style.display = (name === "home") ? "" : "none";
     document.getElementById("appRoot").classList.toggle("kh-page-open", name !== "home");
     // Any normal navigation (including back to Home, which re-shows the
     // dashboard) drops the "View all" full-mobile-Home override — that
@@ -6733,7 +6746,8 @@
   // as-is rather than building a second copy of all of that.
   function showFullHomePage(){
     closePanel();
-    document.getElementById("desktopDashboard").style.display = "none";
+    const kdHomeContentEl = document.getElementById("kdHomeContent");
+    if (kdHomeContentEl) kdHomeContentEl.style.display = "none";
     const appRootEl = document.getElementById("appRoot");
     appRootEl.classList.add("kh-page-open", "kh-show-full-home");
     document.getElementById("homePage").classList.add("active");
@@ -6750,10 +6764,24 @@
     if (bsMonthEl) bsMonthEl.textContent = currentBsMonthLabel();
 
     const avatarEl = document.getElementById("kdAvatar");
+    const avatarImgEl = document.getElementById("kdAvatarImg");
+    const avatarFallbackEl = document.getElementById("kdAvatarFallback");
     if (avatarEl && currentUser){
-      const initial = (currentUser.name || currentUser.email || "?").trim()[0].toUpperCase();
-      avatarEl.textContent = initial;
       avatarEl.title = currentUser.name || currentUser.email || "";
+      const initial = (currentUser.name || currentUser.email || "?").trim()[0].toUpperCase();
+      if (avatarFallbackEl) avatarFallbackEl.textContent = initial;
+      if (avatarImgEl){
+        if (currentUser.picture){
+          avatarImgEl.referrerPolicy = "no-referrer";
+          avatarImgEl.onerror = () => { avatarImgEl.style.display = "none"; if (avatarFallbackEl) avatarFallbackEl.style.display = ""; };
+          if (avatarImgEl.src !== currentUser.picture) avatarImgEl.src = currentUser.picture;
+          avatarImgEl.style.display = "";
+          if (avatarFallbackEl) avatarFallbackEl.style.display = "none";
+        } else {
+          avatarImgEl.style.display = "none";
+          if (avatarFallbackEl) avatarFallbackEl.style.display = "";
+        }
+      }
     }
 
     // Wallet chips — same accounts/colors/balances as the mobile chips bar.
