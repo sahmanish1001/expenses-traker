@@ -1536,11 +1536,15 @@
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
     <p class="kh-panel-title">Add roommate</p>
-    <p class="kh-manual-hint">Add someone you split room costs with — you can add more later.</p>
+    <p class="kh-manual-hint">Add someone you split room costs with — you can add more later. Add their Gmail to invite them: once they sign in with that email, they'll see and edit this same room.</p>
     <div class="kh-manual-form">
       <div class="kh-manual-field full">
         <label for="roommateInput">Name</label>
         <input id="roommateInput" placeholder="e.g. Ramesh" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addRoommate(); }" />
+      </div>
+      <div class="kh-manual-field full">
+        <label for="roommateEmailInput">Gmail (optional — sends an invite)</label>
+        <input id="roommateEmailInput" type="email" placeholder="e.g. ramesh@gmail.com" onkeydown="if(event.key==='Enter'){ event.preventDefault(); addRoommate(); }" />
       </div>
     </div>
     <div class="kh-manual-actions">
@@ -1912,6 +1916,13 @@
   let nextRoomSettlementId = 1;
   let activeRoomNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key
 
+  // Email-invited roommates share ONE `rooms` row in Supabase instead of
+  // each keeping a private copy — currentRoomId is null for anyone who's
+  // only ever added local (no-email) roommates, in which case room data
+  // just lives in the personal snapshot exactly like before.
+  let currentRoomId = null;
+  let ROOMMATE_EMAILS = {}; // { name: email } — only set for roommates added with an invite
+
   // Room rent & utilities — a recurring monthly bill, distinct from
   // one-off shared expenses. One AD calendar month = one "billing cycle";
   // logging it creates a normal Rent-category ROOM_EXPENSE (so it folds
@@ -1954,6 +1965,145 @@
     if (name !== "Me") return name;
     const n = (PROFILE.name && PROFILE.name.trim()) || (currentUser && currentUser.name) || "Me";
     return n.split(" ")[0];
+  }
+
+  // -----------------------------------------------------------------------
+  // Shared rooms — once a roommate is added with an email, room data
+  // (roommates, shared expenses, settlements, rent) moves from this user's
+  // private snapshot into a single `rooms` row that every joined member
+  // reads/writes. Personal data (accounts, transactions, loans, budgets)
+  // never leaves the user_data table — only the fields below are shared.
+  // -----------------------------------------------------------------------
+  function currentRoomSnapshot(){
+    return {
+      roommates: ROOMMATES,
+      roommateEmails: ROOMMATE_EMAILS,
+      roomExpenses: ROOM_EXPENSES,
+      roomSettlements: ROOM_SETTLEMENTS,
+      nextRoomExpenseId,
+      nextRoomSettlementId,
+      roomRent: ROOM_RENT,
+    };
+  }
+
+  function applyRoomSnapshot(data){
+    data = data || {};
+    ROOMMATES = data.roommates && data.roommates.length ? data.roommates : ["Me"];
+    ROOMMATE_EMAILS = data.roommateEmails || {};
+    ROOM_EXPENSES = data.roomExpenses || [];
+    ROOM_SETTLEMENTS = data.roomSettlements || [];
+    nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
+    nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
+    ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
+  }
+
+  let roomRealtimeChannel = null;
+  let lastSelfRoomSaveAt = null;
+
+  function saveRoomData(){
+    if (!currentRoomId) return;
+    const sb = getSb();
+    if (!sb) return;
+    const savedAt = new Date().toISOString();
+    lastSelfRoomSaveAt = savedAt;
+    sb.from("rooms").update({ data: currentRoomSnapshot(), updated_at: savedAt }).eq("id", currentRoomId)
+      .then(({ error }) => { if (error) console.warn("Kharcha: room save failed —", error.message); });
+  }
+
+  function startRoomRealtimeSync(){
+    const sb = getSb();
+    if (!sb || !currentRoomId) return;
+    stopRoomRealtimeSync();
+    roomRealtimeChannel = sb
+      .channel(`room_${currentRoomId}`)
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${currentRoomId}` },
+        (payload) => {
+          const row = payload.new;
+          if (!row) return;
+          if (lastSelfRoomSaveAt && row.updated_at && row.updated_at <= lastSelfRoomSaveAt) return;
+          applyRoomSnapshot(row.data);
+          renderAll();
+          renderRoommateManager();
+          showToast("Room updated by a roommate");
+        })
+      .subscribe();
+  }
+
+  function stopRoomRealtimeSync(){
+    const sb = getSb();
+    if (sb && roomRealtimeChannel) sb.removeChannel(roomRealtimeChannel);
+    roomRealtimeChannel = null;
+  }
+
+  // Checks whether this email has an unclaimed invite waiting, and if so
+  // marks it joined and hands back that room's id. Called right after
+  // sign-in so accepting an invite needs nothing from the person beyond
+  // signing in with the email it was sent to.
+  async function resolvePendingRoomInvite(email, supaUserId){
+    const sb = getSb();
+    if (!sb || !supaUserId) return null;
+    try{
+      const { data: invite, error } = await sb.from("room_members")
+        .select("id, room_id").ilike("email", email).eq("status", "invited").is("user_id", null)
+        .limit(1).maybeSingle();
+      if (error || !invite) return null;
+      await sb.from("room_members").update({ status: "joined", user_id: supaUserId }).eq("id", invite.id);
+      return invite.room_id;
+    }catch(e){
+      console.warn("Kharcha: couldn't check for pending room invite —", e);
+      return null;
+    }
+  }
+
+  async function loadRoomData(roomId){
+    const sb = getSb();
+    if (!sb || !roomId) return;
+    try{
+      const { data: row, error } = await sb.from("rooms").select("data").eq("id", roomId).maybeSingle();
+      if (error) throw error;
+      currentRoomId = roomId;
+      applyRoomSnapshot(row ? row.data : {});
+      startRoomRealtimeSync();
+    }catch(e){
+      console.warn("Kharcha: couldn't load shared room —", e);
+    }
+  }
+
+  // Turns today's local room data into a real shared room the first time
+  // someone is invited by email; reuses the same shared room on every
+  // invite after that (so a second invite doesn't create a second room).
+  async function ensureSharedRoom(){
+    if (currentRoomId) return currentRoomId;
+    const sb = getSb();
+    if (!sb || !supabaseUserId) throw new Error("Sign in required");
+    const { data: room, error } = await sb.from("rooms")
+      .insert({ name: "Room", owner_id: supabaseUserId, data: currentRoomSnapshot() })
+      .select("id").single();
+    if (error) throw error;
+    currentRoomId = room.id;
+    await sb.from("room_members").upsert(
+      { room_id: currentRoomId, email: currentUser.email, name: currentUser.name, user_id: supabaseUserId, status: "joined" },
+      { onConflict: "room_id,email" }
+    );
+    startRoomRealtimeSync();
+    return currentRoomId;
+  }
+
+  async function inviteRoommateByEmail(email, name){
+    const roomId = await ensureSharedRoom();
+    const sb = getSb();
+    const { error } = await sb.from("room_members")
+      .upsert({ room_id: roomId, email, name, status: "invited" }, { onConflict: "room_id,email" });
+    if (error && error.code !== "23505") throw error;
+
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-room-invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": SUPABASE_ANON_KEY },
+      body: JSON.stringify({ roomId, roomName: "Room", inviteeEmail: email }),
+    });
+    if (!res.ok) throw new Error("Invite email failed to send");
   }
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
@@ -3295,10 +3445,13 @@
     HOME_LAYOUT = [...DEFAULT_HOME_LAYOUT];
     ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
     ROOMMATES = ["Me"];
+    ROOMMATE_EMAILS = {};
     ROOM_EXPENSES = [];
     ROOM_SETTLEMENTS = [];
     ROOM_RENT = { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
     RECURRING = [];
+    stopRoomRealtimeSync();
+    currentRoomId = null;
   }
 
   function saveCurrentUser(){
@@ -3326,6 +3479,7 @@
       nextRoomExpenseId,
       nextRoomSettlementId,
       roomRent: ROOM_RENT,
+      roomId: currentRoomId,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
@@ -3346,6 +3500,11 @@
         .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: savedAt })
         .then(({ error }) => { if (error) console.warn("Kharcha: Supabase save failed —", error.message); });
     }
+    // Any room-related field (roommates, shared expenses, settlements,
+    // rent) also needs to land in the shared `rooms` row once we're in a
+    // real shared room — every existing call site that already calls
+    // saveCurrentUser() after touching those fields gets this for free.
+    if (currentRoomId) saveRoomData();
   }
 
   // Applies a loaded (or live-synced) snapshot object to in-memory app
@@ -3376,6 +3535,10 @@
       nextRoomExpenseId = data.nextRoomExpenseId || (ROOM_EXPENSES.length + 1);
       nextRoomSettlementId = data.nextRoomSettlementId || (ROOM_SETTLEMENTS.length + 1);
       ROOM_RENT = data.roomRent || { rentAmount: 0, utilitiesAmount: 0, dueDay: 1, landlordName: "", landlordPhone: "" };
+      // The fields above are just the local fallback — if this account
+      // belongs to a real shared room, loadUserData() overwrites them
+      // right after this with the shared copy from the `rooms` table.
+      currentRoomId = data.roomId || null;
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -3418,6 +3581,7 @@
     loanFilter = "all";
 
     applyUserDataSnapshot(data, email);
+    if (currentRoomId) await loadRoomData(currentRoomId);
 
     document.getElementById("demoNote").innerHTML = data
       ? "Welcome back — this is your private tracker. Use \"＋ Import\" to add more statement rows."
@@ -5259,10 +5423,11 @@
     if (!el) return;
     el.innerHTML = ROOMMATES.map(name => {
       const isMe = name === "Me";
+      const invited = !isMe && ROOMMATE_EMAILS[name];
       return `<div class="kh-roommate-card">
         ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
         <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : name.charAt(0).toUpperCase()}</div>
-        <span class="kh-roommate-name">${roommateDisplayName(name)}</span>
+        <span class="kh-roommate-name">${roommateDisplayName(name)}${invited ? " ✉️" : ""}</span>
       </div>`;
     }).join("") + `<button type="button" class="kh-roommate-add-card" onclick="openPanel('roommate')" title="Add roommate">
       <div class="kh-roommate-avatar">＋</div>
@@ -5274,16 +5439,34 @@
 
   function addRoommate(){
     const input = document.getElementById("roommateInput");
+    const emailInput = document.getElementById("roommateEmailInput");
     const name = input.value.trim();
+    const email = emailInput ? emailInput.value.trim() : "";
     if (!name) return;
     if (ROOMMATES.includes(name)){ showToast("Already added"); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showToast("That email doesn't look right"); return; }
+
     ROOMMATES.push(name);
+    if (email) ROOMMATE_EMAILS[name] = email;
     input.value = "";
-    saveCurrentUser();
+    if (emailInput) emailInput.value = "";
     renderRoommateManager();
     renderRoomBalances();
     closePanel();
-    showToast(`Added ${name}`);
+
+    if (email){
+      showToast(`Adding ${name} & sending invite…`);
+      inviteRoommateByEmail(email, name)
+        .then(() => { saveCurrentUser(); showToast(`Invited ${name} at ${email}`); })
+        .catch(e => {
+          console.warn("Kharcha: invite failed —", e);
+          saveCurrentUser();
+          showToast(`Added ${name}, but the invite email failed to send`);
+        });
+    } else {
+      saveCurrentUser();
+      showToast(`Added ${name}`);
+    }
   }
 
   function removeRoommate(name){
@@ -5299,6 +5482,7 @@
       return;
     }
     ROOMMATES = ROOMMATES.filter(n => n !== name);
+    delete ROOMMATE_EMAILS[name];
     saveCurrentUser();
     renderRoommateManager();
     renderRoomBalances();
@@ -6351,6 +6535,19 @@
     document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${firstName}</strong>`;
 
     await loadUserData(user.email);
+
+    // If someone invited this email to a room, join it now — covers both
+    // a brand-new sign-in and someone who was invited after they'd
+    // already signed up once before.
+    try{
+      const pendingRoomId = await resolvePendingRoomInvite(user.email, supabaseUserId);
+      if (pendingRoomId && pendingRoomId !== currentRoomId){
+        await loadRoomData(pendingRoomId);
+        saveCurrentUser();
+        showToast("Joined a shared room");
+      }
+    }catch(e){ console.warn("Kharcha: pending invite check failed —", e); }
+
     renderAll();
     renderCategoryManager();
     renderAccountManager();
@@ -6362,6 +6559,8 @@
   function signOut(){
     if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
     stopRealtimeSync();
+    stopRoomRealtimeSync();
+    currentRoomId = null;
     const sb = getSb();
     if (sb) sb.auth.signOut().catch(() => {});
     supabaseUserId = null;
