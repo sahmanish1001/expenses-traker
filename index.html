@@ -602,6 +602,135 @@
 
   .kh-chips{ -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent 100%); mask-image:linear-gradient(to right, #000 calc(100% - 28px), transparent 100%); }
 
+  /* =====================================================================
+     Desktop dashboard — "Luminous Ledger": dark glassmorphism, emerald/
+     gold/cyan accents. Entirely self-scoped under .kh-desktop with its
+     own custom properties, so none of it can bleed into the mobile
+     .kh-app theme above. Visibility is the whole mobile/desktop switch:
+     below 1024px this never shows regardless of sign-in state, and at
+     1024px+ the mobile app hides instead — see the two rules at the very
+     end of this block.
+     ===================================================================== */
+  .kh-desktop{
+    --kd-bg:#11131b; --kd-surface:rgba(25,28,39,.72); --kd-surface-solid:#1d1f28;
+    --kd-surface-hi:rgba(28,31,40,.9); --kd-surface-low:#191b23; --kd-surface-lowest:#0c0e16;
+    --kd-border:rgba(255,255,255,.08); --kd-border-hi:rgba(75,226,119,.3);
+    --kd-text:#e8e9f1; --kd-dim:#9aa5b1; --kd-muted:#6b7684;
+    --kd-primary:#4be277; --kd-on-primary:#00320f;
+    --kd-secondary:#ffca45; --kd-tertiary:#7cd0ff; --kd-danger:#ff6b6b;
+    --kd-radius:1.25rem; --kd-radius-sm:0.75rem;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(75,226,119,.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(255,202,69,.05), transparent 55%),
+      var(--kd-bg);
+    color:var(--kd-text); font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh;
+    font-variant-numeric:tabular-nums;
+  }
+  .kh-desktop *{ box-sizing:border-box; }
+  .kh-desktop .kd-glass{
+    background:var(--kd-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--kd-border); box-shadow:0 4px 24px -2px rgba(0,0,0,.45);
+  }
+  .kh-desktop .kd-topbar{
+    display:flex; align-items:center; gap:20px; justify-content:space-between;
+    padding:14px 32px; position:sticky; top:0; z-index:20;
+    background:rgba(17,19,27,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--kd-border);
+  }
+  .kh-desktop .kd-brand{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .kh-desktop .kd-brand-mark{width:38px; height:38px; border-radius:12px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); display:flex; align-items:center; justify-content:center;}
+  .kh-desktop .kd-brand-ring{width:20px; height:20px; border-radius:50%; border:3px solid var(--kd-primary); border-top-color:var(--kd-secondary); border-right-color:var(--kd-tertiary); display:block;}
+  .kh-desktop .kd-brand-row{display:flex; align-items:center; gap:8px;}
+  .kh-desktop .kd-brand-name{font-size:18px; font-weight:800; letter-spacing:-.01em; color:var(--kd-text);}
+  .kh-desktop .kd-brand-sub{font-size:11px; color:var(--kd-dim); font-weight:500;}
+  .kh-desktop .kd-badge{font-size:10px; font-weight:700; letter-spacing:.03em; padding:2px 8px; border-radius:999px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim);}
+  .kh-desktop .kd-search-wrap{flex:1; max-width:420px;}
+  .kh-desktop .kd-search{width:100%; background:var(--kd-surface-lowest); border:1px solid var(--kd-border); border-radius:10px; padding:9px 14px; color:var(--kd-text); font-family:inherit; font-size:13.5px;}
+  .kh-desktop .kd-search:focus{outline:none; border-color:var(--kd-primary);}
+  .kh-desktop .kd-search::placeholder{color:var(--kd-muted);}
+  .kh-desktop .kd-topbar-actions{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .kh-desktop .kd-btn{border:none; border-radius:10px; padding:9px 16px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;}
+  .kh-desktop .kd-btn-primary{background:var(--kd-primary); color:var(--kd-on-primary); box-shadow:0 4px 18px rgba(75,226,119,.35);}
+  .kh-desktop .kd-btn-primary:hover{filter:brightness(1.08);}
+  .kh-desktop .kd-icon-btn{width:36px; height:36px; border-radius:10px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-text); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .kh-desktop .kd-icon-btn:hover{border-color:var(--kd-border-hi);}
+  .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center;}
+
+  .kh-desktop .kd-ribbon{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 32px; background:rgba(12,14,22,.6); border-bottom:1px solid var(--kd-border);}
+  .kh-desktop .kd-wallets{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .kh-desktop .kd-wallet-chip{display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-desktop .kd-wallet-chip.active{color:var(--kd-text); border-color:var(--kd-border-hi); background:rgba(75,226,119,.12);}
+  .kh-desktop .kd-wallet-dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .kh-desktop .kd-wallet-amt{font-size:11px; font-weight:700; opacity:.85;}
+  .kh-desktop .kd-quick-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .kh-desktop .kd-chip-btn{background:var(--kd-surface-low); border:1px solid var(--kd-border); color:var(--kd-dim); border-radius:8px; padding:6px 11px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-desktop .kd-chip-btn:hover{color:var(--kd-text); border-color:var(--kd-border-hi);}
+
+  .kh-desktop .kd-main{max-width:1400px; margin:0 auto; padding:24px 32px 96px;}
+  .kh-desktop .kd-stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;}
+  .kh-desktop .kd-stat{padding:18px; border-radius:var(--kd-radius);}
+  .kh-desktop .kd-stat-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .kh-desktop .kd-stat-label{font-size:12.5px; color:var(--kd-dim); font-weight:600;}
+  .kh-desktop .kd-stat-icon{width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .kh-desktop .kd-stat-amt{font-size:26px; font-weight:800; letter-spacing:-.01em;}
+  .kh-desktop .kd-stat-sub{margin-top:6px; font-size:11.5px; color:var(--kd-dim); display:flex; align-items:center; gap:5px;}
+
+  .kh-desktop .kd-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:20px; align-items:start;}
+  .kh-desktop .kd-col{display:flex; flex-direction:column; gap:20px; min-width:0;}
+  .kh-desktop .kd-card{border-radius:var(--kd-radius); padding:20px;}
+  .kh-desktop .kd-card-tall{min-height:520px;}
+  .kh-desktop .kd-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px;}
+  .kh-desktop .kd-card-head h2{margin:0; font-size:15.5px; font-weight:700; color:var(--kd-text);}
+  .kh-desktop .kd-link{background:none; border:none; color:var(--kd-primary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .kh-desktop .kd-link:hover{text-decoration:underline;}
+
+  .kh-desktop .kd-ledger-filters{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .kh-desktop .kd-ledger-filters button{background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); border-radius:8px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .kh-desktop .kd-ledger-filters button.active{color:var(--kd-text); background:var(--kd-surface-hi); border-color:var(--kd-border-hi);}
+  .kh-desktop .kd-ledger-list{display:flex; flex-direction:column; gap:6px; max-height:560px; overflow-y:auto;}
+  .kh-desktop .kd-ledger-day{font-size:11px; font-weight:700; color:var(--kd-dim); text-transform:uppercase; letter-spacing:.03em; padding:10px 2px 4px; border-bottom:1px solid var(--kd-border);}
+  .kh-desktop .kd-row{display:flex; align-items:center; gap:12px; padding:9px 8px; border-radius:10px; cursor:pointer;}
+  .kh-desktop .kd-row:hover{background:var(--kd-surface-solid);}
+  .kh-desktop .kd-row-icon{width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .kh-desktop .kd-row-mid{flex:1; min-width:0;}
+  .kh-desktop .kd-row-vendor{font-size:13px; font-weight:600; color:var(--kd-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .kh-desktop .kd-row-sub{font-size:11px; color:var(--kd-dim); margin-top:1px;}
+  .kh-desktop .kd-row-amt{font-size:13px; font-weight:700; white-space:nowrap;}
+
+  .kh-desktop .kd-empty{font-size:12.5px; color:var(--kd-dim); text-align:center; padding:24px 12px; border:1px dashed var(--kd-border); border-radius:12px;}
+  .kh-desktop .kd-mini-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--kd-border);}
+  .kh-desktop .kd-mini-row:last-child{border-bottom:none;}
+  .kh-desktop .kd-mini-avatar{width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; flex-shrink:0;}
+  .kh-desktop .kd-mini-name{font-size:12.5px; font-weight:600; color:var(--kd-text);}
+  .kh-desktop .kd-mini-sub{font-size:11px; color:var(--kd-dim);}
+  .kh-desktop .kd-pill{font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .kh-desktop .kd-pill-jade{color:var(--kd-primary); background:rgba(75,226,119,.12); border:1px solid rgba(75,226,119,.3);}
+  .kh-desktop .kd-pill-amber{color:var(--kd-secondary); background:rgba(255,202,69,.12); border:1px solid rgba(255,202,69,.3);}
+
+  .kh-desktop .kd-donut-wrap{display:flex; justify-content:center; margin:6px 0 16px;}
+  .kh-desktop .kd-donut{width:150px; height:150px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;}
+  .kh-desktop .kd-donut::after{content:""; position:absolute; inset:22px; border-radius:50%; background:var(--kd-surface-solid);}
+  .kh-desktop .kd-donut-center{position:relative; z-index:1; text-align:center;}
+  .kh-desktop .kd-donut-center b{display:block; font-size:15px; font-weight:800;}
+  .kh-desktop .kd-legend-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; padding:5px 0;}
+  .kh-desktop .kd-legend-left{display:flex; align-items:center; gap:8px; min-width:0;}
+  .kh-desktop .kd-legend-left span:last-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  .kh-desktop .kd-budget-track{width:100%; height:8px; border-radius:999px; background:var(--kd-surface-solid); overflow:hidden; margin:8px 0;}
+  .kh-desktop .kd-budget-fill{height:100%; border-radius:999px;}
+  .kh-desktop .kd-trend{display:flex; align-items:flex-end; justify-content:space-between; height:64px; margin-top:14px; gap:6px;}
+  .kh-desktop .kd-trend-col{display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;}
+  .kh-desktop .kd-trend-bar{width:100%; max-width:22px; border-radius:4px 4px 0 0; background:var(--kd-surface-solid);}
+  .kh-desktop .kd-trend-label{font-size:9px; color:var(--kd-dim);}
+
+  .kh-desktop .kd-fab{position:fixed; bottom:24px; right:32px; z-index:30; background:var(--kd-primary); color:var(--kd-on-primary); border:none; border-radius:999px; padding:14px 22px; font-family:inherit; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 10px 30px rgba(75,226,119,.4);}
+  .kh-desktop .kd-fab:hover{filter:brightness(1.08);}
+  .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--kd-border); color:var(--kd-dim); font-size:12px;}
+
+  /* The actual mobile/desktop switch. */
+  @media (max-width:1023.98px){ .kh-desktop{ display:none !important; } }
+  @media (min-width:1024px){ #appRoot{ display:none !important; } }
+
 </style>
 </head>
 <body>
@@ -1701,6 +1830,93 @@
     </button>
   </nav>
 
+</div>
+
+<!-- =====================================================================
+     Desktop dashboard — a wide-viewport-only view of the SAME account
+     data as the mobile app above. Shown/hidden purely by CSS media query
+     (see .kh-desktop rules), so it needs no separate sign-in flow of its
+     own: signIn()/signOut() toggle this alongside #appRoot, and whichever
+     one the current viewport width allows through is what's visible.
+     Populated by renderDesktopDashboard(), called from renderAll().
+     ===================================================================== -->
+<div class="kh-desktop" id="desktopDashboard" style="display:none;">
+  <header class="kd-topbar">
+    <div class="kd-brand">
+      <div class="kd-brand-mark"><span class="kd-brand-ring"></span></div>
+      <div class="kd-brand-text">
+        <div class="kd-brand-row"><span class="kd-brand-name">Kharchā</span><span class="kd-badge" id="kdBsMonth">—</span></div>
+        <span class="kd-brand-sub">Multi-wallet tracker</span>
+      </div>
+    </div>
+    <div class="kd-search-wrap">
+      <input id="kdSearch" class="kd-search" type="text" placeholder="Search transactions or vendors…" oninput="setTxSearch(this.value); syncDesktopSearch(this.value);" />
+    </div>
+    <div class="kd-topbar-actions">
+      <button class="kd-btn kd-btn-primary" onclick="toggleManualAdd()">＋ Log Tx</button>
+      <button class="kd-icon-btn" title="Settings" onclick="showSettingsPage()">⚙️</button>
+      <div class="kd-avatar" id="kdAvatar">?</div>
+    </div>
+  </header>
+
+  <section class="kd-ribbon">
+    <div class="kd-wallets" id="kdWalletChips"></div>
+    <div class="kd-quick-actions">
+      <button class="kd-chip-btn" onclick="openPanel('import')">⬆ Import statement</button>
+      <button class="kd-chip-btn" onclick="exportCSV()">⬇ Export .csv</button>
+      <button class="kd-chip-btn" onclick="exportPDF()">🖨️ Export PDF</button>
+    </div>
+  </section>
+
+  <main class="kd-main">
+    <div class="kd-stats-row" id="kdStatsRow"></div>
+
+    <div class="kd-grid">
+      <div class="kd-col">
+        <div class="kd-card kd-card-tall">
+          <div class="kd-card-head">
+            <h2>📒 Ledger Feed</h2>
+            <button class="kd-link" onclick="switchToMobileTransactionsView()">View all →</button>
+          </div>
+          <div class="kd-ledger-filters" id="kdLedgerFilters"></div>
+          <div class="kd-ledger-list" id="kdLedgerList"></div>
+        </div>
+      </div>
+
+      <div class="kd-col">
+        <div class="kd-card">
+          <div class="kd-card-head"><h2>🏠 Room</h2><button class="kd-link" onclick="showRoomPage()">Open →</button></div>
+          <div id="kdRoomCard"></div>
+        </div>
+        <div class="kd-card">
+          <div class="kd-card-head"><h2>🤝 Loans</h2><button class="kd-link" onclick="showLoanPage()">Open →</button></div>
+          <div id="kdLoanCard"></div>
+        </div>
+        <div class="kd-card">
+          <div class="kd-card-head"><h2>🔁 Recurring</h2><button class="kd-link" onclick="showRecurringPage()">Open →</button></div>
+          <div id="kdRecurringCard"></div>
+        </div>
+      </div>
+
+      <div class="kd-col">
+        <div class="kd-card">
+          <div class="kd-card-head"><h2>📊 Categories</h2><button class="kd-link" onclick="showInsightsPage()">Insights →</button></div>
+          <div id="kdCategoryCard"></div>
+        </div>
+        <div class="kd-card">
+          <div class="kd-card-head"><h2>🎯 Budget</h2><button class="kd-link" onclick="showBudgetPage()">Open →</button></div>
+          <div id="kdBudgetCard"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <button class="kd-fab" onclick="toggleManualAdd()" title="Add transaction manually">＋ Quick Expense</button>
+
+  <footer class="kd-footer">
+    <span class="kd-brand-name">Kharchā</span>
+    <span class="kd-footer-sub">Private, local-first expense tracking — your data stays on your device.</span>
+  </footer>
 </div>
 
 <div class="kh-toast" id="toast">Imported</div>
@@ -6437,6 +6653,199 @@
     renderRecurringDashCard();
     renderHomeLayoutManager();
     renderRoomLayoutManager();
+    renderDesktopDashboard();
+  }
+
+  // ---------------------------------------------------------------------
+  // Desktop dashboard ("Luminous Ledger" redesign) — a parallel, desktop-
+  // only view of the exact same live state (TRANSACTIONS/BALANCES/LOANS/
+  // BUDGETS/RECURRING/ROOMMATES) the mobile app renders. It never owns any
+  // data itself — every card here just reads the same globals/helpers the
+  // mobile cards use, so there is nothing to keep in sync by hand. Shown/
+  // hidden purely by CSS media query (see .kh-desktop rules), so calling
+  // this when the viewport is mobile is harmless — it just renders into
+  // hidden DOM.
+  // ---------------------------------------------------------------------
+  function syncDesktopSearch(q){
+    txSearchQuery = (q || "").trim().toLowerCase();
+    renderTx();
+    renderDesktopDashboard();
+  }
+
+  function switchToMobileTransactionsView(){
+    showPage("transactions");
+  }
+
+  function renderDesktopDashboard(){
+    const root = document.getElementById("desktopDashboard");
+    if (!root) return;
+
+    const bsMonthEl = document.getElementById("kdBsMonth");
+    if (bsMonthEl) bsMonthEl.textContent = currentBsMonthLabel();
+
+    const avatarEl = document.getElementById("kdAvatar");
+    if (avatarEl && currentUser){
+      const initial = (currentUser.name || currentUser.email || "?").trim()[0].toUpperCase();
+      avatarEl.textContent = initial;
+      avatarEl.title = currentUser.name || currentUser.email || "";
+    }
+
+    // Wallet chips — same accounts/colors/balances as the mobile chips bar.
+    const walletsEl = document.getElementById("kdWalletChips");
+    if (walletsEl){
+      let html = `<button type="button" class="kd-wallet-chip${activeAccount === "All" ? " active" : ""}" onclick="activeAccount='All'; renderAll();">All accounts</button>`;
+      visibleAccounts().forEach(name => {
+        const meta = ACCOUNTS[name];
+        const bal = BALANCES[name] || 0;
+        html += `<button type="button" class="kd-wallet-chip${activeAccount === name ? " active" : ""}" onclick="activeAccount='${name.replace(/'/g,"\\'")}'; renderAll();">
+          <span class="kd-wallet-dot" style="background:${meta.color}"></span>${name}
+          <span class="kd-wallet-amt">${rs(bal)}</span>
+        </button>`;
+      });
+      walletsEl.innerHTML = html;
+    }
+
+    // Stat row — money in / out / net, same figures as the mobile stat cards.
+    const scoped = getScoped();
+    const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
+    const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
+    const net = totalIn - totalOut;
+    const totalBalance = Object.values(BALANCES).reduce((s,v)=>s+v,0);
+    const statsEl = document.getElementById("kdStatsRow");
+    if (statsEl){
+      statsEl.innerHTML = `
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Total balance</span><span class="kd-stat-icon" style="background:rgba(124,208,255,.14); color:var(--kd-tertiary)">💰</span></div>
+          <div class="kd-stat-amt">${rs(totalBalance)}</div>
+          <div class="kd-stat-sub">Across ${visibleAccounts().length} wallet${visibleAccounts().length===1?"":"s"}</div>
+        </div>
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Money in</span><span class="kd-stat-icon" style="background:rgba(75,226,119,.14); color:var(--kd-primary)">↙</span></div>
+          <div class="kd-stat-amt" style="color:var(--kd-primary)">${rs(totalIn)}</div>
+          <div class="kd-stat-sub">${currentBsMonthLabel()}</div>
+        </div>
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Money out</span><span class="kd-stat-icon" style="background:rgba(255,107,107,.14); color:var(--kd-danger)">↗</span></div>
+          <div class="kd-stat-amt" style="color:var(--kd-danger)">${rs(totalOut)}</div>
+          <div class="kd-stat-sub">${currentBsMonthLabel()}</div>
+        </div>
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Net</span><span class="kd-stat-icon" style="background:rgba(255,202,69,.14); color:var(--kd-secondary)">Σ</span></div>
+          <div class="kd-stat-amt" style="color:${net>=0?"var(--kd-primary)":"var(--kd-danger)"}">${net>=0?"":"−"}${rs(Math.abs(net))}</div>
+          <div class="kd-stat-sub">${activeAccount === "All" ? "All accounts" : activeAccount}</div>
+        </div>`;
+    }
+
+    // Ledger — same grouped-by-day transaction list as mobile, capped so the
+    // card stays a fixed, scrollable height instead of growing unbounded.
+    const ledgerEl = document.getElementById("kdLedgerList");
+    if (ledgerEl){
+      let list = [...scoped].sort((a,b) => a.date < b.date ? 1 : -1);
+      if (txSearchQuery) list = list.filter(t => t.vendor.toLowerCase().includes(txSearchQuery) || t.category.toLowerCase().includes(txSearchQuery));
+      if (!list.length){
+        ledgerEl.innerHTML = `<div class="kd-empty">No transactions yet.</div>`;
+      } else {
+        const groups = {};
+        list.slice(0, 40).forEach(t => { (groups[t.date] = groups[t.date] || []).push(t); });
+        ledgerEl.innerHTML = Object.entries(groups).map(([day, rows]) => `
+          <div class="kd-ledger-day">${fmtDate(day)}</div>
+          ${rows.map(t => {
+            const meta = CAT[t.category] || CAT.Other;
+            return `<div class="kd-row" onclick="editTx('${t.id}')">
+              <div class="kd-row-icon" style="background:color-mix(in srgb, ${meta.color} 22%, transparent); color:${meta.color}">${meta.icon}</div>
+              <div class="kd-row-mid">
+                <div class="kd-row-vendor">${t.vendor}</div>
+                <div class="kd-row-sub">${t.account} · ${t.category}</div>
+              </div>
+              <div class="kd-row-amt" style="color:${t.type==="in"?"var(--kd-primary)":"var(--kd-text)"}">${t.type==="in"?"+":"−"}${rs(t.amount)}</div>
+            </div>`;
+          }).join("")}
+        `).join("");
+      }
+    }
+
+    // Room card — reuse computeRoomBalances(), same net figures as mobile.
+    const roomEl = document.getElementById("kdRoomCard");
+    if (roomEl){
+      if (typeof ROOMMATES === "undefined" || ROOMMATES.length <= 1){
+        roomEl.innerHTML = `<div class="kd-empty">No room set up yet. <button type="button" class="kd-link" onclick="showRoomPage()">Set up Room →</button></div>`;
+      } else {
+        const net = computeRoomBalances();
+        const colors = ["#4be277","#ffca45","#7cd0ff","#ff9f6b","#c792ea","#6bd9c8"];
+        roomEl.innerHTML = Object.entries(net).map(([name, amt], i) => `
+          <div class="kd-mini-row">
+            <div class="kd-mini-avatar" style="background:${colors[i % colors.length]}">${name[0].toUpperCase()}</div>
+            <div style="flex:1; min-width:0;">
+              <div class="kd-mini-name">${name}</div>
+              <div class="kd-mini-sub">${Math.abs(amt) < 0.5 ? "Settled up" : (amt > 0 ? "Owed to them" : "They owe")}</div>
+            </div>
+            <span class="kd-pill ${amt >= 0 ? "kd-pill-jade" : "kd-pill-amber"}">${amt>=0?"":"−"}${rs(Math.abs(amt))}</span>
+          </div>`).join("");
+      }
+    }
+
+    // Loan card — reuse netLoanPosition(), same numbers as mobile summary.
+    const loanEl = document.getElementById("kdLoanCard");
+    if (loanEl){
+      const pos = netLoanPosition("nonEmi");
+      if (!pos.lentOutstanding && !pos.borrowedOutstanding){
+        loanEl.innerHTML = `<div class="kd-empty">No active loans. <button type="button" class="kd-link" onclick="showLoanPage()">Track a loan →</button></div>`;
+      } else {
+        loanEl.innerHTML = `
+          <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Lent out</div></div><span class="kd-pill kd-pill-jade">${rs(pos.lentOutstanding)}</span></div>
+          <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Borrowed</div></div><span class="kd-pill kd-pill-amber">${rs(pos.borrowedOutstanding)}</span></div>
+          <div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">Net</div></div><span class="kd-pill ${pos.net>=0?"kd-pill-jade":"kd-pill-amber"}">${pos.net>=0?"":"−"}${rs(Math.abs(pos.net))}</span></div>
+        `;
+      }
+    }
+
+    // Recurring bills card.
+    const recEl = document.getElementById("kdRecurringCard");
+    if (recEl){
+      if (!RECURRING.length){
+        recEl.innerHTML = `<div class="kd-empty">No recurring bills tracked. <button type="button" class="kd-link" onclick="showRecurringPage()">Add one →</button></div>`;
+      } else {
+        const totalMonthly = RECURRING.reduce((s, r) => s + r.amount, 0);
+        recEl.innerHTML = `<div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">Monthly total</div><div class="kd-mini-sub">${RECURRING.length} bill${RECURRING.length===1?"":"s"}</div></div><span class="kd-pill kd-pill-amber">${rs(totalMonthly)}</span></div>`;
+      }
+    }
+
+    // Category breakdown (donut-style legend) — same category totals as the
+    // mobile pie chart, scoped the same way.
+    const catEl = document.getElementById("kdCategoryCard");
+    if (catEl){
+      const byCat = {};
+      scoped.filter(t => t.type === "out").forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + t.amount; });
+      const entries = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+      if (!entries.length){
+        catEl.innerHTML = `<div class="kd-empty">No spending yet this period.</div>`;
+      } else {
+        const total = entries.reduce((s,[,v])=>s+v,0);
+        catEl.innerHTML = entries.slice(0, 6).map(([cat, amt]) => {
+          const meta = CAT[cat] || CAT.Other;
+          const pct = total ? Math.round((amt/total)*100) : 0;
+          return `<div class="kd-legend-row">
+            <div class="kd-legend-left"><span class="kd-wallet-dot" style="background:${meta.color}"></span><span>${cat}</span></div>
+            <span style="color:var(--kd-dim);">${pct}% · ${rs(amt)}</span>
+          </div>`;
+        }).join("");
+      }
+    }
+
+    // Budget card.
+    const budgetEl = document.getElementById("kdBudgetCard");
+    if (budgetEl){
+      if (!BUDGET_OVERALL && !Object.keys(BUDGETS).length){
+        budgetEl.innerHTML = `<div class="kd-empty">No budget set. <button type="button" class="kd-link" onclick="showBudgetPage()">Set a budget →</button></div>`;
+      } else {
+        const spent = spendThisMonth(null);
+        const pct = BUDGET_OVERALL ? Math.min(100, (spent / BUDGET_OVERALL) * 100) : 0;
+        budgetEl.innerHTML = `
+          <div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">${currentBsMonthLabel()}</div><div class="kd-mini-sub">${BUDGET_OVERALL ? `${rs(spent)} / ${rs(BUDGET_OVERALL)}` : `${rs(spent)} spent`}</div></div></div>
+          <div class="kd-budget-track"><div class="kd-budget-fill" style="width:${pct}%; background:${pct>=100?"var(--kd-danger)":pct>=80?"var(--kd-secondary)":"var(--kd-primary)"}"></div></div>
+        `;
+      }
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -6599,6 +7008,7 @@
 
     document.getElementById("authScreen").style.display = "none";
     document.getElementById("appRoot").style.display = "block";
+    document.getElementById("desktopDashboard").style.display = "block";
     setActiveNav(currentPage, true);
     renderAccountAvatar(user);
 
@@ -6660,6 +7070,7 @@
     try{ localStorage.removeItem(CURRENT_USER_KEY); }catch(e){}
     closePanel();
     document.getElementById("appRoot").style.display = "none";
+    document.getElementById("desktopDashboard").style.display = "none";
     document.getElementById("authScreen").style.display = "flex";
   }
 
