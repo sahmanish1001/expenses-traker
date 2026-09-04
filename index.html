@@ -203,20 +203,19 @@
   @keyframes khPageIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
   @keyframes khFadeUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
   .kh-page.active{animation:khPageIn .28s ease-out;}
-  .kh-page.active .kh-home-section{animation:khFadeUp .5s cubic-bezier(.22,1,.36,1) both;}
-  .kh-page.active .kh-home-section:nth-child(1){animation-delay:.03s;}
-  .kh-page.active .kh-home-section:nth-child(2){animation-delay:.09s;}
-  .kh-page.active .kh-home-section:nth-child(3){animation-delay:.15s;}
-  .kh-page.active .kh-home-section:nth-child(4){animation-delay:.21s;}
-  .kh-page.active .kh-home-section:nth-child(5){animation-delay:.27s;}
-  .kh-page.active .kh-home-section:nth-child(6){animation-delay:.33s;}
-  .kh-page.active .kh-home-section:nth-child(7){animation-delay:.39s;}
-  .kh-page.active .kh-home-section:nth-child(n+8){animation-delay:.45s;}
+  /* Scroll-reveal: each home/room section starts hidden and is nudged
+     into view by JS (adds .kh-inview) via IntersectionObserver as it
+     crosses into the viewport — so it plays on first load AND again
+     every time the user scrolls back up/down past it, not just once
+     when the tab becomes active. */
+  .kh-home-section{opacity:0; transform:translateY(22px); transition:opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1);}
+  .kh-home-section.kh-inview{opacity:1; transform:none;}
   .kh-balance-trend .kh-pill{animation:khFadeUp .35s ease-out both;}
   .kh-row, .kh-stat, .kh-loan-dash-card, .kh-budget-row{transition:transform .15s ease;}
   .kh-row:active, .kh-stat:active, .kh-loan-dash-card:active, .kh-budget-row:active{transform:scale(.985);}
   @media (prefers-reduced-motion: reduce){
-    .kh-page.active, .kh-page.active .kh-home-section, .kh-balance-trend .kh-pill{animation:none;}
+    .kh-page.active, .kh-balance-trend .kh-pill{animation:none;}
+    .kh-home-section{transition:none; opacity:1; transform:none;}
     .kh-row, .kh-stat, .kh-loan-dash-card, .kh-budget-row{transition:none;}
   }
   .kh-loan-page-head{margin:0 0 16px;}
@@ -6717,6 +6716,28 @@
       console.warn("Kharcha: Google Sign-In failed to initialize — the app still works if you already have a saved session.", e);
     }
   }
+
+  // Scroll-reveal for Home/Room sections (nav cards, room summary, pie
+  // chart, etc.) — each .kh-home-section fades/slides in as it enters the
+  // viewport, and resets so it can play again the next time it's scrolled
+  // past, in either direction. One shared observer for every such section,
+  // set up once since the section containers themselves are static (only
+  // their inner HTML gets rebuilt on re-render).
+  function setupScrollReveal(){
+    const sections = document.querySelectorAll(".kh-home-section");
+    if (!sections.length) return;
+    if (!("IntersectionObserver" in window) || REDUCED_MOTION){
+      sections.forEach(el => el.classList.add("kh-inview"));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        entry.target.classList.toggle("kh-inview", entry.isIntersecting);
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    sections.forEach(el => io.observe(el));
+  }
+  setupScrollReveal();
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
 
