@@ -6384,22 +6384,21 @@
     // showing a second, differently-scoped number here would just confuse.
     let showTrend = false;
     let trendAmount = 0;
-    if (activeAccount !== "All" && BALANCES[activeAccount] != null){
-      labelEl.textContent = `${activeAccount} Balance`;
-      amount = BALANCES[activeAccount];
-    } else {
-      labelEl.textContent = "Total Balance";
-      const scoped = getScoped();
-      const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
-      const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
-      amount = totalIn - totalOut;
-      if (activeNepaliMonth === "All"){
-        showTrend = true;
-        const curKey = currentBsMonthKey();
-        const monthTx = TRANSACTIONS.filter(t => !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === curKey);
-        trendAmount = monthTx.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0)
-          - monthTx.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
-      }
+    // Always derive the figure from actual transactions (money in − money
+    // out), never from a stale imported/SMS-parsed BALANCES[] snapshot —
+    // that snapshot stops updating the moment the user logs a new entry,
+    // so showing it here would drift away from what's actually left.
+    const scoped = getScoped();
+    const totalIn = scoped.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0);
+    const totalOut = scoped.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
+    amount = totalIn - totalOut;
+    labelEl.textContent = activeAccount !== "All" ? `${activeAccount} Balance` : "Total Balance";
+    if (activeAccount === "All" && activeNepaliMonth === "All"){
+      showTrend = true;
+      const curKey = currentBsMonthKey();
+      const monthTx = TRANSACTIONS.filter(t => !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === curKey);
+      trendAmount = monthTx.filter(t => t.type === "in").reduce((s,t)=>s+t.amount,0)
+        - monthTx.filter(t => t.type === "out").reduce((s,t)=>s+t.amount,0);
     }
 
     const hidden = getBalanceHidden();
