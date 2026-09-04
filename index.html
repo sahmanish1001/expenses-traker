@@ -723,8 +723,8 @@
   .kh-desktop .kd-donut-wrap{display:flex; justify-content:center; margin:6px 0 16px;}
   .kh-desktop .kd-donut{width:150px; height:150px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;}
   .kh-desktop .kd-donut::after{content:""; position:absolute; inset:22px; border-radius:50%; background:var(--kd-surface-solid);}
-  .kh-desktop .kd-donut-center{position:relative; z-index:1; text-align:center;}
-  .kh-desktop .kd-donut-center b{display:block; font-size:15px; font-weight:800;}
+  .kh-desktop .kd-donut-center{position:relative; z-index:1; text-align:center; max-width:96px; padding:0 6px;}
+  .kh-desktop .kd-donut-center b{display:block; font-size:13px; font-weight:800; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .kh-desktop .kd-legend-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; padding:5px 0;}
   .kh-desktop .kd-legend-left{display:flex; align-items:center; gap:8px; min-width:0;}
   .kh-desktop .kd-legend-left span:last-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
@@ -6899,8 +6899,9 @@
       }
     }
 
-    // Category breakdown (donut-style legend) — same category totals as the
-    // mobile pie chart, scoped the same way.
+    // Category breakdown — an actual donut (conic-gradient, same technique
+    // the mobile pie chart uses) with a legend underneath, instead of a
+    // plain list, so it reads at a glance the way the mockup's chart does.
     const catEl = document.getElementById("kdCategoryCard");
     if (catEl){
       const byCat = {};
@@ -6910,14 +6911,31 @@
         catEl.innerHTML = `<div class="kd-empty">No spending yet this period.</div>`;
       } else {
         const total = entries.reduce((s,[,v])=>s+v,0);
-        catEl.innerHTML = entries.slice(0, 6).map(([cat, amt]) => {
+        let angle = 0;
+        const stops = entries.map(([cat, amt]) => {
           const meta = CAT[cat] || CAT.Other;
-          const pct = total ? Math.round((amt/total)*100) : 0;
-          return `<div class="kd-legend-row">
-            <div class="kd-legend-left"><span class="kd-wallet-dot" style="background:${meta.color}"></span><span>${cat}</span></div>
-            <span style="color:var(--kd-dim);">${pct}% · ${rs(amt)}</span>
-          </div>`;
-        }).join("");
+          const start = angle;
+          angle += (amt / total) * 360;
+          return `${meta.color} ${start}deg ${angle}deg`;
+        }).join(", ");
+        catEl.innerHTML = `
+          <div class="kd-donut-wrap">
+            <div class="kd-donut" style="background:conic-gradient(${stops})">
+              <div class="kd-donut-center">
+                <span style="font-size:10px; color:var(--kd-dim);">Top</span>
+                <b>${entries[0][0]}</b>
+              </div>
+            </div>
+          </div>
+          ${entries.slice(0, 6).map(([cat, amt]) => {
+            const meta = CAT[cat] || CAT.Other;
+            const pct = total ? Math.round((amt/total)*100) : 0;
+            return `<div class="kd-legend-row">
+              <div class="kd-legend-left"><span class="kd-wallet-dot" style="background:${meta.color}"></span><span>${cat}</span></div>
+              <span style="color:var(--kd-dim);">${pct}% · ${rs(amt)}</span>
+            </div>`;
+          }).join("")}
+        `;
       }
     }
 
