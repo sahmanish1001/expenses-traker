@@ -75,7 +75,7 @@
   .kh-balance-eye{position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; background:none; border:none; color:var(--dim); cursor:pointer; padding:4px;}
   .kh-balance-eye svg{width:16px; height:16px; display:block;}
   .kh-balance-eye:hover{color:var(--accent);}
-  .kh-balance-amt{margin:10px 0 0; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(30px,10vw,40px); font-weight:800; letter-spacing:-.02em; white-space:nowrap; position:relative;}
+  .kh-balance-amt{margin:10px 0 0; font-family:'Plus Jakarta Sans',sans-serif; font-size:clamp(30px,10vw,40px); font-weight:800; letter-spacing:-.02em; white-space:nowrap; position:relative; font-variant-numeric:tabular-nums;}
   .kh-balance-amt.kh-balance-amt-masked{letter-spacing:.08em;}
   .kh-balance-trend{margin-top:12px; display:flex; justify-content:center; position:relative;}
   .kh-chips{display:flex; gap:8px; overflow-x:auto; margin-top:16px; padding-bottom:2px;}
@@ -6286,6 +6286,37 @@
     renderBalanceCard();
   }
 
+  // Counts the Total Balance figure up/down from whatever it last showed
+  // to the new amount, instead of just snapping to the new digits — a
+  // small touch that makes it read as "the number changed" rather than
+  // "the page changed". Reads/writes the previous value off the element
+  // itself (`_rawAmount`) so repeated renders (switching account filters,
+  // a transaction landing via realtime, etc.) always animate from
+  // wherever it visually is right now, not from zero.
+  function animateBalanceAmount(el, to){
+    const from = el._rawAmount != null ? el._rawAmount : to;
+    cancelAnimationFrame(el._animFrame);
+    el._rawAmount = to;
+    if (Math.abs(to - from) < 1){
+      el.textContent = (to < 0 ? "− " : "") + rs(Math.abs(to));
+      return;
+    }
+    const duration = 700;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic — fast start, gentle settle
+      const current = from + (to - from) * eased;
+      el.textContent = (current < 0 ? "− " : "") + rs(Math.abs(current));
+      if (t < 1){
+        el._animFrame = requestAnimationFrame(step);
+      } else {
+        el.textContent = (to < 0 ? "− " : "") + rs(Math.abs(to));
+      }
+    };
+    el._animFrame = requestAnimationFrame(step);
+  }
+
   function renderBalanceCard(){
     const labelEl = document.getElementById("balanceLabel");
     const amtEl = document.getElementById("balanceAmt");
@@ -6318,7 +6349,12 @@
     }
 
     const hidden = getBalanceHidden();
-    amtEl.textContent = hidden ? "Rs ••••••" : (amount < 0 ? "− " : "") + rs(Math.abs(amount));
+    if (hidden){
+      cancelAnimationFrame(amtEl._animFrame);
+      amtEl.textContent = "Rs ••••••";
+    } else {
+      animateBalanceAmount(amtEl, amount);
+    }
     amtEl.classList.toggle("kh-balance-amt-masked", hidden);
     if (eyeBtn) eyeBtn.innerHTML = hidden ? ICON_EYE_OFF : ICON_EYE;
 
