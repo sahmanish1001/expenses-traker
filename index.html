@@ -684,7 +684,11 @@
 
   .kh-desktop .kd-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:20px; align-items:start;}
   .kh-desktop .kd-col{display:flex; flex-direction:column; gap:20px; min-width:0;}
-  .kh-desktop .kd-card{border-radius:var(--kd-radius); padding:20px;}
+  .kh-desktop .kd-card{
+    border-radius:var(--kd-radius); padding:20px;
+    background:var(--kd-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--kd-border); box-shadow:0 4px 24px -2px rgba(0,0,0,.45);
+  }
   .kh-desktop .kd-card-tall{min-height:520px;}
   .kh-desktop .kd-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px;}
   .kh-desktop .kd-card-head h2{margin:0; font-size:15.5px; font-weight:700; color:var(--kd-text);}
