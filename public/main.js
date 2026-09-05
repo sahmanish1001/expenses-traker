@@ -1855,9 +1855,12 @@
     currentRoomId = null;
   }
 
-  function saveCurrentUser(){
-    if (!currentUser) return;
-    const snapshot = {
+  // Pulled out of saveCurrentUser() so the guest→real-account migration
+  // (see handleCredentialResponse()) can grab a snapshot of the guest's
+  // in-memory state before it gets overwritten by the real account's
+  // (usually empty) data, without duplicating this field list.
+  function buildUserDataSnapshot(){
+    return {
       transactions: TRANSACTIONS,
       balances: BALANCES,
       nextTxId,
@@ -1883,6 +1886,11 @@
       roomId: currentRoomId,
       onboardingDismissed: ONBOARDING_DISMISSED,
     };
+  }
+
+  function saveCurrentUser(){
+    if (!currentUser) return;
+    const snapshot = buildUserDataSnapshot();
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
 
@@ -5527,6 +5535,15 @@
     const claims = decodeJwt(response.credential);
     const user = { email: claims.email, name: claims.name || claims.email, picture: claims.picture || "" };
 
+    // If this is a guest converting to a real account, grab a snapshot of
+    // whatever they've built up in Guest Mode *before* signIn() below
+    // overwrites in-memory state with the real account's own (usually
+    // empty, for a first-time sign-in) data. See the migration offer
+    // after signIn() completes.
+    const wasGuest = isGuestMode;
+    const guestSnapshot = wasGuest ? buildUserDataSnapshot() : null;
+    isGuestMode = false;
+
     const sb = getSb();
     if (sb){
       try{
@@ -5539,6 +5556,35 @@
       }
     }
     await signIn(user);
+    offerGuestDataMigration(guestSnapshot);
+  }
+
+  // Offers to carry a guest's sample/test data into the real account they
+  // just signed into with Google — otherwise it's simply left behind in
+  // the Guest Mode sandbox (see startGuestMode()) and their new account
+  // starts empty. Only offered when the real account looks brand new, so
+  // an existing account's own data is never at risk of being clobbered.
+  function offerGuestDataMigration(guestSnapshot){
+    if (!guestSnapshot) return;
+    const accountIsEmpty = !TRANSACTIONS.length && ACCOUNT_LIST.length <= 1 && !LOANS.length;
+    if (!accountIsEmpty) return;
+    const hasAnythingToKeep = guestSnapshot.transactions.length || guestSnapshot.loans.length
+      || guestSnapshot.recurring.length || guestSnapshot.roomExpenses.length || guestSnapshot.budgetOverall != null;
+    if (!hasAnythingToKeep) return;
+    const keep = confirm(
+      `Keep your Guest Mode data in this account?\n\n` +
+      `${guestSnapshot.transactions.length} transaction(s), ${guestSnapshot.loans.length} loan(s), ` +
+      `${guestSnapshot.recurring.length} recurring bill(s) will be copied in — this only happens once, ` +
+      `right after signing in for the first time.`
+    );
+    if (!keep) return;
+    applyUserDataSnapshot(guestSnapshot, currentUser.email);
+    saveCurrentUser();
+    try{ localStorage.removeItem(dataKeyFor(GUEST_EMAIL)); }catch(e){}
+    renderAll();
+    renderCategoryManager();
+    renderAccountManager();
+    showToast("Your Guest Mode data is now saved to this account");
   }
 
   async function signIn(user, { persistSession = true } = {}){
