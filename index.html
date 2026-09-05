@@ -282,6 +282,10 @@
   .kh-about-link-row{display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px dashed var(--border); font-size:12.5px;}
   .kh-about-link-row:last-child{border-bottom:none;}
   .kh-about-link-row span:first-child{color:var(--dim);}
+  button.kh-about-link-row{width:100%; background:none; border:none; border-bottom:1px dashed var(--border); font-family:inherit; color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  button.kh-about-link-row:last-child{border-bottom:none;}
+  button.kh-about-link-row span:first-child{color:var(--text); font-weight:600;}
+  button.kh-about-link-row span:last-child{color:var(--dim);}
   .kh-about-footer{text-align:center; font-size:11px; color:var(--dim); margin-top:18px; line-height:1.6;}
 
   /* Settings: toggle rows (Appearance / Notifications / Calendar) */
@@ -1343,6 +1347,16 @@
             <p class="name">Rohit Mahato</p>
             <a class="email" href="mailto:rohitkumarmahato60@gmail.com">rohitkumarmahato60@gmail.com</a>
           </div>
+        </div>
+      </div>
+
+      <div class="kh-about-block">
+        <h4>Legal</h4>
+        <div class="kh-about-links">
+          <button type="button" class="kh-about-link-row" onclick="showPrivacyPage()"><span>Privacy Policy</span><span>›</span></button>
+          <button type="button" class="kh-about-link-row" onclick="showSecurityPage()"><span>Security Architecture</span><span>›</span></button>
+          <button type="button" class="kh-about-link-row" onclick="showBikramSambatPage()"><span>Bikram Sambat Engine</span><span>›</span></button>
+          <button type="button" class="kh-about-link-row" onclick="showTermsPage()"><span>Terms of Service</span><span>›</span></button>
         </div>
       </div>
 
