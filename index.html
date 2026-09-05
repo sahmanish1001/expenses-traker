@@ -700,7 +700,7 @@
      whatever sits below it — the dashboard's own content, or #appRoot
      when a mobile page like Room/Loans is open — needs matching top
      clearance instead of relying on document flow. */
-  .kh-desktop #kdHomeContent{padding-top:74px;}
+  .kh-desktop #kdHomeContent, .kh-desktop #kdLoansContent{padding-top:74px;}
   @media (min-width:1024px){ #appRoot.kh-page-open, #appRoot.kh-show-full-home{ padding-top:calc(74px + env(safe-area-inset-top)) !important; } }
   .kh-desktop .kd-brand{display:flex; align-items:center; gap:10px; flex-shrink:0;}
   .kh-desktop .kd-brand-mark{width:38px; height:38px; border-radius:12px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); display:flex; align-items:center; justify-content:center;}
@@ -753,6 +753,8 @@
     border:1px solid var(--kd-border); box-shadow:0 4px 24px -2px rgba(0,0,0,.45);
   }
   .kh-desktop .kd-card-tall{min-height:520px;}
+  .kh-desktop .kd-loans-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; margin-top:14px;}
+  .kh-desktop .kd-loan-card{padding:18px;}
   .kh-desktop .kd-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px;}
   .kh-desktop .kd-card-head h2{margin:0; font-size:15.5px; font-weight:700; color:var(--kd-text);}
   .kh-desktop .kd-link{background:none; border:none; color:var(--kd-primary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
@@ -850,6 +852,10 @@
        balance/stats/pie/ledger/room/budget cards, just laid out the way
        every other page here already is). See showFullHomePage(). */
     #appRoot:not(.kh-show-full-home) #homePage{ display:none !important; }
+    /* Loans gets its own kd-styled desktop view (#kdLoansContent, inside
+       the dashboard) instead of the mobile #loanPage stretched wide —
+       hide the mobile version at desktop the same way Home is hidden. */
+    #loanPage{ display:none !important; }
     /* With Home hidden, #appRoot would otherwise still occupy its own
        top/bottom padding (reserved for the mobile header/bottom-nav) as
        an empty gap above the dashboard. Collapse it to nothing until an
@@ -2861,6 +2867,36 @@
     </nav>
   </footer>
   </div>
+
+  <!-- Desktop-only Loans view — same glass-card language as Home instead
+       of the mobile Loans page just stretched wide. Shown in place of
+       #kdHomeContent when currentPage === "loans" at desktop widths; the
+       mobile #loanPage inside #appRoot is force-hidden at desktop (see
+       CSS) so the two never show at once. Data/actions are the exact
+       same globals the mobile page uses (LOANS, netLoanPosition(),
+       openLoanForm(), quickPayEmi(), etc.) — only the markup differs.
+       Populated by renderDesktopLoansPage(), called from renderLoans(). -->
+  <div id="kdLoansContent" style="display:none;">
+    <main class="kd-main">
+      <div class="kd-card-head" style="margin-bottom:16px;">
+        <h2>💰 Loans</h2>
+        <span class="kd-badge" id="kdLoanScopeLabel">Showing regular loans</span>
+      </div>
+      <div class="kd-stats-row" id="kdLoanStatsRow"></div>
+      <div id="kdLoanBanners"></div>
+
+      <div class="kd-card">
+        <div class="kd-card-head" style="flex-wrap:wrap; gap:12px;">
+          <div class="kd-ledger-filters" id="kdLoanFilters" style="margin-bottom:0; flex:1; min-width:220px;"></div>
+          <div style="display:flex; gap:8px; flex-shrink:0;">
+            <button type="button" class="kd-btn kd-btn-primary" onclick="openLoanForm(null, false)">＋ New loan</button>
+            <button type="button" class="kd-btn kd-btn-primary" style="background:var(--kd-secondary); color:var(--kd-on-primary);" onclick="openLoanForm(null, true)">＋ New EMI</button>
+          </div>
+        </div>
+        <div class="kd-loans-grid" id="kdLoansList"></div>
+      </div>
+    </main>
+  </div>
 </div>
 
 <div class="kh-toast" id="toast">Imported</div>
@@ -4045,12 +4081,17 @@
     document.getElementById("termsPage").classList.toggle("active", name === "terms");
     currentPage = name;
     // The dashboard's topbar (search/settings/avatar) is fixed and stays
-    // visible on every page — only its Home content underneath swaps out
-    // for #appRoot's own (already desktop-responsive) page layout. No-op
-    // on mobile, where .kh-desktop is force-hidden by CSS.
-    const kdHomeContentEl = document.getElementById("kdHomeContent");
-    if (kdHomeContentEl && currentUser) kdHomeContentEl.style.display = (name === "home") ? "" : "none";
-    document.getElementById("appRoot").classList.toggle("kh-page-open", name !== "home");
+    // visible on every page. Home and Loans are "dashboard-hosted" — they
+    // render inside #desktopDashboard as kd-styled cards instead of
+    // #appRoot's mobile page stretched wide; every other page still uses
+    // #appRoot's own (already desktop-responsive) layout. No-op on
+    // mobile, where .kh-desktop is force-hidden by CSS.
+    const dashboardHostedPages = { home: "kdHomeContent", loans: "kdLoansContent" };
+    Object.entries(dashboardHostedPages).forEach(([pageName, elId]) => {
+      const el = document.getElementById(elId);
+      if (el && currentUser) el.style.display = (name === pageName) ? "block" : "none";
+    });
+    document.getElementById("appRoot").classList.toggle("kh-page-open", !(name in dashboardHostedPages));
     const kdNavMap = { home: "kdNavHome", loans: "kdNavLoans", budget: "kdNavBudget", insights: "kdNavInsights", settings: "kdNavSettings" };
     document.querySelectorAll(".kd-nav-btn").forEach(b => b.classList.remove("active"));
     if (kdNavMap[name]){
@@ -5773,6 +5814,7 @@
     const el = document.getElementById("loanList");
     if (!list.length){
       el.innerHTML = `<div class="kh-empty">No loans here yet. Tap "＋ New loan" to track one.</div>`;
+      renderDesktopLoansPage();
       return;
     }
     el.innerHTML = [...list].sort((a, b) => (a.dueDate || "9999-99") < (b.dueDate || "9999-99") ? -1 : 1).map(l => {
@@ -5819,6 +5861,133 @@
         </div>
       </div>`;
     }).join("");
+
+    renderDesktopLoansPage();
+  }
+
+  // Desktop-only Loans view (#kdLoansContent) — same data/filter state
+  // (LOANS, loanFilter, netLoanPosition()) and same action functions
+  // (openLoanForm/quickPayEmi/openLoanPayment/addLoanReminder/
+  // deleteLoanUI) as the mobile page above, just laid out as kd-styled
+  // glass cards instead of a mobile page stretched wide. Called at the
+  // end of renderLoans() so every mutation path keeps both in sync
+  // without needing its own call sites.
+  function renderDesktopLoansPage(){
+    const root = document.getElementById("kdLoansContent");
+    if (!root) return;
+
+    const summaryScope = loanFilter === "emi" ? "emi" : "nonEmi";
+    const pos = netLoanPosition(summaryScope);
+    const scopeLabelEl = document.getElementById("kdLoanScopeLabel");
+    if (scopeLabelEl) scopeLabelEl.textContent = summaryScope === "emi" ? "Showing EMI loans" : "Showing regular loans";
+
+    const statsEl = document.getElementById("kdLoanStatsRow");
+    if (statsEl){
+      statsEl.innerHTML = `
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Owed to you</span><span class="kd-stat-icon" style="background:rgba(75,226,119,.14); color:var(--kd-primary)">↙</span></div>
+          <div class="kd-stat-amt" style="color:var(--kd-primary)">${rs(pos.lentOutstanding)}</div>
+        </div>
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">You owe</span><span class="kd-stat-icon" style="background:rgba(255,107,107,.14); color:var(--kd-danger)">↗</span></div>
+          <div class="kd-stat-amt" style="color:var(--kd-danger)">${rs(pos.borrowedOutstanding)}</div>
+        </div>
+        <div class="kd-stat kd-glass">
+          <div class="kd-stat-top"><span class="kd-stat-label">Net position</span><span class="kd-stat-icon" style="background:rgba(124,208,255,.14); color:var(--kd-tertiary)">Σ</span></div>
+          <div class="kd-stat-amt" style="color:${pos.net>=0?"var(--kd-primary)":"var(--kd-danger)"}">${pos.net>=0?"+":"−"}${rs(Math.abs(pos.net))}</div>
+        </div>
+      `;
+    }
+
+    const bannersEl = document.getElementById("kdLoanBanners");
+    if (bannersEl){
+      const today = todayStr();
+      const activeEmis = LOANS.filter(l => l.isEmi && l.emiAmount && loanStatus(l) !== "Cleared");
+      const dueSoon = LOANS.filter(l => {
+        if (!l.dueDate || loanStatus(l) === "Cleared") return false;
+        return daysBetween(today, l.dueDate) <= 7;
+      });
+      let html = "";
+      if (activeEmis.length){
+        const totalMonthly = activeEmis.reduce((s, l) => s + l.emiAmount, 0);
+        html += `<div class="kd-card kd-glass" style="margin-bottom:12px; padding:14px 18px; display:flex; align-items:center; gap:10px; border-color:var(--kd-border-hi);">💸 <b>${rs(totalMonthly)}</b>&nbsp;/month committed across ${activeEmis.length} EMI${activeEmis.length===1?"":"s"}</div>`;
+      }
+      if (dueSoon.length){
+        html += `<div class="kd-card kd-glass" style="margin-bottom:12px; padding:14px 18px; border-color:rgba(255,107,107,.35);">
+          <div style="font-weight:700; margin-bottom:8px; color:var(--kd-danger);">⚠ ${dueSoon.length} loan${dueSoon.length===1?"":"s"} due soon</div>
+          ${dueSoon.map(l => {
+            const days = Math.round(daysBetween(today, l.dueDate));
+            const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
+            return `<div class="kd-mini-row" style="padding:6px 0;">
+              <div style="flex:1;">${l.isEmi ? "EMI: " : ""}${l.person} <span style="color:var(--kd-dim);">(${when})</span></div>
+              ${l.isEmi && l.emiAmount ? `<button type="button" class="kd-btn kd-btn-primary" style="padding:5px 12px; font-size:11.5px;" onclick="quickPayEmi('${l.id}')">⚡ Pay ${rs(l.emiAmount)}</button>` : ""}
+            </div>`;
+          }).join("")}
+        </div>`;
+      }
+      bannersEl.innerHTML = html;
+    }
+
+    const filtersEl = document.getElementById("kdLoanFilters");
+    if (filtersEl){
+      const filters = [["all","All"],["lent","Owed to me"],["borrowed","I owe"],["emi","EMI"]];
+      filtersEl.innerHTML = filters.map(([f,label]) =>
+        `<button type="button" class="${loanFilter===f?"active":""}" onclick="setLoanFilter('${f}')">${label}</button>`
+      ).join("");
+    }
+
+    const listEl = document.getElementById("kdLoansList");
+    if (listEl){
+      const list = LOANS.filter(l => {
+        if (loanFilter === "emi") return !!l.isEmi;
+        if (l.isEmi) return false;
+        if (loanFilter === "lent" || loanFilter === "borrowed") return l.type === loanFilter;
+        return true;
+      });
+      if (!list.length){
+        listEl.innerHTML = `<div class="kd-empty">No loans here yet. Use "＋ New loan" above to track one.</div>`;
+      } else {
+        listEl.innerHTML = [...list].sort((a, b) => (a.dueDate || "9999-99") < (b.dueDate || "9999-99") ? -1 : 1).map(l => {
+          const { paid, interest, outstanding } = loanTotals(l);
+          const status = loanStatus(l);
+          const meta = LOAN_STATUS_META[status];
+          const typeLabel = l.type === "lent" ? "Owed to me" : "I owe";
+          const typeColor = l.type === "lent" ? "var(--kd-primary)" : "var(--kd-danger)";
+          const paidCount = emiInstallmentsPaid(l);
+          const emiMeta = l.isEmi
+            ? `${paidCount ? ` · ${Math.min(paidCount, l.emiTenure || paidCount)}${l.emiTenure ? `/${l.emiTenure}` : ""} paid` : ""}${l.dueDate && status !== "Cleared" ? ` · Next ${fmtDate(l.dueDate)}` : ""}`
+            : "";
+          const emiProgressPct = l.isEmi && l.emiTenure ? Math.min(100, (paidCount / l.emiTenure) * 100) : null;
+          const payoff = status !== "Cleared" ? emiPayoffDate(l) : null;
+          return `<div class="kd-card kd-loan-card">
+            <div class="kd-card-head" style="margin-bottom:10px;">
+              <div>
+                <div style="font-weight:700; font-size:14.5px;">${l.person}</div>
+                <div style="font-size:12px; color:${typeColor};">${typeLabel}${l.isEmi ? ` <span class="kd-pill kd-pill-jade" style="margin-left:4px;">EMI</span>` : ""}</div>
+              </div>
+              <span class="kd-pill" style="color:${meta.color}; background:${meta.bg};">${status}</span>
+            </div>
+            ${l.isEmi ? `
+              <div class="kd-mini-row" style="border-bottom:none; padding-top:0;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Monthly payment</div><b>${rs(l.emiAmount)}<span style="font-size:11px; color:var(--kd-dim); font-weight:500;">/mo</span></b></div>
+              <div class="kd-budget-track" style="margin:0 0 10px;"><div class="kd-budget-fill" style="width:${emiProgressPct!==null?emiProgressPct:0}%; background:${status==="Cleared"?"var(--kd-primary)":"var(--kd-secondary)"};"></div></div>
+            ` : ""}
+            <div class="kd-mini-row" style="border-bottom:none; padding:4px 0;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Principal</div><span>${rs(l.principal)}</span></div>
+            ${interest > 0.5 ? `<div class="kd-mini-row" style="border-bottom:none; padding:4px 0;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Interest so far</div><span>${rs(interest)}</span></div>` : ""}
+            <div class="kd-mini-row" style="border-bottom:none; padding:4px 0;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Paid</div><span>${rs(paid)}</span></div>
+            <div class="kd-mini-row" style="border-bottom:none; padding:4px 0 10px;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Outstanding</div><span style="color:${outstanding>0.5?typeColor:"var(--kd-primary)"}; font-weight:700;">${rs(outstanding)}</span></div>
+            <div style="font-size:11px; color:var(--kd-dim); margin-bottom:10px;">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}${payoff ? ` · Payoff ~${fmtDate(payoff)}` : ""}</div>
+            ${l.notes ? `<div style="font-size:12px; color:var(--kd-dim); margin-bottom:10px; font-style:italic;">${l.notes}</div>` : ""}
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kd-btn kd-btn-primary" style="padding:6px 12px; font-size:11.5px;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay</button>` : ""}
+              ${outstanding > 0.5 ? `<button type="button" class="kd-chip-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
+              ${l.dueDate && status !== "Cleared" ? `<button type="button" class="kd-chip-btn" onclick="addLoanReminder('${l.id}')">📅 Reminder</button>` : ""}
+              <button type="button" class="kd-chip-btn" onclick="openLoanForm('${l.id}')">✎ Edit</button>
+              <button type="button" class="kd-chip-btn" style="color:var(--kd-danger);" onclick="deleteLoanUI('${l.id}')">✕ Delete</button>
+            </div>
+          </div>`;
+        }).join("");
+      }
+    }
   }
 
   function renderLoanDashCard(){
