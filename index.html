@@ -282,10 +282,15 @@
   .kh-about-link-row{display:flex; align-items:center; justify-content:space-between; padding:10px 2px; border-bottom:1px dashed var(--border); font-size:12.5px;}
   .kh-about-link-row:last-child{border-bottom:none;}
   .kh-about-link-row span:first-child{color:var(--dim);}
-  button.kh-about-link-row{width:100%; background:none; border:none; border-bottom:1px dashed var(--border); font-family:inherit; color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent;}
-  button.kh-about-link-row:last-child{border-bottom:none;}
-  button.kh-about-link-row span:first-child{color:var(--text); font-weight:600;}
-  button.kh-about-link-row span:last-child{color:var(--dim);}
+  .kh-support-card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2px 14px; margin-bottom:14px;}
+  button.kh-support-row{display:flex; align-items:center; gap:14px; width:100%; padding:16px 0; border:none; border-bottom:1px solid var(--border); background:none; font-family:inherit; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; color:inherit;}
+  button.kh-support-row:last-child{border-bottom:none;}
+  .kh-support-icon{width:48px; height:48px; border-radius:14px; background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .kh-support-icon svg{width:22px; height:22px;}
+  .kh-support-mid{flex:1; min-width:0;}
+  .kh-support-title{font-size:15px; font-weight:700; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif;}
+  .kh-support-sub{font-size:12px; color:var(--dim); margin-top:3px;}
+  .kh-support-chevron{color:var(--dim); font-size:19px; flex-shrink:0;}
   .kh-about-footer{text-align:center; font-size:11px; color:var(--dim); margin-top:18px; line-height:1.6;}
 
   /* Settings: toggle rows (Appearance / Notifications / Calendar) */
@@ -960,6 +965,7 @@
         <button class="kh-settings-tab" id="settingsTabBtnRoomlayout" onclick="showSettingsDetail('roomlayout')"><span class="kh-settings-tab-icon">🏠</span><span class="kh-settings-tab-label">Room Layout</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnBudgetorder" onclick="showSettingsDetail('budgetorder')"><span class="kh-settings-tab-icon">📊</span><span class="kh-settings-tab-label">Budget Order</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnData" onclick="showSettingsDetail('data')"><span class="kh-settings-tab-icon">🗄️</span><span class="kh-settings-tab-label">Data</span><span class="kh-settings-tab-chevron">›</span></button>
+        <button class="kh-settings-tab" id="settingsTabBtnSupport" onclick="showSettingsDetail('support')"><span class="kh-settings-tab-icon">🎧</span><span class="kh-settings-tab-label">Support</span><span class="kh-settings-tab-chevron">›</span></button>
         <button class="kh-settings-tab" id="settingsTabBtnAbout" onclick="showSettingsDetail('about')"><span class="kh-settings-tab-icon">ℹ️</span><span class="kh-settings-tab-label">About</span><span class="kh-settings-tab-chevron">›</span></button>
       </div>
     </div>
@@ -1231,6 +1237,68 @@
       </div>
     </div>
 
+    <!-- ===================== SUPPORT ===================== -->
+    <div class="kh-settings-section" id="settingsSectionSupport">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🎧</span>
+        <div class="kh-ssh-text">
+          <h3>Support</h3>
+          <p>Get help, send feedback, or read the fine print.</p>
+        </div>
+      </div>
+      <div class="kh-support-card">
+        <button type="button" class="kh-support-row" onclick="window.open('https://wa.me/YOUR_WHATSAPP_NUMBER', '_blank', 'noopener')">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9c0 1.6.42 3.1 1.15 4.4L3 21l4.7-1.13A8.96 8.96 0 0 0 12 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Contact Us</span>
+            <span class="kh-support-sub">Get help on WhatsApp</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+        <button type="button" class="kh-support-row" onclick="window.location.href='mailto:sah.manish868@gmail.com?subject=Kharch%C4%81%20feedback'">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3 3 10.5l7 2.7L15.5 21 21 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 13.2 21 3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Share Feedback</span>
+            <span class="kh-support-sub">Tell us what to fix or add</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+        <button type="button" class="kh-support-row" onclick="showTermsPage()">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12h6M9 16h6M9 8h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Terms And Conditions</span>
+            <span class="kh-support-sub">Read service terms</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+        <button type="button" class="kh-support-row" onclick="showPrivacyPage()">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 4.5 6v6c0 4.5 3.2 7.9 7.5 9 4.3-1.1 7.5-4.5 7.5-9V6L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Privacy Policy</span>
+            <span class="kh-support-sub">How your data is handled</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+        <button type="button" class="kh-support-row" onclick="showSecurityPage()">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4.5" y="10.5" width="15" height="10" rx="1.6" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Security Architecture</span>
+            <span class="kh-support-sub">How your data is protected</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+        <button type="button" class="kh-support-row" onclick="showBikramSambatPage()">
+          <span class="kh-support-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="5" width="16" height="15" rx="1.6" stroke="currentColor" stroke-width="1.8"/><path d="M4 9.5h16M8 3v3.5M16 3v3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="kh-support-mid">
+            <span class="kh-support-title">Bikram Sambat Engine</span>
+            <span class="kh-support-sub">How Nepali dates are converted</span>
+          </span>
+          <span class="kh-support-chevron">›</span>
+        </button>
+      </div>
+      <p class="kh-cat-hint" style="margin-top:4px;">Replace the WhatsApp number in the code with your own before publishing — it's a placeholder for now.</p>
+    </div>
+
     <!-- ===================== ABOUT ===================== -->
     <div class="kh-settings-section" id="settingsSectionAbout">
       <div class="kh-about-hero">
@@ -1347,16 +1415,6 @@
             <p class="name">Rohit Mahato</p>
             <a class="email" href="mailto:rohitkumarmahato60@gmail.com">rohitkumarmahato60@gmail.com</a>
           </div>
-        </div>
-      </div>
-
-      <div class="kh-about-block">
-        <h4>Legal</h4>
-        <div class="kh-about-links">
-          <button type="button" class="kh-about-link-row" onclick="showPrivacyPage()"><span>Privacy Policy</span><span>›</span></button>
-          <button type="button" class="kh-about-link-row" onclick="showSecurityPage()"><span>Security Architecture</span><span>›</span></button>
-          <button type="button" class="kh-about-link-row" onclick="showBikramSambatPage()"><span>Bikram Sambat Engine</span><span>›</span></button>
-          <button type="button" class="kh-about-link-row" onclick="showTermsPage()"><span>Terms of Service</span><span>›</span></button>
         </div>
       </div>
 
@@ -3315,7 +3373,7 @@
   }
 
   function setSettingsTab(tab){
-    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "roomlayout", "budgetorder", "data", "about"].forEach(t => {
+    ["account", "appearance", "notifications", "backup", "calendar", "wallets", "categories", "layout", "roomlayout", "budgetorder", "data", "support", "about"].forEach(t => {
       document.getElementById("settingsSection" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
       document.getElementById("settingsTabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === tab);
     });
