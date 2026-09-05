@@ -761,17 +761,25 @@
 
   .kh-desktop .kd-fab{position:fixed; bottom:24px; right:32px; z-index:30; background:var(--kd-primary); color:var(--kd-on-primary); border:none; border-radius:999px; padding:14px 22px; font-family:inherit; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 10px 30px rgba(75,226,119,.4);}
   .kh-desktop .kd-fab:hover{filter:brightness(1.08);}
-  .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--kd-border); color:var(--kd-dim); font-size:12px;}
-  .kh-desktop .kd-footer-brand{display:flex; align-items:center; gap:10px;}
-  .kh-desktop .kd-footer-logo{width:24px; height:24px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .kh-desktop .kd-footer-logo svg{width:100%; height:100%; display:block;}
-  .kh-desktop .kd-footer-info{display:flex; flex-direction:column; gap:3px;}
-  .kh-desktop .kd-footer-name{font-size:14px; font-weight:800; letter-spacing:-.01em; color:var(--kd-text);}
-  .kh-desktop .kd-footer-tagline{font-size:11.5px; color:var(--kd-dim);}
-  .kh-desktop .kd-footer-nav{display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
-  .kh-desktop .kd-footer-link{color:var(--kd-dim); font-size:12.5px; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; background:none; border:none; font-family:inherit;}
-  .kh-desktop .kd-footer-link:hover{color:var(--kd-text);}
-  @media (max-width:900px){ .kh-desktop .kd-footer{justify-content:center; text-align:center;} .kh-desktop .kd-footer-nav{justify-content:center;} }
+  .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--border); color:var(--dim); font-size:12px;}
+  .kd-footer-brand{display:flex; align-items:center; gap:10px;}
+  .kd-footer-logo{width:24px; height:24px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .kd-footer-logo svg{width:100%; height:100%; display:block;}
+  .kd-footer-info{display:flex; flex-direction:column; gap:3px;}
+  .kd-footer-name{font-size:14px; font-weight:800; letter-spacing:-.01em; color:var(--text);}
+  .kd-footer-tagline{font-size:11.5px; color:var(--dim);}
+  .kd-footer-nav{display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
+  .kd-footer-link{color:var(--dim); font-size:12.5px; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; background:none; border:none; font-family:inherit;}
+  .kd-footer-link:hover{color:var(--text);}
+  @media (max-width:900px){ .kh-desktop .kd-footer, .kd-page-footer{justify-content:center; text-align:center;} .kd-footer-nav{justify-content:center;} }
+  .kd-page-footer{display:none;}
+  @media (min-width:1024px){
+    #appRoot.kh-page-open .kd-page-footer, #appRoot.kh-show-full-home .kd-page-footer{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      margin-top:36px; padding-top:24px; border-top:1px solid var(--border);
+      color:var(--dim); font-size:12px;
+    }
+  }
 
   /* The actual mobile/desktop switch.
      At desktop widths the dashboard replaces only the mobile top bar and
@@ -1891,6 +1899,33 @@
       </div>
     </div>
   </div>
+
+  <footer class="kd-page-footer">
+    <div class="kd-footer-brand">
+      <div class="kd-footer-logo">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+          <title>Kharchā icon</title>
+          <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+          <g transform="rotate(-90 256 256)">
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-dashoffset="0" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24" stroke-linecap="butt"/>
+          </g>
+          <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
+        </svg>
+      </div>
+      <div class="kd-footer-info">
+        <span class="kd-footer-name">Kharchā</span>
+        <span class="kd-footer-tagline">© 2026 Kharchā Financial. Local-first, private financial stewardship for Nepal.</span>
+      </div>
+    </div>
+    <nav class="kd-footer-nav">
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showPrivacyPage();">Privacy Policy</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showSecurityPage();">Security Architecture</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showBikramSambatPage();">Bikram Sambat Engine</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showTermsPage();">Terms of Service</a>
+    </nav>
+  </footer>
 
   <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
