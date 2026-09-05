@@ -1553,6 +1553,218 @@
     </div>
   </div>
 
+  <div class="kh-page" id="privacyPage">
+    <div class="kh-budget-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Legal</p>
+      <h2>Privacy Policy</h2>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📱</span>
+        <div class="kh-ssh-text">
+          <h3>What stays on your device</h3>
+          <p>Kharchā is built local-first. Your transactions, balances, loans, and budgets are always kept in a private copy on this device, so the app keeps working — and stays visible only to you — even offline.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">👤</span>
+        <div class="kh-ssh-text">
+          <h3>Your account & sync</h3>
+          <p>Signing in with Google lets your data follow you across devices. It's stored under your own private row in our database, protected so that only your signed-in account can ever read or write it — nobody else, including other users, can see it.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">💬</span>
+        <div class="kh-ssh-text">
+          <h3>AI-assisted statement scanning</h3>
+          <p>"Open Claude to scan a statement" opens a separate Claude chat in a new tab so it can read a screenshot you choose to upload there — Kharchā itself never uploads your photos anywhere. You paste the resulting JSON back in yourself.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">☁️</span>
+        <div class="kh-ssh-text">
+          <h3>Optional Google Drive backup</h3>
+          <p>If you turn on Drive sync, a backup file is written to a private, app-only space in your Drive that no other app (and no one browsing your Drive) can see. It's entirely optional and off by default.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🗑️</span>
+        <div class="kh-ssh-text">
+          <h3>Your control</h3>
+          <p>Export a full backup or a CSV/PDF statement anytime from Settings, or clear all your data with one tap. Signing out removes your session from this device; deleting your account removes your data from our servers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kh-page" id="securityPage">
+    <div class="kh-budget-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Trust &amp; safety</p>
+      <h2>Security Architecture</h2>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🔑</span>
+        <div class="kh-ssh-text">
+          <h3>Authentication</h3>
+          <p>Sign-in runs on Google's own OAuth flow — Kharchā never sees or stores your Google password. The signed ID token Google issues is what proves who you are.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🧱</span>
+        <div class="kh-ssh-text">
+          <h3>Per-account data isolation</h3>
+          <p>Your data lives in its own database row, locked down with Row Level Security so only your authenticated account can read or write it — this is enforced by the database itself, not just the app's UI.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📴</span>
+        <div class="kh-ssh-text">
+          <h3>Local-first fallback</h3>
+          <p>A per-device copy of your data always stays in this browser's local storage as an offline cache — so a patchy connection never means lost work, and the app keeps functioning without a network round-trip.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🏠</span>
+        <div class="kh-ssh-text">
+          <h3>Shared rooms</h3>
+          <p>Roommate splitting only ever shares the room-specific fields (shared expenses, balances, rent) with people you've explicitly invited by email — your personal transactions, loans, and budgets never leave your own private data.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🚫</span>
+        <div class="kh-ssh-text">
+          <h3>No ads, no data selling</h3>
+          <p>Kharchā doesn't run ads and doesn't sell or share your financial data with advertisers or third parties.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kh-page" id="bikramSambatPage">
+    <div class="kh-budget-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Nepali calendar</p>
+      <h2>Bikram Sambat Engine</h2>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🔄</span>
+        <div class="kh-ssh-text">
+          <h3>Automatic AD ↔ BS conversion</h3>
+          <p>Every date you enter in the worldwide (AD) calendar is converted to the Nepali Bikram Sambat date automatically — no manual entry needed. You can flip which calendar leads in the transaction list from Settings → Calendar.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📆</span>
+        <div class="kh-ssh-text">
+          <h3>Spending grouped by Nepali month</h3>
+          <p>Budgets, the month-over-month comparison in Insights, and the Nepali-month pie chart on Home all group your transactions by real BS months (Baisakh through Chaitra) — the way spending is actually thought about in Nepal.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🏠</span>
+        <div class="kh-ssh-text">
+          <h3>BS-based due dates</h3>
+          <p>Room rent and recurring bills are set by a day of the Nepali month (e.g. "1 Bhadra"), and the engine rolls each due date forward to the next BS month automatically once it's passed.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">ℹ️</span>
+        <div class="kh-ssh-text">
+          <h3>Accuracy note</h3>
+          <p>Conversions use the established month-start dates for the current era (roughly BS 2075–2091 / AD 2018–2035). Month and year are always reliable; the day-of-month can occasionally be off by one right at a month boundary.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kh-page" id="termsPage">
+    <div class="kh-budget-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Legal</p>
+      <h2>Terms of Service</h2>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">📋</span>
+        <div class="kh-ssh-text">
+          <h3>Using Kharchā</h3>
+          <p>Kharchā is a personal finance tracker provided to help you log and understand your own spending. It's offered as-is, without warranty, and isn't a substitute for professional financial or accounting advice.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🗂️</span>
+        <div class="kh-ssh-text">
+          <h3>Your data & responsibility</h3>
+          <p>You own everything you enter into Kharchā. You're responsible for keeping your sign-in secure and for the accuracy of the transactions, budgets, and figures you record.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">💰</span>
+        <div class="kh-ssh-text">
+          <h3>Not financial advice</h3>
+          <p>Budget pacing, EMI calculations, and spending insights are estimates meant to help you plan — they don't constitute financial, tax, or legal advice.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="kh-insight-card">
+      <div class="kh-settings-section-head">
+        <span class="kh-ssh-icon">🔁</span>
+        <div class="kh-ssh-text">
+          <h3>Changes</h3>
+          <p>Features and these terms may change as Kharchā improves. Continuing to use the app after an update means you accept the current version of these terms.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="kh-panel kh-panel-large" id="panelLoanForm" onclick="event.stopPropagation()">
     <div class="kh-panel-handle"></div>
     <button type="button" class="kh-panel-close" onclick="showLoanPage()" aria-label="Close">&#10005;</button>
@@ -1998,10 +2210,10 @@
       </div>
     </div>
     <nav class="kd-footer-nav">
-      <a href="#privacy" class="kd-footer-link">Privacy Policy</a>
-      <a href="#security" class="kd-footer-link">Security Architecture</a>
-      <a href="#bikram-sambat" class="kd-footer-link">Bikram Sambat Engine</a>
-      <a href="#demo" class="kd-footer-link">Terms of Service</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showPrivacyPage();">Privacy Policy</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showSecurityPage();">Security Architecture</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showBikramSambatPage();">Bikram Sambat Engine</a>
+      <a href="#" class="kd-footer-link" onclick="event.preventDefault(); showTermsPage();">Terms of Service</a>
     </nav>
   </footer>
   </div>
@@ -3183,6 +3395,10 @@
     document.getElementById("recurringPage").classList.toggle("active", name === "recurring");
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     document.getElementById("settingsPage").classList.toggle("active", name === "settings");
+    document.getElementById("privacyPage").classList.toggle("active", name === "privacy");
+    document.getElementById("securityPage").classList.toggle("active", name === "security");
+    document.getElementById("bikramSambatPage").classList.toggle("active", name === "bikramsambat");
+    document.getElementById("termsPage").classList.toggle("active", name === "terms");
     currentPage = name;
     // The dashboard's topbar (search/settings/avatar) is fixed and stays
     // visible on every page — only its Home content underneath swaps out
@@ -3206,7 +3422,7 @@
       const label = name === "loans" ? "Add loan" : (name === "room" ? "Add shared expense" : "Add transaction manually");
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = (name === "budget" || name === "recurring" || name === "insights" || name === "settings") ? "none" : "";
+      fab.style.display = (name === "budget" || name === "recurring" || name === "insights" || name === "settings" || name === "privacy" || name === "security" || name === "bikramsambat" || name === "terms") ? "none" : "";
     }
   }
 
@@ -3254,6 +3470,30 @@
     } else {
       showSettingsMenu();
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showPrivacyPage(){
+    closePanel();
+    showPage("privacy");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showSecurityPage(){
+    closePanel();
+    showPage("security");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showBikramSambatPage(){
+    closePanel();
+    showPage("bikramsambat");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showTermsPage(){
+    closePanel();
+    showPage("terms");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
