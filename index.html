@@ -73,6 +73,7 @@
   .kh-top-mark{width:34px; height:34px; flex-shrink:0;}
   .kh-top-mark svg{width:100%; height:100%; display:block;}
   .kh-eyebrow{font-size:11px; color:var(--dim); margin:0 0 2px;}
+  .kh-guest-badge{display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.04em; color:var(--amber); background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:999px; padding:1px 7px; margin-left:4px; vertical-align:middle;}
   .kh-title{font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:700; margin:0;}
   .kh-upload-btn{display:flex; align-items:center; gap:6px; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
   .kh-top-btns{display:flex; gap:8px; flex-shrink:0;}
@@ -1137,7 +1138,7 @@
         <a href="#kl-demo">Demo</a>
       </nav>
       <div class="kl-header-actions">
-        <button type="button" class="kl-btn-ghost" onclick="document.getElementById('kl-demo').scrollIntoView({behavior:'smooth'})">Explore Demo</button>
+        <button type="button" class="kl-btn-ghost" onclick="startGuestMode()">⚡ Try Guest Mode</button>
         <div id="gSignInDivLandingHeader"></div>
       </div>
     </div>
@@ -1160,7 +1161,7 @@
         </div>
         <div class="kl-cta-row">
           <div id="gSignInDivLandingHero"></div>
-          <button type="button" class="kl-btn-secondary" onclick="document.getElementById('kl-demo').scrollIntoView({behavior:'smooth'})">⚡ Explore Demo</button>
+          <button type="button" class="kl-btn-secondary" onclick="startGuestMode()">⚡ Try Guest Mode</button>
         </div>
         <p class="kl-fine-print">Free to use · Sign in with Google · Your data stays on your device by default.</p>
       </div>
@@ -1364,7 +1365,7 @@
         </svg>
       </div>
       <div>
-        <p class="kh-eyebrow">Multi-wallet tracker</p>
+        <p class="kh-eyebrow">Multi-wallet tracker <span class="kh-guest-badge" id="guestBadgeMobile" style="display:none;">GUEST</span></p>
         <h1 class="kh-title">Kharchā</h1>
       </div>
     </div>
@@ -2776,7 +2777,7 @@
     <div class="kd-brand">
       <div class="kd-brand-mark"><span class="kd-brand-ring"></span></div>
       <div class="kd-brand-text">
-        <div class="kd-brand-row"><span class="kd-brand-name">Kharchā</span><span class="kd-badge" id="kdBsMonth">—</span></div>
+        <div class="kd-brand-row"><span class="kd-brand-name">Kharchā</span><span class="kd-badge" id="kdBsMonth">—</span><span class="kd-badge" id="guestBadgeDesktop" style="display:none; color:var(--kd-secondary); border-color:var(--kd-secondary);">GUEST</span></div>
         <span class="kd-brand-sub">Multi-wallet tracker</span>
       </div>
     </div>
@@ -3056,6 +3057,16 @@
   // person dismisses it. Persisted per-account (see saveCurrentUser()/
   // applyUserDataSnapshot()) so it doesn't reappear on every sign-in.
   let ONBOARDING_DISMISSED = false;
+
+  // Guest Mode — a real, local-only session with no Google sign-in. Data
+  // lives under its own localStorage key (via dataKeyFor(GUEST_EMAIL)),
+  // never touches Supabase (supabaseUserId stays null, which every
+  // Supabase call site already guards on), and isn't resumed on the next
+  // visit (see signIn()'s persistSession option) — landing on the
+  // marketing page fresh each time, while the guest's own edits are still
+  // there if they choose "Try Guest Mode" again on this device.
+  let isGuestMode = false;
+  const GUEST_EMAIL = "guest@local.kharcha";
 
   function normalizeRoomLayout(saved){
     if (!Array.isArray(saved)) return [...DEFAULT_ROOM_LAYOUT];
@@ -4936,6 +4947,71 @@
     document.getElementById("demoNote").textContent = "Demo data loaded — this is only visible to you, delete it any time with the 🗑 button.";
     saveCurrentUser();
     renderAll();
+  }
+
+  // A separate, distinct sample dataset for Guest Mode — deliberately not
+  // the same DEMO_SEED_TRANSACTIONS used by "load a demo dataset" in
+  // Settings, so a guest sees their own fictional-but-realistic month
+  // rather than the developer's own test data. Covers every dashboard
+  // card (wallets, loans incl. one EMI, a budget, recurring bills, and a
+  // shared room) so Guest Mode actually shows off the whole app.
+  const GUEST_SEED_TRANSACTIONS = [
+    { date:"2026-08-01", vendor:"Tech Solutions Pvt Ltd — Salary", category:"Transfer In", type:"in", amount:45000, account:"Global IME Bank" },
+    { date:"2026-08-02", vendor:"Room Rent to Landlord", category:"Rent", type:"out", amount:12000, account:"Global IME Bank" },
+    { date:"2026-08-02", vendor:"WorldLink Internet", category:"Bills & Payments", type:"out", amount:1700, account:"eSewa" },
+    { date:"2026-08-03", vendor:"Bhatbhateni Supermarket", category:"Groceries", type:"out", amount:2350, account:"Global IME Bank" },
+    { date:"2026-08-04", vendor:"Himalayan Java Coffee", category:"Food & Drink", type:"out", amount:420, account:"eSewa" },
+    { date:"2026-08-05", vendor:"Sajha Yatayat Bus Pass", category:"Transport", type:"out", amount:600, account:"eSewa" },
+    { date:"2026-08-06", vendor:"NTC Mobile Recharge", category:"Bills & Payments", type:"out", amount:500, account:"eSewa" },
+    { date:"2026-08-07", vendor:"Daraz Order — Shoes", category:"Shopping", type:"out", amount:2800, account:"Global IME Bank" },
+    { date:"2026-08-09", vendor:"Freelance Payment — Upwork", category:"Transfer In", type:"in", amount:8000, account:"Global IME Bank" },
+    { date:"2026-08-10", vendor:"Wai Wai Corner", category:"Food & Drink", type:"out", amount:180, account:"eSewa" },
+    { date:"2026-08-12", vendor:"Foodmandu Delivery", category:"Food & Drink", type:"out", amount:850, account:"eSewa" },
+    { date:"2026-08-14", vendor:"Local Tarkari Pasal", category:"Groceries", type:"out", amount:960, account:"Global IME Bank" },
+    { date:"2026-08-16", vendor:"Gym Membership", category:"Bills & Payments", type:"out", amount:2000, account:"Global IME Bank" },
+    { date:"2026-08-18", vendor:"eSewa Top-up", category:"Wallet Top-up", type:"out", amount:1000, account:"Global IME Bank" },
+    { date:"2026-08-20", vendor:"Petrol — Sajha Fuel Depot", category:"Transport", type:"out", amount:1500, account:"eSewa" },
+    { date:"2026-08-22", vendor:"Movie Night — QFX Cinemas", category:"Food & Drink", type:"out", amount:750, account:"eSewa" },
+    { date:"2026-08-25", vendor:"Bhatbhateni Supermarket", category:"Groceries", type:"out", amount:1780, account:"Global IME Bank" },
+    { date:"2026-08-27", vendor:"Sister — Dashain Gift", category:"Transfer Out", type:"out", amount:3000, account:"Global IME Bank" },
+  ];
+  const GUEST_SEED_BALANCES = { "eSewa": 2450, "Global IME Bank": 28500 };
+
+  async function startGuestMode(){
+    isGuestMode = true;
+    const guestUser = { name: "Guest", email: GUEST_EMAIL, picture: "" };
+    await signIn(guestUser, { persistSession: false });
+    // Only seed on the very first visit to Guest Mode on this device —
+    // if they've been here before (and maybe edited things), loadUserData()
+    // inside signIn() already restored that instead.
+    if (!TRANSACTIONS.length && ACCOUNT_LIST.length <= 1 && !LOANS.length){
+      TRANSACTIONS = JSON.parse(JSON.stringify(GUEST_SEED_TRANSACTIONS));
+      nextTxId = 1;
+      TRANSACTIONS.forEach(t => { t.id = "tx" + (nextTxId++); });
+      BALANCES = { ...GUEST_SEED_BALANCES };
+      ensureAccount("Global IME Bank");
+      LOANS = [
+        { id: "loan1", person: "Roommate Sabin", type: "lent", principal: 3000, dateGiven: "2026-08-05", payments: [], isEmi: false },
+        { id: "loan2", person: "Bank EMI — Laptop", type: "borrowed", principal: 80000, dateGiven: "2026-04-01", payments: [], isEmi: true, emiAmount: 7500, emiTenure: 12, interestRate: 14, interestType: "flat", dueDate: "2026-09-05" },
+      ];
+      nextLoanId = 3;
+      BUDGET_OVERALL = 35000;
+      RECURRING = [
+        { id: "rec1", name: "WorldLink Internet", category: "Bills & Payments", amount: 1700, dueDay: 2, account: "eSewa" },
+        { id: "rec2", name: "Gym Membership", category: "Bills & Payments", amount: 2000, dueDay: 16, account: "Global IME Bank" },
+      ];
+      nextRecurringId = 3;
+      ROOMMATES = ["Me", "Sabin", "Prakriti"];
+      ROOM_EXPENSES = [
+        { id: "rx1", date: "2026-08-02", desc: "Shared groceries", category: "Groceries", amount: 1800, paidBy: "Me", splitAmong: ["Me", "Sabin", "Prakriti"] },
+        { id: "rx2", date: "2026-08-15", desc: "WiFi router replacement", category: "Bills & Payments", amount: 3600, paidBy: "Sabin", splitAmong: ["Me", "Sabin", "Prakriti"] },
+      ];
+      nextRoomExpenseId = 3;
+      saveCurrentUser();
+      renderAll();
+    }
+    document.getElementById("demoNote").innerHTML = "🎭 You're in Guest Mode — this sample data lives only in this browser. Sign in with Google any time to keep your own data permanently.";
+    showToast("Guest Mode — your changes stay on this device only");
   }
 
   function addCategory(){
@@ -8388,9 +8464,11 @@
     await signIn(user);
   }
 
-  async function signIn(user){
+  async function signIn(user, { persistSession = true } = {}){
     currentUser = user;
-    try{ localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user)); }catch(e){}
+    if (persistSession){
+      try{ localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user)); }catch(e){}
+    }
 
     document.getElementById("authScreen").style.display = "none";
     document.getElementById("landingPage").style.display = "none";
@@ -8398,6 +8476,8 @@
     document.getElementById("desktopDashboard").style.display = "block";
     setActiveNav(currentPage, true);
     renderAccountAvatar(user);
+    document.getElementById("guestBadgeMobile").style.display = isGuestMode ? "inline" : "none";
+    document.getElementById("guestBadgeDesktop").style.display = isGuestMode ? "inline-flex" : "none";
 
     const headerImg = document.getElementById("headerAvatarImg");
     const headerFallback = document.getElementById("headerAvatarFallback");
@@ -8446,6 +8526,7 @@
     stopRealtimeSync();
     stopRoomRealtimeSync();
     currentRoomId = null;
+    isGuestMode = false;
     const sb = getSb();
     if (sb) sb.auth.signOut().catch(() => {});
     supabaseUserId = null;
