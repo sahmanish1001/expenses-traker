@@ -595,10 +595,15 @@
       max-width:720px; margin-left:auto; margin-right:auto;
     }
 
-    /* Loans page reads as a centered column on wider screens, same idea
-       as the panels above — full width would look sparse. */
+    /* Loans page: the summary/toolbar/calculator stay a readable centered
+       column, but the loan list itself gets the full page width as a
+       responsive grid (below) — one loan per row was wasting most of a
+       wide desktop screen. */
     #loanPage{margin-top:18px;}
     #loanPage > *{max-width:720px; margin-left:auto; margin-right:auto;}
+    #loanPage > #loanList{max-width:none;}
+    #loanList{display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:12px; align-items:start;}
+    .kh-loan-card{margin-bottom:0;}
 
     /* Filter chips + new-loan buttons sit in one row instead of stacking,
        and the buttons no longer stretch edge-to-edge like on mobile. */
@@ -606,6 +611,15 @@
     .kh-loan-toolbar .kh-loan-filter{flex:1;}
     .kh-loan-new-row{flex-shrink:0;}
     .kh-loan-new-row button{flex:0 0 auto; padding:10px 18px;}
+
+    /* Same idea as the loan list above: Budget's category rows are each a
+       self-contained bordered card (like a loan card), so they can sit
+       two-to-a-line on a wide screen instead of one full-width row each.
+       Room's expense list and Recurring's list use plain dashed-divider
+       rows (.kh-row) instead of individual cards — those stay single
+       column since a grid would break the divider styling. */
+    #budgetCatList{display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:12px; align-items:start;}
+    .kh-budget-row{margin-bottom:0;}
   }
   @media (min-width:1100px){
     .kh-app{padding-left:40px;padding-right:40px;}
@@ -799,7 +813,14 @@
   .kd-footer-link:hover{color:var(--text);}
   @media (max-width:900px){ .kh-desktop .kd-footer, .kd-page-footer{justify-content:center; text-align:center;} .kd-footer-nav{justify-content:center;} }
   .kd-page-footer{display:none;}
+  .kd-page-back{display:none;}
   @media (min-width:1024px){
+    #appRoot.kh-page-open .kd-page-back, #appRoot.kh-show-full-home .kd-page-back{
+      display:inline-flex; align-items:center; gap:6px; margin-bottom:18px;
+      background:none; border:none; padding:0; cursor:pointer;
+      color:var(--dim); font-size:13px; font-weight:700; font-family:inherit;
+    }
+    #appRoot.kh-page-open .kd-page-back:hover, #appRoot.kh-show-full-home .kd-page-back:hover{ color:var(--text); }
     #appRoot.kh-page-open .kd-page-footer, #appRoot.kh-show-full-home .kd-page-footer{
       display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
       margin-top:36px; padding-top:24px; border-top:1px solid var(--border);
@@ -1339,6 +1360,12 @@
   <button class="kh-manual-fab" id="manualFab" onclick="toggleManualAdd()" title="Add transaction manually" aria-label="Add transaction manually">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
+
+  <!-- Desktop-only breadcrumb back to the dashboard — shown whenever a page
+       (Loans/Budget/Room/...) is open at desktop width, since the topbar's
+       "Home" nav button isn't an obvious "go back" affordance on its own.
+       See the #appRoot.kh-page-open / .kh-show-full-home CSS below. -->
+  <button type="button" class="kd-page-back" onclick="goHome()">← Back to Dashboard</button>
 
   <div class="kh-page active" id="homePage">
     <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
@@ -7824,16 +7851,31 @@
     }
 
     // Loan card — reuse netLoanPosition(), same numbers as mobile summary.
+    // Also surfaces active EMI commitments (outstanding/per-month/count),
+    // same as renderLoanDashCard() on mobile — this used to only show the
+    // non-EMI net, so an active EMI was invisible on the desktop Home.
     const loanEl = document.getElementById("kdLoanCard");
     if (loanEl){
       const pos = netLoanPosition("nonEmi");
-      if (!pos.lentOutstanding && !pos.borrowedOutstanding){
+      const hasLoans = LOANS.some(l => !l.isEmi);
+      const emiLoans = LOANS.filter(l => l.isEmi);
+      const emiOutstanding = emiLoans.reduce((s, l) => s + loanTotals(l).outstanding, 0);
+      const activeEmis = emiLoans.filter(l => l.emiAmount && loanStatus(l) !== "Cleared");
+      const emiMonthly = activeEmis.reduce((s, l) => s + l.emiAmount, 0);
+      if (!LOANS.length){
         loanEl.innerHTML = `<div class="kd-empty">No active loans. <button type="button" class="kd-link" onclick="showLoanPage()">Track a loan →</button></div>`;
       } else {
         loanEl.innerHTML = `
-          <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Lent out</div></div><span class="kd-pill kd-pill-jade">${rs(pos.lentOutstanding)}</span></div>
-          <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Borrowed</div></div><span class="kd-pill kd-pill-amber">${rs(pos.borrowedOutstanding)}</span></div>
-          <div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">Net</div></div><span class="kd-pill ${pos.net>=0?"kd-pill-jade":"kd-pill-amber"}">${pos.net>=0?"":"−"}${rs(Math.abs(pos.net))}</span></div>
+          ${hasLoans ? `
+            <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Lent out</div></div><span class="kd-pill kd-pill-jade">${rs(pos.lentOutstanding)}</span></div>
+            <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">Borrowed</div></div><span class="kd-pill kd-pill-amber">${rs(pos.borrowedOutstanding)}</span></div>
+            <div class="kd-mini-row"${emiLoans.length ? "" : ` style="border-bottom:none;"`}><div style="flex:1;"><div class="kd-mini-name">Net</div></div><span class="kd-pill ${pos.net>=0?"kd-pill-jade":"kd-pill-amber"}">${pos.net>=0?"":"−"}${rs(Math.abs(pos.net))}</span></div>
+          ` : ""}
+          ${emiLoans.length ? `
+            <div class="kd-mini-row" style="padding-top:10px;"><div style="flex:1;"><div class="kd-mini-name">EMI outstanding</div></div><span class="kd-pill kd-pill-amber">${rs(emiOutstanding)}</span></div>
+            <div class="kd-mini-row"><div style="flex:1;"><div class="kd-mini-name">EMI per month</div></div><span class="kd-pill kd-pill-jade">${rs(emiMonthly)}</span></div>
+            <div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">Active EMIs</div></div><span class="kd-pill kd-pill-jade">${activeEmis.length}</span></div>
+          ` : ""}
         `;
       }
     }
