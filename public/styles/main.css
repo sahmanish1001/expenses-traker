@@ -615,6 +615,25 @@
        column since a grid would break the divider styling. */
     #budgetCatList{display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:12px; align-items:start;}
     .kh-budget-row{margin-bottom:0;}
+
+    /* Recurring's list uses the same self-contained .kh-budget-row cards
+       as Budget, so it gets the same two-up treatment. */
+    #recurringList{display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:12px; align-items:start;}
+
+    /* Room page: its five sections (hero, roommates, balances, expenses,
+       rent) were stacked full-width one after another — a lot of empty
+       side margin on a wide screen. Let them sit two-to-a-row instead;
+       order still follows Settings → Room Layout since sections are
+       auto-flowed in DOM order, not a fixed grid template. */
+    #roomSections{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
+    .kh-room-hero, .kh-rent-card{margin-bottom:0;}
+
+    /* Insights: four independent cards, previously one full-width column
+       each. A 2x2 grid uses the space the same way Home's dashboard
+       cards do. */
+    #insightsPage{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+    #insightsPage > .kh-budget-page-head{grid-column:1 / -1;}
+    #insightsPage > .kh-insight-card{margin-bottom:0;}
   }
   @media (min-width:1100px){
     .kh-app{padding-left:40px;padding-right:40px;}
