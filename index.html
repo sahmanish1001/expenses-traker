@@ -751,8 +751,8 @@
   .kh-desktop .kd-fab:hover{filter:brightness(1.08);}
   .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--kd-border); color:var(--kd-dim); font-size:12px;}
   .kh-desktop .kd-footer-brand{display:flex; align-items:center; gap:10px;}
-  .kh-desktop .kd-footer-logo{width:22px; height:22px; border-radius:6px; background:var(--kd-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .kh-desktop .kd-footer-logo svg{width:13px; height:13px; display:block;}
+  .kh-desktop .kd-footer-logo{width:24px; height:24px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .kh-desktop .kd-footer-logo svg{width:100%; height:100%; display:block;}
   .kh-desktop .kd-footer-info{display:flex; flex-direction:column; gap:3px;}
   .kh-desktop .kd-footer-name{font-size:14px; font-weight:800; letter-spacing:-.01em; color:var(--kd-text);}
   .kh-desktop .kd-footer-tagline{font-size:11.5px; color:var(--kd-dim);}
@@ -2200,13 +2200,20 @@
   <footer class="kd-footer">
     <div class="kd-footer-brand">
       <div class="kd-footer-logo">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 8a7 7 0 1 0 0 8" stroke="#00320f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+          <title>Kharchā icon</title>
+          <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+          <g transform="rotate(-90 256 256)">
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-dashoffset="0" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65" stroke-linecap="butt"/>
+            <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24" stroke-linecap="butt"/>
+          </g>
+          <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
         </svg>
       </div>
       <div class="kd-footer-info">
         <span class="kd-footer-name">Kharchā</span>
-        <span class="kd-footer-tagline">© 2025 Kharchā Financial. Local-first, private financial stewardship for Nepal.</span>
+        <span class="kd-footer-tagline">© 2026 Kharchā Financial. Local-first, private financial stewardship for Nepal.</span>
       </div>
     </div>
     <nav class="kd-footer-nav">
