@@ -953,8 +953,58 @@
   .kh-landing .kl-footer-links a{ font-size:12.5px; font-weight:600; color:var(--kl-dim); }
   .kh-landing .kl-footer-links a:hover{ color:var(--kl-primary); }
 
-  @media (max-width:1023.98px){ .kh-landing{ display:none !important; } }
-  @media (min-width:1024px){ #authScreen{ display:none !important; } }
+  /* Landing page now covers every width — #authScreen (the old plain
+     sign-in card) is retired for good, not just hidden on desktop. */
+  #authScreen{ display:none !important; }
+
+  /* ---------------------------------------------------------------------
+     Mobile layout (<1024px) — same sections/content as desktop, reflowed
+     to a single stacked column per the mobile design: no header nav links
+     or header sign-in button (just brand + "Explore Demo"), centered
+     hero, full-width stacked CTAs, one-column feature/spotlight cards,
+     and a horizontally-scrollable wallet band instead of a wrapped row.
+     --------------------------------------------------------------------- */
+  @media (max-width:1023.98px){
+    .kh-landing .kl-header-inner{ padding:12px 16px; }
+    .kh-landing .kl-nav{ display:none; }
+    .kh-landing #gSignInDivLandingHeader{ display:none; }
+
+    .kh-landing .kl-main{ padding:0 16px; }
+    .kh-landing .kl-glow-1{ width:340px; height:200px; top:20px; }
+    .kh-landing .kl-glow-2{ width:220px; height:220px; top:360px; }
+
+    .kh-landing .kl-hero{ grid-template-columns:1fr; gap:32px; padding:28px 0 36px; text-align:center; }
+    .kh-landing .kl-hero-copy{ align-items:center; gap:14px; }
+    .kh-landing .kl-headline{ font-size:32px; line-height:1.15; }
+    .kh-landing .kl-subtitle{ font-size:15px; max-width:none; }
+    .kh-landing .kl-badges-row{ justify-content:center; }
+    .kh-landing .kl-cta-row{ flex-direction:column; align-items:center; width:100%; gap:10px; }
+    .kh-landing .kl-btn-secondary{ width:100%; max-width:300px; }
+
+    .kh-landing .kl-preview-card{ padding:16px; border-radius:20px; }
+    .kh-landing .kl-preview-stats{ grid-template-columns:1fr 1fr; gap:8px; }
+
+    .kh-landing .kl-band{ margin:0 -16px; padding:16px; flex-direction:column; align-items:flex-start; gap:12px; }
+    .kh-landing .kl-band-items{ flex-wrap:nowrap; overflow-x:auto; gap:18px; width:100%; -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent 100%); mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent 100%); }
+    .kh-landing .kl-band-items div{ flex-shrink:0; }
+
+    .kh-landing .kl-section{ padding:40px 0; }
+    .kh-landing .kl-section-head h2, .kh-landing .kl-spotlight-copy h2{ font-size:24px; }
+    .kh-landing .kl-pillars{ grid-template-columns:1fr; gap:16px; }
+    .kh-landing .kl-pillar{ padding:20px; }
+
+    .kh-landing .kl-spotlight{ grid-template-columns:1fr; gap:28px; padding:22px; border-radius:22px; }
+    .kh-landing .kl-spotlight-copy{ text-align:center; }
+    .kh-landing .kl-spotlight-copy p{ margin-left:auto; margin-right:auto; }
+    .kh-landing .kl-check-list{ text-align:left; }
+
+    .kh-landing .kl-cta-banner{ padding:32px 20px; border-radius:22px; }
+    .kh-landing .kl-cta-banner h2{ font-size:22px; }
+    .kh-landing .kl-cta-banner .kl-cta-row{ align-items:stretch; }
+
+    .kh-landing .kl-footer-inner{ padding:22px 16px; flex-direction:column; text-align:center; }
+    .kh-landing .kl-footer-links{ justify-content:center; }
+  }
 
 </style>
 </head>
