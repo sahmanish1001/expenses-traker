@@ -78,6 +78,21 @@
   .kh-top-btns{display:flex; gap:8px; flex-shrink:0;}
   .kh-clear-btn{display:flex; align-items:center; gap:6px; background:var(--surface); color:var(--out); border:1px solid var(--border); border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit;}
   .kh-demo-note{margin-top:12px; font-size:12px; color:var(--dim); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 12px; line-height:1.5;}
+  .kh-onboarding-card{margin-top:12px; padding:16px; border-radius:18px; background:var(--surface); border:1px solid var(--border); position:relative;}
+  .kh-onboarding-close{position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:50%; background:var(--surface2); border:none; color:var(--dim); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center;}
+  .kh-onboarding-head{margin-bottom:10px; padding-right:30px;}
+  .kh-onboarding-title{margin:0; font-weight:800; font-size:15px; color:var(--text);}
+  .kh-onboarding-sub{margin:2px 0 0; font-size:11.5px; color:var(--dim);}
+  .kh-onboarding-row{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none; border:none; border-top:1px dashed var(--border); padding:10px 0; cursor:pointer; font-family:inherit;}
+  .kh-onboarding-row:first-of-type{border-top:none;}
+  .kh-onboarding-row:disabled{cursor:default;}
+  .kh-onboarding-check{width:30px; height:30px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .kh-onboarding-row.done .kh-onboarding-check{background:color-mix(in srgb, var(--in) 18%, transparent); border-color:transparent; color:var(--in); font-weight:800;}
+  .kh-onboarding-mid{flex:1; min-width:0;}
+  .kh-onboarding-label{display:block; font-size:13.5px; font-weight:700; color:var(--text);}
+  .kh-onboarding-row.done .kh-onboarding-label{text-decoration:line-through; color:var(--dim); font-weight:600;}
+  .kh-onboarding-hint{display:block; font-size:11.5px; color:var(--dim); margin-top:1px;}
+  .kh-onboarding-arrow{color:var(--dim); font-size:14px; flex-shrink:0;}
   .kh-balance-card{margin-top:16px; padding:28px 22px; border-radius:26px; text-align:center; position:relative; overflow:hidden; background:linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%); border:1px solid var(--border); box-shadow:0 4px 24px rgba(0,0,0,.08);}
   .kh-balance-card::before{content:""; position:absolute; inset:-40% -20% auto -20%; height:150px; background:radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent); pointer-events:none;}
   .kh-balance-top{display:flex; align-items:center; justify-content:center; gap:8px; position:relative;}
@@ -1376,6 +1391,7 @@
 
   <div class="kh-page active" id="homePage">
     <p class="kh-welcome-greeting" id="welcomeGreeting"></p>
+    <div id="onboardingCard"></div>
     <div class="kh-demo-note" id="demoNote"></div>
     <div class="kh-balance-card" id="balanceCard">
       <div class="kh-balance-top">
@@ -2796,6 +2812,7 @@
   </section>
 
   <main class="kd-main">
+    <div id="kdOnboardingCard"></div>
     <div class="kd-stats-row" id="kdStatsRow"></div>
 
     <div class="kd-grid">
@@ -3033,6 +3050,12 @@
   ];
   const DEFAULT_ROOM_LAYOUT = ROOM_SECTIONS.map(s => s.id);
   let ROOM_LAYOUT = [...DEFAULT_ROOM_LAYOUT];
+
+  // First-time-user checklist ("add a wallet" / "log a transaction" /
+  // "set a budget") — shown on Home until every step is done or the
+  // person dismisses it. Persisted per-account (see saveCurrentUser()/
+  // applyUserDataSnapshot()) so it doesn't reappear on every sign-in.
+  let ONBOARDING_DISMISSED = false;
 
   function normalizeRoomLayout(saved){
     if (!Array.isArray(saved)) return [...DEFAULT_ROOM_LAYOUT];
@@ -4770,6 +4793,7 @@
       nextRoomSettlementId,
       roomRent: ROOM_RENT,
       roomId: currentRoomId,
+      onboardingDismissed: ONBOARDING_DISMISSED,
     };
     try{ localStorage.setItem(dataKeyFor(currentUser.email), JSON.stringify(snapshot)); }catch(e){}
     scheduleDriveAutoSync();
@@ -4829,6 +4853,7 @@
       // belongs to a real shared room, loadUserData() overwrites them
       // right after this with the shared copy from the `rooms` table.
       currentRoomId = data.roomId || null;
+      ONBOARDING_DISMISSED = !!data.onboardingDismissed;
       PROFILE = data.profile || { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
       // Make sure every account any saved transaction refers to is present
       // in the wallet list — covers older saved data from before wallets
@@ -4843,6 +4868,7 @@
       BUDGETS = {};
       BUDGET_OVERALL = null;
       BUDGET_CATEGORY_ORDER = null;
+      ONBOARDING_DISMISSED = false;
       PROFILE = { name: currentUser ? currentUser.name : "", age: "", email, currency: "NPR", monthlyIncome: "" };
     }
     populateProfileForm();
@@ -7807,8 +7833,99 @@
     }
   }
 
+  // ---------------------------------------------------------------------
+  // First-time-user checklist — shown on Home (mobile and desktop) until
+  // every step is done or it's dismissed. "Done" is derived straight from
+  // real state (ACCOUNT_LIST/TRANSACTIONS/BUDGET_*) rather than tracked
+  // separately, so it can never drift out of sync with what the person
+  // has actually done.
+  // ---------------------------------------------------------------------
+  function getOnboardingSteps(){
+    return [
+      {
+        id: "wallet", icon: "👛", label: "Add a wallet",
+        hint: "Track more than one account — bank, eSewa, Khalti, cash.",
+        done: ACCOUNT_LIST.length > 1,
+        action: "quickAddAccount()",
+      },
+      {
+        id: "transaction", icon: "🧾", label: "Log a transaction",
+        hint: "Add your first expense or income to start your ledger.",
+        done: TRANSACTIONS.length > 0,
+        action: "toggleManualAdd()",
+      },
+      {
+        id: "budget", icon: "🎯", label: "Set a budget",
+        hint: "Give yourself a monthly spending limit to track against.",
+        done: BUDGET_OVERALL != null || Object.keys(BUDGETS).length > 0,
+        action: "showBudgetPage()",
+      },
+    ];
+  }
+
+  function dismissOnboarding(){
+    ONBOARDING_DISMISSED = true;
+    saveCurrentUser();
+    renderOnboardingCard();
+  }
+
+  function renderOnboardingCard(){
+    const steps = getOnboardingSteps();
+    const allDone = steps.every(s => s.done);
+    const show = currentUser && !ONBOARDING_DISMISSED && !allDone;
+    const doneCount = steps.filter(s => s.done).length;
+
+    const mobileEl = document.getElementById("onboardingCard");
+    if (mobileEl){
+      mobileEl.innerHTML = !show ? "" : `
+        <div class="kh-onboarding-card">
+          <button type="button" class="kh-onboarding-close" onclick="dismissOnboarding()" aria-label="Dismiss">✕</button>
+          <div class="kh-onboarding-head">
+            <p class="kh-onboarding-title">Get started with Kharchā</p>
+            <p class="kh-onboarding-sub">${doneCount}/${steps.length} done</p>
+          </div>
+          ${steps.map(s => `
+            <button type="button" class="kh-onboarding-row${s.done ? " done" : ""}" ${s.done ? "disabled" : `onclick="${s.action}"`}>
+              <span class="kh-onboarding-check">${s.done ? "✓" : s.icon}</span>
+              <span class="kh-onboarding-mid">
+                <span class="kh-onboarding-label">${s.label}</span>
+                <span class="kh-onboarding-hint">${s.hint}</span>
+              </span>
+              ${s.done ? "" : `<span class="kh-onboarding-arrow">→</span>`}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    const desktopEl = document.getElementById("kdOnboardingCard");
+    if (desktopEl){
+      desktopEl.innerHTML = !show ? "" : `
+        <div class="kd-card kd-glass" style="margin-bottom:20px; position:relative;">
+          <button type="button" class="kd-icon-btn" style="position:absolute; top:16px; right:16px;" onclick="dismissOnboarding()" aria-label="Dismiss">✕</button>
+          <div class="kd-card-head" style="margin-bottom:14px;">
+            <h2>👋 Get started with Kharchā</h2>
+            <span class="kd-badge">${doneCount}/${steps.length} done</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px;">
+            ${steps.map(s => `
+              <button type="button" class="kd-mini-row" style="border-radius:12px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); padding:14px; text-align:left; cursor:${s.done ? "default" : "pointer"}; align-items:flex-start;" ${s.done ? "disabled" : `onclick="${s.action}"`}>
+                <span style="font-size:18px; flex-shrink:0;">${s.done ? "✅" : s.icon}</span>
+                <span style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:13.5px; ${s.done ? "text-decoration:line-through; color:var(--kd-dim);" : ""}">${s.label}</div>
+                  <div style="font-size:11.5px; color:var(--kd-dim); margin-top:2px;">${s.hint}</div>
+                </span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+  }
+
   function renderAll(){
     applyHomeLayout();
+    renderOnboardingCard();
     renderChips();
     renderNepaliMonthFilter();
     renderBalanceCard();
