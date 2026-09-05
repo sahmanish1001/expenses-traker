@@ -739,7 +739,7 @@
   .kh-desktop .kd-btn-primary:hover{filter:brightness(1.08);}
   .kh-desktop .kd-icon-btn{width:36px; height:36px; border-radius:10px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-text); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
   .kh-desktop .kd-icon-btn:hover{border-color:var(--kd-border-hi);}
-  .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;}
+  .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; cursor:pointer;}
   .kh-desktop .kd-avatar img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
 
   .kh-desktop .kd-ribbon{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 32px; background:var(--kd-surface-lowest); border-bottom:1px solid var(--kd-border);}
@@ -2794,7 +2794,7 @@
     <div class="kd-topbar-actions">
       <button class="kd-btn kd-btn-primary" onclick="toggleManualAdd()">＋ Log Tx</button>
       <button class="kd-icon-btn" title="Settings" onclick="showSettingsPage()">⚙️</button>
-      <div class="kd-avatar" id="kdAvatar"><img id="kdAvatarImg" alt="" style="display:none;" /><span id="kdAvatarFallback">?</span></div>
+      <div class="kd-avatar" id="kdAvatar" role="button" tabindex="0" title="Account" onclick="showSettingsPage('account')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); showSettingsPage('account');}"><img id="kdAvatarImg" alt="" style="display:none;" /><span id="kdAvatarFallback">?</span></div>
     </div>
   </header>
 
