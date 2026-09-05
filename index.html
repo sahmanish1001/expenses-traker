@@ -54,7 +54,7 @@
      toggling the scrollbar on/off, which shifts the whole page sideways
      by ~15px on every navigation — read as a flickering strip on the
      right edge. */
-  html{ scrollbar-gutter: stable; }
+  html{ scrollbar-gutter: stable; scroll-behavior:smooth; }
   body{
     margin:0; background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -819,6 +819,143 @@
     #appRoot:not(.kh-page-open):not(.kh-show-full-home){ padding:0 !important; min-height:0 !important; }
   }
 
+  /* =====================================================================
+     Marketing / sign-in landing page ("Luminous Ledger" palette, same
+     system as .kh-desktop). Desktop-only for now — see the two media
+     queries at the very end of this block, mirroring the same
+     mobile/desktop switch used for the dashboard.
+     ===================================================================== */
+  .kh-landing{
+    --kl-bg:#11131b; --kl-surface:rgba(25,28,39,.72); --kl-surface-hi:rgba(25,28,39,.88);
+    --kl-surface-solid:#1d1f28; --kl-surface-low:#191b23; --kl-surface-lowest:#0c0e16;
+    --kl-border:rgba(255,255,255,.08); --kl-border-hi:rgba(75,226,119,.3);
+    --kl-text:#e8e9f1; --kl-dim:#9aa5b1;
+    --kl-primary:#4be277; --kl-on-primary:#00320f; --kl-secondary:#ffca45; --kl-tertiary:#7cd0ff; --kl-danger:#ff6b6b;
+    background:
+      radial-gradient(1200px 500px at 20% -10%, rgba(75,226,119,.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(255,202,69,.05), transparent 55%),
+      var(--kl-bg);
+    color:var(--kl-text); font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; position:relative; overflow-x:hidden;
+  }
+  .kh-landing *{ box-sizing:border-box; }
+  .kh-landing [id^="kl-"]{ scroll-margin-top:90px; }
+  .kh-landing a{ color:inherit; text-decoration:none; }
+  .kh-landing .kl-glass{ background:var(--kl-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--kl-border); }
+
+  .kh-landing .kl-header{ position:sticky; top:0; z-index:50; background:rgba(17,19,27,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--kl-border); }
+  .kh-landing .kl-header-inner{ max-width:1200px; margin:0 auto; padding:14px 40px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+  .kh-landing .kl-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .kh-landing .kl-brand-mark{ width:38px; height:38px; border-radius:12px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px -4px rgba(75,226,119,.4); }
+  .kh-landing .kl-brand-name{ font-size:18px; font-weight:800; letter-spacing:-.01em; display:flex; align-items:center; gap:8px; }
+  .kh-landing .kl-brand-badge{ font-size:10px; font-weight:700; letter-spacing:.04em; padding:2px 7px; border-radius:999px; background:rgba(75,226,119,.12); color:var(--kl-primary); border:1px solid rgba(75,226,119,.3); }
+  .kh-landing .kl-nav{ display:flex; align-items:center; gap:28px; }
+  .kh-landing .kl-nav a{ font-size:13.5px; font-weight:600; color:var(--kl-dim); }
+  .kh-landing .kl-nav a:hover{ color:var(--kl-primary); }
+  .kh-landing .kl-header-actions{ display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  .kh-landing .kl-btn-ghost{ background:none; border:1px solid var(--kl-border); color:var(--kl-text); font-family:inherit; font-size:13px; font-weight:700; padding:9px 16px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+  .kh-landing .kl-btn-ghost:hover{ border-color:var(--kl-border-hi); }
+
+  .kh-landing .kl-main{ max-width:1200px; margin:0 auto; padding:0 40px; position:relative; }
+  .kh-landing .kl-glow{ position:absolute; border-radius:999px; filter:blur(110px); pointer-events:none; z-index:0; }
+  .kh-landing .kl-glow-1{ top:60px; left:50%; transform:translateX(-50%); width:700px; height:320px; background:rgba(75,226,119,.12); }
+  .kh-landing .kl-glow-2{ top:520px; right:0; width:420px; height:420px; background:rgba(255,202,69,.06); }
+
+  .kh-landing .kl-hero{ position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:56px 0 64px; }
+  .kh-landing .kl-hero-copy{ display:flex; flex-direction:column; align-items:flex-start; gap:18px; }
+  .kh-landing .kl-pill{ display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background:var(--kl-surface-low); border:1px solid var(--kl-border); font-size:12.5px; font-weight:600; color:var(--kl-primary); }
+  .kh-landing .kl-headline{ font-size:44px; font-weight:800; line-height:1.1; letter-spacing:-.02em; margin:0; }
+  .kh-landing .kl-headline-accent{ color:var(--kl-primary); text-shadow:0 0 30px rgba(75,226,119,.45); }
+  .kh-landing .kl-subtitle{ font-size:16.5px; line-height:1.6; color:var(--kl-dim); max-width:540px; margin:0; }
+  .kh-landing .kl-badges-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .kh-landing .kl-badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); font-size:11.5px; font-weight:600; }
+  .kh-landing .kl-cta-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px; }
+  .kh-landing .kl-btn-secondary{ background:var(--kl-surface-solid); border:1px solid var(--kl-border); color:var(--kl-text); font-family:inherit; font-size:14px; font-weight:700; padding:12px 20px; border-radius:12px; cursor:pointer; }
+  .kh-landing .kl-btn-secondary:hover{ border-color:var(--kl-border-hi); }
+  .kh-landing .kl-fine-print{ font-size:12px; color:var(--kl-dim); margin:0; }
+
+  .kh-landing .kl-preview-card{ border-radius:24px; padding:22px; background:var(--kl-surface-hi); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); box-shadow:0 24px 60px -12px rgba(0,0,0,.6), 0 0 0 1px rgba(75,226,119,.1); }
+  .kh-landing .kl-preview-top{ display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--kl-border); gap:10px; }
+  .kh-landing .kl-preview-live{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:var(--kl-primary); }
+  .kh-landing .kl-live-dot{ width:7px; height:7px; border-radius:50%; background:var(--kl-primary); animation:kl-ping 1.6s ease-out infinite; }
+  @keyframes kl-ping{ 0%{box-shadow:0 0 0 0 rgba(75,226,119,.5);} 100%{box-shadow:0 0 0 8px rgba(75,226,119,0);} }
+  .kh-landing .kl-preview-title{ font-size:17px; font-weight:800; margin-top:2px; }
+  .kh-landing .kl-preview-month{ font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px; background:var(--kl-surface-lowest); border:1px solid var(--kl-border); white-space:nowrap; }
+  .kh-landing .kl-preview-stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+  .kh-landing .kl-preview-stat{ padding:12px; border-radius:12px; background:var(--kl-surface-low); border:1px solid var(--kl-border); display:flex; flex-direction:column; gap:4px; }
+  .kh-landing .kl-preview-stat span{ font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--kl-dim); }
+  .kh-landing .kl-preview-stat b{ font-size:17px; font-weight:800; }
+  .kh-landing .kl-preview-cats{ display:flex; flex-direction:column; gap:8px; padding:14px; border-radius:12px; background:var(--kl-surface-low); border:1px solid var(--kl-border); margin-bottom:12px; }
+  .kh-landing .kl-preview-cat-row{ display:flex; align-items:center; gap:8px; font-size:12px; }
+  .kh-landing .kl-preview-cat-row .kl-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .kh-landing .kl-preview-cat-row span:nth-child(2){ flex:1; color:var(--kl-dim); }
+  .kh-landing .kl-preview-wallets{ display:flex; flex-wrap:wrap; gap:8px; }
+  .kh-landing .kl-preview-wallet{ display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); font-size:11.5px; }
+
+  .kh-landing .kl-band{ position:relative; z-index:1; border-top:1px solid var(--kl-border); border-bottom:1px solid var(--kl-border); padding:20px 0; margin:0 -40px; padding-left:40px; padding-right:40px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; background:rgba(12,14,22,.5); }
+  .kh-landing .kl-band-label{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--kl-dim); }
+  .kh-landing .kl-band-items{ display:flex; flex-wrap:wrap; gap:24px; font-size:13px; font-weight:700; }
+  .kh-landing .kl-band-items div{ display:flex; align-items:center; gap:8px; }
+  .kh-landing .kl-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .kh-landing .kl-section{ position:relative; z-index:1; padding:64px 0; }
+  .kh-landing .kl-section-head{ max-width:640px; margin:0 auto 40px; text-align:center; }
+  .kh-landing .kl-eyebrow{ display:inline-flex; padding:5px 12px; border-radius:999px; background:rgba(75,226,119,.1); border:1px solid rgba(75,226,119,.3); color:var(--kl-primary); font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-bottom:12px; }
+  .kh-landing .kl-section-head h2, .kh-landing .kl-spotlight-copy h2{ font-size:30px; font-weight:800; letter-spacing:-.015em; margin:0 0 8px; }
+  .kh-landing .kl-section-head p{ font-size:15px; color:var(--kl-dim); margin:0; }
+
+  .kh-landing .kl-pillars{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .kh-landing .kl-pillar{ border-radius:20px; padding:26px; background:var(--kl-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--kl-border); transition:border-color .2s; }
+  .kh-landing .kl-pillar:hover{ border-color:var(--kl-border-hi); }
+  .kh-landing .kl-pillar-icon{ width:44px; height:44px; border-radius:12px; background:rgba(75,226,119,.14); color:var(--kl-primary); display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:14px; }
+  .kh-landing .kl-pillar h3{ font-size:19px; font-weight:700; margin:0 0 8px; }
+  .kh-landing .kl-pillar p{ font-size:14px; line-height:1.6; color:var(--kl-dim); margin:0 0 14px; }
+  .kh-landing .kl-mono-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; border-radius:10px; background:var(--kl-surface-lowest); border:1px solid var(--kl-border); font-size:12px; }
+  .kh-landing .kl-mono-row span:first-child{ color:var(--kl-dim); }
+  .kh-landing .kl-mono{ font-family:ui-monospace,monospace; color:var(--kl-primary); font-weight:600; }
+
+  .kh-landing .kl-spotlight{ display:grid; grid-template-columns:.85fr 1.15fr; gap:44px; align-items:center; border-radius:28px; padding:44px; background:var(--kl-surface-hi); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); }
+  .kh-landing .kl-spotlight-copy p{ font-size:14.5px; line-height:1.6; color:var(--kl-dim); margin:0 0 16px; }
+  .kh-landing .kl-check-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; font-size:13.5px; color:var(--kl-dim); }
+  .kh-landing .kl-spotlight-card{ border-radius:20px; padding:20px; background:var(--kl-surface-low); border:1px solid var(--kl-border); display:flex; flex-direction:column; gap:12px; }
+  .kh-landing .kl-spotlight-head{ display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--kl-border); gap:10px; }
+  .kh-landing .kl-spotlight-head h4{ font-size:16px; font-weight:700; margin:0; }
+  .kh-landing .kl-spotlight-head p{ font-size:12px; color:var(--kl-dim); margin:2px 0 0; }
+  .kh-landing .kl-tag{ font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; background:rgba(75,226,119,.12); border:1px solid rgba(75,226,119,.3); color:var(--kl-primary); white-space:nowrap; }
+  .kh-landing .kl-roommate-row{ display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); }
+  .kh-landing .kl-avatar{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; flex-shrink:0; }
+  .kh-landing .kl-roommate-mid{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .kh-landing .kl-roommate-mid b{ font-size:13.5px; }
+  .kh-landing .kl-roommate-mid span{ font-size:11.5px; color:var(--kl-dim); }
+  .kh-landing .kl-roommate-amt{ text-align:right; display:flex; flex-direction:column; gap:3px; }
+  .kh-landing .kl-roommate-amt b{ font-size:13.5px; }
+  .kh-landing .kl-status{ font-size:10.5px; font-weight:700; }
+  .kh-landing .kl-status-pending{ color:var(--kl-danger); }
+  .kh-landing .kl-status-settled{ color:var(--kl-primary); }
+  .kh-landing .kl-status-net{ color:var(--kl-tertiary); }
+
+  .kh-landing .kl-table-wrap{ overflow-x:auto; border-radius:18px; border:1px solid var(--kl-border); }
+  .kh-landing .kl-table{ width:100%; border-collapse:collapse; background:var(--kl-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); font-size:13.5px; }
+  .kh-landing .kl-table th{ text-align:left; padding:14px 18px; background:var(--kl-surface-solid); border-bottom:1px solid var(--kl-border); font-weight:700; white-space:nowrap; }
+  .kh-landing .kl-table td{ padding:14px 18px; border-bottom:1px solid var(--kl-border); color:var(--kl-dim); }
+  .kh-landing .kl-table tr:last-child td{ border-bottom:none; }
+  .kh-landing .kl-th-primary{ color:var(--kl-primary); }
+  .kh-landing .kl-td-primary{ color:var(--kl-primary); font-weight:600; }
+
+  .kh-landing .kl-cta-banner{ text-align:center; max-width:640px; margin:0 auto; padding:56px 40px; border-radius:28px; background:var(--kl-surface-hi); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(75,226,119,.25); box-shadow:0 0 60px -10px rgba(75,226,119,.25); }
+  .kh-landing .kl-cta-banner h2{ font-size:28px; font-weight:800; margin:0 0 10px; letter-spacing:-.015em; }
+  .kh-landing .kl-cta-banner p{ font-size:14.5px; color:var(--kl-dim); margin:0 0 20px; }
+  .kh-landing .kl-cta-banner .kl-fine-print{ margin-top:14px; }
+
+  .kh-landing .kl-footer{ border-top:1px solid var(--kl-border); background:var(--kl-surface-lowest); position:relative; z-index:1; }
+  .kh-landing .kl-footer-inner{ max-width:1200px; margin:0 auto; padding:28px 40px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  .kh-landing .kl-footer-brand p{ font-size:12px; color:var(--kl-dim); margin:4px 0 0; }
+  .kh-landing .kl-footer-links{ display:flex; gap:22px; flex-wrap:wrap; }
+  .kh-landing .kl-footer-links a{ font-size:12.5px; font-weight:600; color:var(--kl-dim); }
+  .kh-landing .kl-footer-links a:hover{ color:var(--kl-primary); }
+
+  @media (max-width:1023.98px){ .kh-landing{ display:none !important; } }
+  @media (min-width:1024px){ #authScreen{ display:none !important; } }
+
 </style>
 </head>
 <body>
@@ -841,6 +978,229 @@
     </svg>
   </div>
   <p class="kh-splash-text">Kharchā</p>
+</div>
+
+<!-- =====================================================================
+     Marketing / sign-in landing page — desktop only for now (mobile still
+     gets the plain #authScreen card below until a mobile version of this
+     is designed). Shown instead of #authScreen at >=1024px when signed
+     out; see the .kh-landing media queries and signIn()/signOut()/
+     goHome(). Every claim in here is scoped to what the app actually
+     does — no invented integrations (no Fonepay QR, no WhatsApp nudges,
+     no fake user counts) — see renderLandingPreview() for the one part
+     that's wired to real demo numbers instead of typed-in copy.
+     ===================================================================== -->
+<div class="kh-landing" id="landingPage">
+  <header class="kl-header">
+    <div class="kl-header-inner">
+      <div class="kl-brand">
+        <div class="kl-brand-mark">
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" width="22" height="22">
+            <rect x="0" y="0" width="512" height="512" rx="112" fill="#191c27"/>
+            <g transform="rotate(-90 256 256)">
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#f2a93b" stroke-width="48" stroke-dasharray="502.65 1005.31" stroke-linecap="butt"/>
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#5fd1a4" stroke-width="48" stroke-dasharray="301.59 1005.31" stroke-dashoffset="-506.65" stroke-linecap="butt"/>
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#ef6f6c" stroke-width="48" stroke-dasharray="197.06 1005.31" stroke-dashoffset="-812.24" stroke-linecap="butt"/>
+            </g>
+            <rect x="228" y="242" width="56" height="28" rx="14" fill="#f2f0ea" transform="rotate(-18 256 256)"/>
+          </svg>
+        </div>
+        <span class="kl-brand-name">Kharchā<span class="kl-brand-badge">NEPAL</span></span>
+      </div>
+      <nav class="kl-nav">
+        <a href="#kl-features">Features</a>
+        <a href="#kl-bikram-sambat">Bikram Sambat Engine</a>
+        <a href="#kl-room-split">Room &amp; Rent</a>
+        <a href="#kl-privacy">Security &amp; Privacy</a>
+        <a href="#kl-demo">Demo</a>
+      </nav>
+      <div class="kl-header-actions">
+        <button type="button" class="kl-btn-ghost" onclick="document.getElementById('kl-demo').scrollIntoView({behavior:'smooth'})">Explore Demo</button>
+        <div id="gSignInDivLandingHeader"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="kl-main">
+    <div class="kl-glow kl-glow-1"></div>
+    <div class="kl-glow kl-glow-2"></div>
+
+    <!-- HERO -->
+    <section class="kl-hero">
+      <div class="kl-hero-copy">
+        <div class="kl-pill">🇳🇵 Built for Nepal · eSewa · Khalti · Bank SMS</div>
+        <h1 class="kl-headline">Every Rupee, Tracked — <span class="kl-headline-accent">Without the Spreadsheet.</span></h1>
+        <p class="kl-subtitle">A local-first money tracker for Nepal. Unify your mobile wallets and bank accounts, paste in bank/wallet SMS to log spends fast, convert between Gregorian and Nepali Bikram Sambat dates, and settle flatmate expenses without the group-chat math.</p>
+        <div class="kl-badges-row">
+          <div class="kl-badge"><span>🔒</span> Private by default</div>
+          <div class="kl-badge"><span>📴</span> Works fully offline</div>
+          <div class="kl-badge"><span>🚫</span> No bank credentials required</div>
+        </div>
+        <div class="kl-cta-row">
+          <div id="gSignInDivLandingHero"></div>
+          <button type="button" class="kl-btn-secondary" onclick="document.getElementById('kl-demo').scrollIntoView({behavior:'smooth'})">⚡ Explore Demo</button>
+        </div>
+        <p class="kl-fine-print">Free to use · Sign in with Google · Your data stays on your device by default.</p>
+      </div>
+
+      <div class="kl-hero-preview">
+        <div class="kl-preview-card">
+          <div class="kl-preview-top">
+            <div>
+              <div class="kl-preview-live"><span class="kl-live-dot"></span> Live Preview</div>
+              <div class="kl-preview-title">Kathmandu Ledger</div>
+            </div>
+            <div class="kl-preview-month" id="klPreviewMonth">Bhadra 2083 BS</div>
+          </div>
+          <div class="kl-preview-stats">
+            <div class="kl-preview-stat"><span>Total Balance</span><b id="klPvBalance">—</b></div>
+            <div class="kl-preview-stat"><span>Money In</span><b id="klPvIn" style="color:var(--kl-primary)">—</b></div>
+            <div class="kl-preview-stat"><span>Money Out</span><b id="klPvOut" style="color:var(--kl-danger)">—</b></div>
+            <div class="kl-preview-stat"><span>Net Cashflow</span><b id="klPvNet" style="color:var(--kl-primary)">—</b></div>
+          </div>
+          <div class="kl-preview-cats" id="klPvCats"></div>
+          <div class="kl-preview-wallets" id="klPvWallets"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ECOSYSTEM BAND -->
+    <section class="kl-band">
+      <span class="kl-band-label">Works With Your Existing Wallets &amp; Banks</span>
+      <div class="kl-band-items">
+        <div><span class="kl-dot" style="background:#3aa655"></span> eSewa</div>
+        <div><span class="kl-dot" style="background:#5c2d91"></span> Khalti</div>
+        <div><span class="kl-dot" style="background:#e0473e"></span> Nabil Bank</div>
+        <div><span class="kl-dot" style="background:#8a1538"></span> Kumari Bank</div>
+        <div><span class="kl-dot" style="background:#9aa0ac"></span> + any wallet or bank via SMS paste</div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="kl-section" id="kl-features">
+      <div class="kl-section-head">
+        <div class="kl-eyebrow">Built Specifically For Nepal</div>
+        <h2>Everything You Need to Master Daily Kharchā</h2>
+        <p>Say goodbye to missing cash balances, uncollected rent from roommates, and spreadsheets that break every month.</p>
+      </div>
+      <div class="kl-pillars">
+        <div class="kl-pillar">
+          <div class="kl-pillar-icon">👛</div>
+          <h3>All Wallets in One Cohesive View</h3>
+          <p>Track eSewa, Khalti, physical cash, and every bank account side by side — up to 6 wallets, each with its own running balance and color.</p>
+          <div class="kl-mono-row"><span>Quick add:</span><span class="kl-mono">＋ Nabil Bank, Khalti, Cash…</span></div>
+        </div>
+        <div class="kl-pillar" id="kl-bikram-sambat">
+          <div class="kl-pillar-icon" style="background:rgba(255,202,69,.14); color:var(--kl-secondary)">📅</div>
+          <h3>Native Nepali Bikram Sambat Calendar</h3>
+          <p>Every transaction, budget, and rent cycle can be viewed by Nepali month — Kharchā converts AD ⇄ BS instantly, no manual lookup required.</p>
+          <div class="kl-mono-row"><span>Conversion:</span><span class="kl-mono">2083-05-15 BS ⇄ 2026-08-31 AD</span></div>
+        </div>
+        <div class="kl-pillar" id="kl-room-split">
+          <div class="kl-pillar-icon" style="background:rgba(124,208,255,.14); color:var(--kl-tertiary)">🏠</div>
+          <h3>Effortless Room &amp; Flat Split</h3>
+          <p>Add roommates, log shared rent and grocery runs, split evenly or by custom shares, and track exactly who owes whom — mark it settled in one tap.</p>
+          <div class="kl-mono-row"><span>Splitting:</span><span class="kl-mono">Rs 1,200 ÷ 3 roommates = Rs 400 each</span></div>
+        </div>
+        <div class="kl-pillar" id="kl-privacy">
+          <div class="kl-pillar-icon">🛡️</div>
+          <h3>Private by Default</h3>
+          <p>Your transactions live in your browser first. Sign in with Google only to keep your own private data separate — optional cloud sync keeps it backed up across your devices, never sold or shared.</p>
+          <div class="kl-mono-row"><span>Storage:</span><span class="kl-mono">Local-first · Google Sign-In · No ads</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROOM & RENT SPOTLIGHT -->
+    <section class="kl-section">
+      <div class="kl-spotlight">
+        <div class="kl-spotlight-copy">
+          <div class="kl-eyebrow" style="color:var(--kl-secondary)">Flatmate Harmony Engine</div>
+          <h2>Shared Flat Living in Nepal, Solved For Good.</h2>
+          <p>No more awkward reminders at the end of the month. Add flat expenses, split them evenly or by custom share, and see a running settle-up balance for every roommate.</p>
+          <ul class="kl-check-list">
+            <li>✓ Split rent and shared bills across any number of roommates</li>
+            <li>✓ Keep a running ledger of who's paid and who still owes</li>
+            <li>✓ Mark a roommate's share settled in a single tap</li>
+          </ul>
+        </div>
+        <div class="kl-spotlight-card">
+          <div class="kl-spotlight-head">
+            <div>
+              <h4>3BHK Baneshwor Flat</h4>
+              <p>Bhadra 2083 · 3 roommates</p>
+            </div>
+            <span class="kl-tag">3 Active</span>
+          </div>
+          <div class="kl-roommate-row">
+            <div class="kl-avatar" style="background:rgba(124,208,255,.18); color:var(--kl-tertiary)">RK</div>
+            <div class="kl-roommate-mid"><b>Rohan Karki</b><span>Rent + Electricity</span></div>
+            <div class="kl-roommate-amt"><b style="color:var(--kl-secondary)">Owes Rs 1,850</b><span class="kl-status kl-status-pending">Pending</span></div>
+          </div>
+          <div class="kl-roommate-row">
+            <div class="kl-avatar" style="background:rgba(75,226,119,.18); color:var(--kl-primary)">AS</div>
+            <div class="kl-roommate-mid"><b>Ayush Shrestha</b><span>Paid for LPG Gas Cylinder</span></div>
+            <div class="kl-roommate-amt"><b style="color:var(--kl-primary)">Paid Rs 2,150</b><span class="kl-status kl-status-settled">Settled</span></div>
+          </div>
+          <div class="kl-roommate-row">
+            <div class="kl-avatar" style="background:var(--kl-primary); color:var(--kl-on-primary)">YOU</div>
+            <div class="kl-roommate-mid"><b>You (Primary Tenant)</b><span>Paid total rent: Rs 20,000</span></div>
+            <div class="kl-roommate-amt"><b>Receivable Rs 1,850</b><span class="kl-status kl-status-net">Net Balancing</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARISON -->
+    <section class="kl-section">
+      <div class="kl-section-head">
+        <h2>Why Nepal Needs a Purpose-Built Tracker</h2>
+        <p>Western tools don't understand Bikram Sambat calendar cycles or Nepali SMS formats.</p>
+      </div>
+      <div class="kl-table-wrap">
+        <table class="kl-table">
+          <thead>
+            <tr><th>Feature / Capability</th><th class="kl-th-primary">Kharchā 🇳🇵</th><th>Google Sheets</th><th>Splitwise / Mint</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Nepali Bikram Sambat (BS) Calendar</td><td class="kl-td-primary">✓ Native engine</td><td>Requires custom AppsScript</td><td>Not supported (AD only)</td></tr>
+            <tr><td>Local-first storage</td><td class="kl-td-primary">✓ Your browser, by default</td><td>Stored on Google Cloud</td><td>Centralized cloud servers</td></tr>
+            <tr><td>Bank &amp; wallet SMS import</td><td class="kl-td-primary">✓ Paste-to-parse</td><td>Manual copy-paste</td><td>Not supported</td></tr>
+            <tr><td>Roommate expense splitting</td><td class="kl-td-primary">✓ Built in, with settle-up tracking</td><td>Manual formula drafting</td><td>Splitwise only</td></tr>
+            <tr><td>Loan &amp; EMI tracking</td><td class="kl-td-primary">✓ Built in, with due-date alerts</td><td>Manual formula drafting</td><td>Not supported</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="kl-section" id="kl-demo">
+      <div class="kl-cta-banner">
+        <div class="kl-pill" style="margin:0 auto 14px;">⚡ Get started in 10 seconds · No app store download needed</div>
+        <h2>Ready to Master Your Daily Kharchā?</h2>
+        <p>Take control of your finances today — private, fast, and built specifically for the realities of life in Nepal.</p>
+        <div class="kl-cta-row" style="justify-content:center;">
+          <div id="gSignInDivLandingCta"></div>
+          <button type="button" class="kl-btn-secondary" onclick="document.getElementById('kl-features').scrollIntoView({behavior:'smooth'})">See All Features</button>
+        </div>
+        <div class="kl-fine-print">No credit card. No bank login credentials.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="kl-footer">
+    <div class="kl-footer-inner">
+      <div class="kl-footer-brand">
+        <span class="kl-brand-name" style="font-size:16px;">Kharchā</span>
+        <p>© 2026 Kharchā. Local-first, private financial tracking for Nepal.</p>
+      </div>
+      <div class="kl-footer-links">
+        <a href="#" onclick="event.preventDefault(); showGuestLegalPage('privacy');">Privacy Policy</a>
+        <a href="#" onclick="event.preventDefault(); showGuestLegalPage('security');">Security Architecture</a>
+        <a href="#" onclick="event.preventDefault(); showGuestLegalPage('terms');">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <div class="kh-auth-screen" id="authScreen">
@@ -3606,6 +3966,16 @@
 
   function goHome(){
     closePanel();
+    // A signed-out visitor only ever ends up inside #appRoot via a guest
+    // legal page (see showGuestLegalPage()) — "Home" for them means the
+    // landing page, not the (empty, no-account) dashboard.
+    if (!currentUser){
+      document.getElementById("appRoot").style.display = "none";
+      document.getElementById("authScreen").style.display = "flex";
+      document.getElementById("landingPage").style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     showPage("home");
     setActiveNav("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -7615,6 +7985,7 @@
     try{ localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user)); }catch(e){}
 
     document.getElementById("authScreen").style.display = "none";
+    document.getElementById("landingPage").style.display = "none";
     document.getElementById("appRoot").style.display = "block";
     document.getElementById("desktopDashboard").style.display = "block";
     setActiveNav(currentPage, true);
@@ -7680,6 +8051,54 @@
     document.getElementById("appRoot").style.display = "none";
     document.getElementById("desktopDashboard").style.display = "none";
     document.getElementById("authScreen").style.display = "flex";
+    document.getElementById("landingPage").style.display = "block";
+  }
+
+  // Lets a signed-out visitor read a legal page (from the landing page
+  // footer) without going through sign-in. Reuses #appRoot's own
+  // Privacy/Security/Terms pages (already built for the signed-in
+  // Settings flow) rather than duplicating that content — goHome() below
+  // routes "← Back" on those pages back to the landing page instead of
+  // the (empty, signed-out) dashboard.
+  function showGuestLegalPage(name){
+    document.getElementById("landingPage").style.display = "none";
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("appRoot").style.display = "block";
+    showPage(name);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Populates the landing page's "live preview" mock panel from the same
+  // DEMO_SEED_TRANSACTIONS/DEMO_SEED_BALANCES used for the in-app "load
+  // demo data" button — real, consistent sample numbers instead of
+  // hand-typed marketing copy that could drift out of sync. Runs once,
+  // independent of sign-in state (the panel is just illustrative).
+  function renderLandingPreview(){
+    const balanceEl = document.getElementById("klPvBalance");
+    if (!balanceEl) return;
+    const totalBalance = Object.values(DEMO_SEED_BALANCES).reduce((s, v) => s + v, 0);
+    const totalIn = DEMO_SEED_TRANSACTIONS.filter(t => t.type === "in").reduce((s, t) => s + t.amount, 0);
+    const totalOut = DEMO_SEED_TRANSACTIONS.filter(t => t.type === "out").reduce((s, t) => s + t.amount, 0);
+    balanceEl.textContent = rs(totalBalance);
+    document.getElementById("klPvIn").textContent = rs(totalIn);
+    document.getElementById("klPvOut").textContent = rs(totalOut);
+    const net = totalIn - totalOut;
+    document.getElementById("klPvNet").textContent = (net >= 0 ? "+" : "−") + rs(Math.abs(net));
+
+    const byCat = {};
+    DEMO_SEED_TRANSACTIONS.filter(t => t.type === "out").forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + t.amount; });
+    const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const catTotal = Object.values(byCat).reduce((s, v) => s + v, 0);
+    document.getElementById("klPvCats").innerHTML = entries.map(([cat, amt]) => {
+      const meta = CAT[cat] || CAT.Other;
+      const pct = catTotal ? Math.round((amt / catTotal) * 100) : 0;
+      return `<div class="kl-preview-cat-row"><span class="kl-dot" style="background:${meta.color}"></span><span>${cat}</span><b>${rs(amt)} (${pct}%)</b></div>`;
+    }).join("");
+
+    document.getElementById("klPvWallets").innerHTML = Object.keys(DEMO_SEED_BALANCES).map(name => {
+      const meta = ACCOUNTS[name] || ACCOUNTS.Other;
+      return `<div class="kl-preview-wallet"><span class="kl-dot" style="background:${meta.color}"></span>${name} <b>${rs(DEMO_SEED_BALANCES[name])}</b></div>`;
+    }).join("");
   }
 
   async function initAuth(){
@@ -7737,6 +8156,14 @@
       // as a stray, badly-positioned popup on top of the app the person
       // is already using — not sitting where a real sign-in prompt should.
       google.accounts.id.renderButton(document.getElementById("gSignInDiv"), { theme: "filled_black", size: "large", shape: "pill" });
+      // Same button, rendered again into the desktop landing page's three
+      // CTA spots (header, hero, bottom banner) — Google's button has to
+      // be the real thing (an iframe) for the click to actually authorize
+      // anything, so these can't just be styled to *look* like it.
+      ["gSignInDivLandingHeader", "gSignInDivLandingHero", "gSignInDivLandingCta"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) google.accounts.id.renderButton(el, { theme: "filled_black", size: id === "gSignInDivLandingHeader" ? "medium" : "large", shape: "pill", text: "continue_with" });
+      });
       if (!resumed) google.accounts.id.prompt(); // One Tap, only when we actually need a sign-in
     }catch(e){
       console.warn("Kharcha: Google Sign-In failed to initialize — the app still works if you already have a saved session.", e);
@@ -7780,6 +8207,7 @@
     sections.forEach(el => io.observe(el));
   }
   setupScrollReveal();
+  renderLandingPreview();
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
 
