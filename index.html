@@ -646,6 +646,15 @@
     font-variant-numeric:tabular-nums;
   }
   .kh-desktop *{ box-sizing:border-box; }
+  /* .kh-desktop keeps min-height:100vh so Home fills the screen — but when
+     a mobile page (Settings/Loans/Privacy/...) is open, kdHomeContent is
+     hidden and only the fixed topbar remains, which doesn't occupy flow
+     space. Left alone, the 100vh min-height would still reserve a full
+     screen's worth of empty space right after that page's content (and
+     our page-footer). Zero it out whenever #appRoot has a page open. */
+  @media (min-width:1024px){
+    #appRoot.kh-page-open ~ .kh-desktop, #appRoot.kh-show-full-home ~ .kh-desktop{ min-height:0; }
+  }
   .kh-desktop .kd-glass{
     background:var(--kd-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
     border:1px solid var(--kd-border); box-shadow:0 4px 24px -2px rgba(0,0,0,.45);
