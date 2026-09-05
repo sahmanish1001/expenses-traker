@@ -15,7 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%23191c27%22/%3E%3Cg%20transform%3D%22rotate%28-90%20256%20256%29%22%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%23f2a93b%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22502.65%201005.31%22%20stroke-dashoffset%3D%220%22/%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%235fd1a4%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22301.59%201005.31%22%20stroke-dashoffset%3D%22-506.65%22/%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22160%22%20fill%3D%22none%22%20stroke%3D%22%23ef6f6c%22%20stroke-width%3D%2248%22%20stroke-dasharray%3D%22197.06%201005.31%22%20stroke-dashoffset%3D%22-812.24%22/%3E%3C/g%3E%3Crect%20x%3D%22228%22%20y%3D%22242%22%20width%3D%2256%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%23f2f0ea%22%20transform%3D%22rotate%28-18%20256%20256%29%22/%3E%3C/svg%3E" />
-<script>(function(){try{var t=localStorage.getItem("kh_theme")||"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem("kh_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" async defer></script>
 <style>
@@ -637,6 +637,7 @@
     --kd-text:#e8e9f1; --kd-dim:#9aa5b1; --kd-muted:#6b7684;
     --kd-primary:#4be277; --kd-on-primary:#00320f;
     --kd-secondary:#ffca45; --kd-tertiary:#7cd0ff; --kd-danger:#ff6b6b;
+    --kd-header-bg:rgba(17,19,27,.85);
     --kd-radius:1.25rem; --kd-radius-sm:0.75rem;
     background:
       radial-gradient(1200px 600px at 15% -10%, rgba(75,226,119,.08), transparent 60%),
@@ -644,6 +645,22 @@
       var(--kd-bg);
     color:var(--kd-text); font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh;
     font-variant-numeric:tabular-nums;
+  }
+  /* The desktop dashboard defines its own dark "Luminous Ledger" palette
+     above via --kd-* custom properties — every component rule in this
+     file reads from those variables rather than hardcoded colors, so
+     redefining them here for the light theme re-themes the whole
+     dashboard without touching each rule individually. Without this,
+     toggling Settings → Appearance did nothing here, which is why light
+     and dark looked identical on desktop. */
+  html[data-theme="light"] .kh-desktop{
+    --kd-bg:#fbf9f6; --kd-surface:rgba(255,255,255,.75); --kd-surface-solid:#ffffff;
+    --kd-surface-hi:rgba(255,255,255,.92); --kd-surface-low:#f5f3f0; --kd-surface-lowest:#eeece7;
+    --kd-border:rgba(28,28,26,.10); --kd-border-hi:rgba(16,163,74,.35);
+    --kd-text:#1c1c1a; --kd-dim:#6b6f76; --kd-muted:#9a9ea6;
+    --kd-primary:#16a34a; --kd-on-primary:#ffffff;
+    --kd-secondary:#c2760a; --kd-tertiary:#0284c7; --kd-danger:#dc2626;
+    --kd-header-bg:rgba(255,255,255,.85);
   }
   .kh-desktop *{ box-sizing:border-box; }
   /* .kh-desktop keeps min-height:100vh so Home fills the screen — but when
@@ -662,7 +679,7 @@
   .kh-desktop .kd-topbar{
     display:flex; align-items:center; gap:20px; justify-content:space-between;
     padding:14px 32px; position:fixed; top:0; left:0; right:0; z-index:500;
-    background:rgba(17,19,27,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    background:var(--kd-header-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     border-bottom:1px solid var(--kd-border);
   }
   /* The topbar is fixed (stays put across every page, not just Home) so
@@ -695,7 +712,7 @@
   .kh-desktop .kd-avatar{width:34px; height:34px; border-radius:50%; background:var(--kd-surface-solid); border:2px solid rgba(75,226,119,.4); color:var(--kd-primary); font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;}
   .kh-desktop .kd-avatar img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
 
-  .kh-desktop .kd-ribbon{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 32px; background:rgba(12,14,22,.6); border-bottom:1px solid var(--kd-border);}
+  .kh-desktop .kd-ribbon{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 32px; background:var(--kd-surface-lowest); border-bottom:1px solid var(--kd-border);}
   .kh-desktop .kd-wallets{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .kh-desktop .kd-wallet-chip{display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--kd-surface-solid); border:1px solid var(--kd-border); color:var(--kd-dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-desktop .kd-wallet-chip.active{color:var(--kd-text); border-color:var(--kd-border-hi); background:rgba(75,226,119,.12);}
@@ -831,18 +848,30 @@
     --kl-border:rgba(255,255,255,.08); --kl-border-hi:rgba(75,226,119,.3);
     --kl-text:#e8e9f1; --kl-dim:#9aa5b1;
     --kl-primary:#4be277; --kl-on-primary:#00320f; --kl-secondary:#ffca45; --kl-tertiary:#7cd0ff; --kl-danger:#ff6b6b;
+    --kl-header-bg:rgba(17,19,27,.85);
     background:
       radial-gradient(1200px 500px at 20% -10%, rgba(75,226,119,.10), transparent 60%),
       radial-gradient(900px 500px at 100% 10%, rgba(255,202,69,.05), transparent 55%),
       var(--kl-bg);
     color:var(--kl-text); font-family:'Plus Jakarta Sans',sans-serif; min-height:100vh; position:relative; overflow-x:hidden;
   }
+  /* Same fix as .kh-desktop above: redefine the --kl-* variables the
+     landing page's own rules already read from, so the light theme
+     actually looks different here too instead of always rendering dark. */
+  html[data-theme="light"] .kh-landing{
+    --kl-bg:#fbf9f6; --kl-surface:rgba(255,255,255,.75); --kl-surface-hi:rgba(255,255,255,.92);
+    --kl-surface-solid:#ffffff; --kl-surface-low:#f5f3f0; --kl-surface-lowest:#eeece7;
+    --kl-border:rgba(28,28,26,.10); --kl-border-hi:rgba(16,163,74,.35);
+    --kl-text:#1c1c1a; --kl-dim:#6b6f76;
+    --kl-primary:#16a34a; --kl-on-primary:#ffffff; --kl-secondary:#c2760a; --kl-tertiary:#0284c7; --kl-danger:#dc2626;
+    --kl-header-bg:rgba(255,255,255,.85);
+  }
   .kh-landing *{ box-sizing:border-box; }
   .kh-landing [id^="kl-"]{ scroll-margin-top:90px; }
   .kh-landing a{ color:inherit; text-decoration:none; }
   .kh-landing .kl-glass{ background:var(--kl-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--kl-border); }
 
-  .kh-landing .kl-header{ position:sticky; top:0; z-index:50; background:rgba(17,19,27,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--kl-border); }
+  .kh-landing .kl-header{ position:sticky; top:0; z-index:50; background:var(--kl-header-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--kl-border); }
   .kh-landing .kl-header-inner{ max-width:1200px; margin:0 auto; padding:14px 40px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
   .kh-landing .kl-brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .kh-landing .kl-brand-mark{ width:38px; height:38px; border-radius:12px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px -4px rgba(75,226,119,.4); }
@@ -891,7 +920,7 @@
   .kh-landing .kl-preview-wallets{ display:flex; flex-wrap:wrap; gap:8px; }
   .kh-landing .kl-preview-wallet{ display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; background:var(--kl-surface-solid); border:1px solid var(--kl-border); font-size:11.5px; }
 
-  .kh-landing .kl-band{ position:relative; z-index:1; border-top:1px solid var(--kl-border); border-bottom:1px solid var(--kl-border); padding:20px 0; margin:0 -40px; padding-left:40px; padding-right:40px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; background:rgba(12,14,22,.5); }
+  .kh-landing .kl-band{ position:relative; z-index:1; border-top:1px solid var(--kl-border); border-bottom:1px solid var(--kl-border); padding:20px 0; margin:0 -40px; padding-left:40px; padding-right:40px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; background:var(--kl-surface-lowest); }
   .kh-landing .kl-band-label{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--kl-dim); }
   .kh-landing .kl-band-items{ display:flex; flex-wrap:wrap; gap:24px; font-size:13px; font-weight:700; }
   .kh-landing .kl-band-items div{ display:flex; align-items:center; gap:8px; }
