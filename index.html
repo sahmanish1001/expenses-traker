@@ -750,6 +750,16 @@
   .kh-desktop .kd-fab{position:fixed; bottom:24px; right:32px; z-index:30; background:var(--kd-primary); color:var(--kd-on-primary); border:none; border-radius:999px; padding:14px 22px; font-family:inherit; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 10px 30px rgba(75,226,119,.4);}
   .kh-desktop .kd-fab:hover{filter:brightness(1.08);}
   .kh-desktop .kd-footer{max-width:1400px; margin:0 auto; padding:28px 32px 40px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-top:1px solid var(--kd-border); color:var(--kd-dim); font-size:12px;}
+  .kh-desktop .kd-footer-brand{display:flex; align-items:center; gap:10px;}
+  .kh-desktop .kd-footer-logo{width:22px; height:22px; border-radius:6px; background:var(--kd-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .kh-desktop .kd-footer-logo svg{width:13px; height:13px; display:block;}
+  .kh-desktop .kd-footer-info{display:flex; flex-direction:column; gap:3px;}
+  .kh-desktop .kd-footer-name{font-size:14px; font-weight:800; letter-spacing:-.01em; color:var(--kd-text);}
+  .kh-desktop .kd-footer-tagline{font-size:11.5px; color:var(--kd-dim);}
+  .kh-desktop .kd-footer-nav{display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
+  .kh-desktop .kd-footer-link{color:var(--kd-dim); font-size:12.5px; font-weight:600; text-decoration:none; white-space:nowrap; cursor:pointer; background:none; border:none; font-family:inherit;}
+  .kh-desktop .kd-footer-link:hover{color:var(--kd-text);}
+  @media (max-width:900px){ .kh-desktop .kd-footer{justify-content:center; text-align:center;} .kh-desktop .kd-footer-nav{justify-content:center;} }
 
   /* The actual mobile/desktop switch.
      At desktop widths the dashboard replaces only the mobile top bar and
@@ -1976,8 +1986,23 @@
   <button class="kd-fab" onclick="toggleManualAdd()" title="Add transaction manually">＋ Quick Expense</button>
 
   <footer class="kd-footer">
-    <span class="kd-brand-name">Kharchā</span>
-    <span class="kd-footer-sub">Private, local-first expense tracking — your data stays on your device.</span>
+    <div class="kd-footer-brand">
+      <div class="kd-footer-logo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 8a7 7 0 1 0 0 8" stroke="#00320f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="kd-footer-info">
+        <span class="kd-footer-name">Kharchā</span>
+        <span class="kd-footer-tagline">© 2025 Kharchā Financial. Local-first, private financial stewardship for Nepal.</span>
+      </div>
+    </div>
+    <nav class="kd-footer-nav">
+      <a href="#privacy" class="kd-footer-link">Privacy Policy</a>
+      <a href="#security" class="kd-footer-link">Security Architecture</a>
+      <a href="#bikram-sambat" class="kd-footer-link">Bikram Sambat Engine</a>
+      <a href="#demo" class="kd-footer-link">Terms of Service</a>
+    </nav>
   </footer>
   </div>
 </div>
