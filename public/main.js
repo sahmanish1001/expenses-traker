@@ -984,6 +984,15 @@
       editingTxId = null;
       document.getElementById("panelManualTitle").textContent = "Add transaction manually";
       document.getElementById("manualSaveBtn").textContent = "Add transaction";
+      // Clear out whatever was typed last time — this panel's inputs are
+      // plain DOM elements that persist for the life of the page, so
+      // without this a second "Add transaction manually" would still show
+      // the previous entry's vendor/amount/date. editTx() (edit mode)
+      // calls openPanel("manual") first and then fills these back in with
+      // the transaction being edited, so clearing here doesn't affect it.
+      document.getElementById("manualVendor").value = "";
+      document.getElementById("manualAmount").value = "";
+      document.getElementById("manualDate").value = "";
       setManualType("out");
       populateManualForm();
       setTimeout(() => document.getElementById("manualVendor").focus(), 300);
