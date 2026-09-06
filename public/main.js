@@ -936,6 +936,7 @@
   // Bottom navigation + glass slide-up panels (Account / Settings / More).
   // ---------------------------------------------------------------------
   let openPanelName = null;
+  let panelTriggerEl = null;
   let currentPage = "home";
   // Import panel has two tabs sharing one status line: "Paste JSON" (the
   // original AI-parsed-photo flow) and "Paste SMS" (regex-parsed bank/
@@ -962,6 +963,10 @@
     document.querySelectorAll(".kh-panel").forEach(p => p.classList.remove("show"));
     const el = document.getElementById(PANEL_IDS[name]);
     if (!el) return;
+    // Remember what had focus so closePanel() can put it back — otherwise
+    // keyboard/screen-reader users get dropped back at the top of the page
+    // instead of where they were before opening this dialog.
+    panelTriggerEl = document.activeElement;
     el.classList.add("show");
     document.getElementById("panelBackdrop").classList.add("show");
     openPanelName = name;
@@ -1115,7 +1120,36 @@
     document.getElementById("panelBackdrop").classList.remove("show");
     openPanelName = null;
     setActiveNav(currentPage);
+    if (panelTriggerEl && document.body.contains(panelTriggerEl)) panelTriggerEl.focus();
+    panelTriggerEl = null;
   }
+
+  // Keyboard support for the slide-up panels: Escape closes whichever one
+  // is open (they're role="dialog" now, so screen-reader/keyboard users
+  // expect this), and Tab is trapped inside it so focus can't silently
+  // wander back into the page hidden underneath.
+  document.addEventListener("keydown", (e) => {
+    if (!openPanelName) return;
+    const panel = document.getElementById(PANEL_IDS[openPanelName]);
+    if (!panel) return;
+    if (e.key === "Escape"){
+      e.preventDefault();
+      closePanel();
+      return;
+    }
+    if (e.key === "Tab"){
+      const focusable = panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first){
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last){
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
 
   function showPage(name){
     document.getElementById("homePage").classList.toggle("active", name === "home");
