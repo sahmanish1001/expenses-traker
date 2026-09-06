@@ -623,86 +623,15 @@
     return (new Date(d2 + "T00:00:00Z") - new Date(d1 + "T00:00:00Z")) / 86400000;
   }
 
-  function loanPaid(loan){
-    return (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-  }
-
-  // Interest accrued as of `asOf` (defaults to today).
-  // "flat": simple interest on the original principal for the whole
-  //         elapsed period — the rate a lot of informal loans in Nepal
-  //         are quoted at.
-  // "reducing": interest is recalculated on the balance still outstanding
-  //         after each payment, so it shrinks as the loan gets paid down
-  //         — the bank-style method, and the usual source of confusion
-  //         with "flat" rates that quote the same-looking % per year.
-  function loanInterestAccrued(loan, asOf){
-    asOf = asOf || todayStr();
-    const rate = Number(loan.interestRate) || 0;
-    if (!rate || !loan.interestType || loan.interestType === "none") return 0;
-    if (loan.interestType === "flat"){
-      const years = Math.max(0, daysBetween(loan.dateGiven, asOf) / 365);
-      return loan.principal * (rate / 100) * years;
-    }
-    // reducing balance
-    const events = [...(loan.payments || [])].sort((a, b) => a.date < b.date ? -1 : 1);
-    let balance = loan.principal;
-    let cursor = loan.dateGiven;
-    let interestAccrued = 0;
-    events.forEach(ev => {
-      const yrs = Math.max(0, daysBetween(cursor, ev.date) / 365);
-      const periodInterest = balance * (rate / 100) * yrs;
-      interestAccrued += periodInterest;
-      balance = Math.max(0, balance + periodInterest - ev.amount);
-      cursor = ev.date;
-    });
-    const yrsToAsOf = Math.max(0, daysBetween(cursor, asOf) / 365);
-    interestAccrued += balance * (rate / 100) * yrsToAsOf;
-    return interestAccrued;
-  }
-
-  function loanTotals(loan){
-    const paid = loanPaid(loan);
-    const interest = loanInterestAccrued(loan);
-    const totalOwed = loan.principal + interest;
-    const outstanding = Math.max(0, totalOwed - paid);
-    return { paid, interest, totalOwed, outstanding };
-  }
-
-  // Projects when an EMI loan will be fully paid off, assuming the
-  // remaining installments land roughly one per month from today.
-  function emiPayoffDate(loan){
-    if (!loan.isEmi || !loan.emiTenure) return null;
-    const remaining = loan.emiTenure - emiInstallmentsPaid(loan);
-    if (remaining <= 0) return null;
-    const d = new Date(todayStr() + "T00:00:00");
-    d.setMonth(d.getMonth() + remaining);
-    return d.toISOString().slice(0, 10);
-  }
-
-  const LOAN_STATUS_META = {
-    "Pending":         { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
-    "Partially Paid":  { color: "#f59e0b", bg: "rgba(245,158,11,.16)" },
-    "Cleared":         { color: "#22c55e", bg: "rgba(34,197,94,.16)" },
-    "Overdue":         { color: "#f97316", bg: "rgba(249,115,22,.16)" },
-  };
-
-  function loanStatus(loan){
-    const { outstanding } = loanTotals(loan);
-    if (outstanding <= 0.5) return "Cleared";
-    if (loan.dueDate && loan.dueDate < todayStr()) return "Overdue";
-    return loanPaid(loan) > 0 ? "Partially Paid" : "Pending";
-  }
-
+  // loanPaid/loanInterestAccrued/loanTotals/emiPayoffDate/LOAN_STATUS_META/
+  // loanStatus all now live in src/moneyMath.js (loaded first, as a
+  // <script type="module"> — see index.html) and are exposed as plain
+  // globals from there, since they're pure functions that don't need
+  // anything from this file. Kept as real unit-tested code instead of
+  // copy-pasted logic that could quietly drift from what's actually
+  // being tested — see moneyMath.test.js.
   function netLoanPosition(scope){
-    let lentOutstanding = 0, borrowedOutstanding = 0;
-    LOANS.forEach(l => {
-      if (scope === "emi" && !l.isEmi) return;
-      if (scope === "nonEmi" && l.isEmi) return;
-      const { outstanding } = loanTotals(l);
-      if (l.type === "lent") lentOutstanding += outstanding;
-      else borrowedOutstanding += outstanding;
-    });
-    return { lentOutstanding, borrowedOutstanding, net: lentOutstanding - borrowedOutstanding };
+    return netLoanPositionPure(LOANS, scope);
   }
 
   // ---------------------------------------------------------------------
@@ -3334,9 +3263,8 @@
     loan.dueDate = d.toISOString().slice(0, 10);
   }
 
-  function emiInstallmentsPaid(loan){
-    return (loan.payments || []).length;
-  }
+  // emiInstallmentsPaid() now lives in src/moneyMath.js (see the comment
+  // near netLoanPosition() above).
 
   function openLoanForm(id, forceEmi){
     openPanel("loanform"); // resets the form to a blank "new loan" state
@@ -3786,11 +3714,9 @@
   function renderBudgetPace(spent, limit){
     const prog = bsMonthProgress();
     if (!limit || limit <= 0 || !prog) return "";
-    const spentPct = Math.min(100, (spent / limit) * 100);
-    const pacePct = Math.min(100, (prog.daysElapsed / prog.daysTotal) * 100);
-    const projected = prog.daysElapsed > 0 ? (spent / prog.daysElapsed) * prog.daysTotal : spent;
-    const overProjected = projected > limit;
-    const aheadOfPace = spentPct <= pacePct;
+    // The actual projection math lives in src/moneyMath.js
+    // (computeBudgetPace) — this function just turns it into markup.
+    const { spentPct, pacePct, projected, overProjected, aheadOfPace } = computeBudgetPace(spent, limit, prog.daysElapsed, prog.daysTotal);
     const noteColor = overProjected ? "var(--out)" : (aheadOfPace ? "var(--in)" : "var(--accent)");
     const noteText = overProjected
       ? `At this pace you'll spend ${rs(projected)} by month end — ${rs(projected - limit)} over your limit.`
@@ -3950,48 +3876,12 @@
   // Room expenses — shared-flat cost splitting.
   // Balances are always derived from ROOM_EXPENSES + ROOM_SETTLEMENTS
   // rather than stored, so they can never drift out of sync with the log.
+  // The actual math (computeRoomBalancesPure) and simplifyRoomDebts() now
+  // live in src/moneyMath.js — see the comment near netLoanPosition()
+  // further up this file.
   // ---------------------------------------------------------------------
   function computeRoomBalances(){
-    const net = {};
-    ROOMMATES.forEach(n => { net[n] = 0; });
-    ROOM_EXPENSES.forEach(e => {
-      const participants = (e.splitAmong && e.splitAmong.length)
-        ? e.splitAmong.filter(n => ROOMMATES.includes(n))
-        : ROOMMATES.slice();
-      if (!participants.length) return;
-      const share = e.amount / participants.length;
-      participants.forEach(p => { net[p] = (net[p] || 0) - share; });
-      net[e.paidBy] = (net[e.paidBy] || 0) + e.amount;
-    });
-    ROOM_SETTLEMENTS.forEach(s => {
-      net[s.from] = (net[s.from] || 0) + s.amount;
-      net[s.to] = (net[s.to] || 0) - s.amount;
-    });
-    return net;
-  }
-
-  // Greedily matches the biggest creditor against the biggest debtor each
-  // round, which minimizes the number of settle-up transactions needed —
-  // the same trick Splitwise uses instead of listing every pairwise debt.
-  function simplifyRoomDebts(net){
-    const creditors = [], debtors = [];
-    Object.entries(net).forEach(([name, amt]) => {
-      if (amt > 0.5) creditors.push({ name, amt });
-      else if (amt < -0.5) debtors.push({ name, amt: -amt });
-    });
-    creditors.sort((a, b) => b.amt - a.amt);
-    debtors.sort((a, b) => b.amt - a.amt);
-    const settlements = [];
-    let ci = 0, di = 0;
-    while (ci < creditors.length && di < debtors.length){
-      const c = creditors[ci], d = debtors[di];
-      const amt = Math.min(c.amt, d.amt);
-      settlements.push({ from: d.name, to: c.name, amount: amt });
-      c.amt -= amt; d.amt -= amt;
-      if (c.amt < 0.5) ci++;
-      if (d.amt < 0.5) di++;
-    }
-    return settlements;
+    return computeRoomBalancesPure(ROOMMATES, ROOM_EXPENSES, ROOM_SETTLEMENTS);
   }
 
   function renderRoomDashCard(){
