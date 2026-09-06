@@ -1859,6 +1859,16 @@
 
 <div class="kh-toast" id="toast">Imported</div>
 
-<script src="/main.js"></script>
+<!-- Pure money-math functions (loan interest/EMI, budget pacing, room
+     split) — a real ES module so they're unit-testable (see
+     src/moneyMath.test.js), loaded as type="module" which the HTML spec
+     defers until after parsing. main.js below is marked defer too so it
+     runs in the same "after parsing" batch, in this document order —
+     guaranteeing moneyMath's globals (loanTotals, computeRoomBalances,
+     etc.) exist before main.js's first line runs. Without defer here,
+     main.js (a plain blocking classic script) would run immediately when
+     the parser reached it — before this deferred module ever executed. -->
+<script type="module" src="/src/moneyMath.js"></script>
+<script defer src="/main.js"></script>
 </body>
 </html>
