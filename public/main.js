@@ -5823,6 +5823,19 @@
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
 
+  // Registers the service worker (public/sw.js) that lets the app shell
+  // load with zero network connection — see that file for the caching
+  // strategy. Registration failing (unsupported browser, not served over
+  // HTTPS, etc.) is non-fatal; the app already works fine without it,
+  // just without the offline-shell guarantee.
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((e) => {
+        console.warn("Kharcha: service worker registration failed — the app still works online.", e);
+      });
+    });
+  }
+
   // Splash screen: show the animated mark briefly, then reveal the auth/app screen beneath it.
   window.addEventListener("load", () => {
     setTimeout(() => {
