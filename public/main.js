@@ -1838,15 +1838,31 @@
     // above) is what's current until the next successful save.
     const sb = getSb();
     if (sb && supabaseUserId){
-      const savedAt = new Date().toISOString();
-      // Remember this device made the change at this instant, so the
-      // real-time listener below can tell "this is just an echo of my
-      // own save" apart from "another device changed something" and
-      // skip re-applying (and re-rendering / toasting about) its own edit.
-      lastSelfSaveAt = savedAt;
-      sb.from("user_data")
-        .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: savedAt })
-        .then(({ error }) => { if (error) console.warn("Kharcha: Supabase save failed —", error.message); });
+      // Don't even attempt the request while known offline — this device's
+      // local copy above is already correct; just remember to push it once
+      // connectivity actually returns (see the "online" listener below).
+      if (typeof navigator !== "undefined" && navigator.onLine === false){
+        pendingCloudSync = true;
+      } else {
+        const savedAt = new Date().toISOString();
+        // Remember this device made the change at this instant, so the
+        // real-time listener below can tell "this is just an echo of my
+        // own save" apart from "another device changed something" and
+        // skip re-applying (and re-rendering / toasting about) its own edit.
+        lastSelfSaveAt = savedAt;
+        sb.from("user_data")
+          .upsert({ id: supabaseUserId, email: currentUser.email, data: snapshot, updated_at: savedAt })
+          .then(({ error }) => {
+            if (error) console.warn("Kharcha: Supabase save failed —", error.message);
+          })
+          .catch((e) => {
+            // The request itself never reached the server (offline mid-flight,
+            // DNS failure, etc.) — mark for retry instead of silently losing
+            // the sync, same as the "known offline" branch above.
+            console.warn("Kharcha: Supabase save request failed —", e);
+            pendingCloudSync = true;
+          });
+      }
     }
     // Any room-related field (roommates, shared expenses, settlements,
     // rent) also needs to land in the shared `rooms` row once we're in a
@@ -5345,6 +5361,16 @@
   let supabaseUserId = null; // auth.uid() once signed in through Supabase; null = local-only mode (offline, or Supabase unreachable)
   let realtimeChannel = null;
   let lastSelfSaveAt = null;
+  // Set whenever a cloud save is skipped or fails while offline — the
+  // localStorage copy (and therefore what's on screen) is already
+  // correct, but the cloud row is now stale until this flag triggers a
+  // re-save on the "online" event below. Without this, an edit made
+  // offline would just sit uploaded-to-nowhere forever; the *next* time
+  // this device's realtime channel received someone else's change (or
+  // simply reconnected), it could easily look like the offline edit had
+  // "disappeared" — the cloud row it got compared against never actually
+  // had it in the first place.
+  let pendingCloudSync = false;
 
   // Live sync — any other device signed into the same account gets its
   // update pushed here instead of waiting for its next sign-in. Skips
@@ -5721,6 +5747,21 @@
   renderLandingPreview();
 
   window.addEventListener("load", () => setTimeout(initAuth, 150)); // give the GSI script a moment to load
+
+  // Re-pushes this device's data to Supabase the moment connectivity
+  // returns, if a save was skipped or failed while offline (see
+  // saveCurrentUser()'s pendingCloudSync flag). Without this, anything
+  // added or changed offline stays correct in this browser (localStorage
+  // never depends on the network) but the cloud copy silently never
+  // catches up — which is what made an offline edit look like it had
+  // "disappeared" once back online, since a stale cloud copy is what any
+  // other synced device (or a fresh sign-in on this one) would see.
+  window.addEventListener("online", () => {
+    if (pendingCloudSync && currentUser && supabaseUserId){
+      pendingCloudSync = false;
+      saveCurrentUser();
+    }
+  });
 
   // Registers the service worker (public/sw.js) that lets the app shell
   // load with zero network connection — see that file for the caching
