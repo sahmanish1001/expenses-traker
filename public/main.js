@@ -640,7 +640,18 @@
   // again if the loan itself is deleted.
   // ---------------------------------------------------------------------
   function todayStr(){
-    const d = new Date();
+    return fmtLocalDate(new Date());
+  }
+
+  // Formats a Date using its LOCAL year/month/day, not d.toISOString()'s
+  // UTC ones — toISOString() silently shifts the date back a day for
+  // anyone in a timezone ahead of UTC (Nepal is UTC+5:45, this app's own
+  // audience), which is exactly the bug emiPayoffDate() in
+  // src/moneyMath.js was fixed for. Every place in this file that used to
+  // build a future/past date (d.setMonth(...) etc.) and then read it back
+  // via d.toISOString().slice(0,10) had the same bug — see the call sites
+  // below.
+  function fmtLocalDate(d){
     const pad = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   }
@@ -660,87 +671,15 @@
     return netLoanPositionPure(LOANS, scope);
   }
 
-  // ---------------------------------------------------------------------
-  // Nepali (Bikram Sambat) calendar support.
-  // Converts a worldwide/Gregorian (AD) date into the Nepali BS date so
-  // spending can be grouped and viewed by Nepali month.
-  //
-  // Nepal's BS calendar doesn't follow a fixed formula (each month's length
-  // is fixed by the official Nepali calendar and can shift by a day from
-  // year to year), so this uses the well-established month-start dates that
-  // hold for the current era (~2018-2035 AD / BS 2075-2091). Day-of-month
-  // can occasionally be off by a day right at a month boundary in some
-  // years; month and year are reliable, which is what the grouping below
-  // depends on.
-  // ---------------------------------------------------------------------
-  const NEPALI_MONTHS = [
-    { name: "Baisakh", color: "#f2a93b" },
-    { name: "Jestha",  color: "#5fd1a4" },
-    { name: "Asar",    color: "#ef6f6c" },
-    { name: "Shrawan", color: "#7f9cf5" },
-    { name: "Bhadra",  color: "#c792ea" },
-    { name: "Ashwin",  color: "#e8a87c" },
-    { name: "Kartik",  color: "#6ec6dc" },
-    { name: "Mangsir", color: "#8fd19e" },
-    { name: "Poush",   color: "#e0473e" },
-    { name: "Magh",    color: "#3aa655" },
-    { name: "Falgun",  color: "#b98cce" },
-    { name: "Chaitra", color: "#f2c14e" },
-  ];
-  // [adMonth, adDay] each BS month begins on, for a BS year that starts
-  // (Baisakh 1) in April of a given AD year "Y". Magh/Falgun/Chaitra fall
-  // in Y+1.
-  const BS_MONTH_STARTS = [
-    [4, 13], [5, 14], [6, 14], [7, 16], [8, 16], [9, 17],
-    [10, 17], [11, 16], [12, 15], [1, 14], [2, 12], [3, 14],
-  ];
-
-  function bsBoundariesForBaisakhYear(Y){
-    // Returns the 12 month-start boundaries (as real Date objects) for the
-    // BS year that begins Baisakh 1 in April of AD year Y.
-    return BS_MONTH_STARTS.map(([adMonth, adDay], i) => {
-      const adYear = adMonth <= 3 ? Y + 1 : Y; // Magh(10)/Falgun(11)/Chaitra(12) land in Jan-Mar of Y+1
-      return {
-        date: new Date(Date.UTC(adYear, adMonth - 1, adDay)),
-        bsMonth: i + 1,
-        bsYear: Y + 57,
-      };
-    });
-  }
-
-  function adToBs(dateStr){
-    const d = new Date(dateStr + "T00:00:00Z");
-    const adYear = d.getUTCFullYear();
-    // The boundary that applies could belong to "this AD year's Baisakh"
-    // or the previous one (for Jan/Feb/early-Mar dates), so build both.
-    const candidates = [
-      ...bsBoundariesForBaisakhYear(adYear - 1),
-      ...bsBoundariesForBaisakhYear(adYear),
-    ].sort((a, b) => a.date - b.date);
-
-    let match = candidates[0];
-    for (const c of candidates){
-      if (c.date <= d) match = c; else break;
-    }
-    const dayDiff = Math.round((d - match.date) / 86400000) + 1;
-    return { year: match.bsYear, month: match.bsMonth, day: dayDiff };
-  }
-
-  function bsLabel(dateStr){
-    const bs = adToBs(dateStr);
-    return `${NEPALI_MONTHS[bs.month - 1].name} ${bs.day}, ${bs.year}`;
-  }
-
-  // Reverse of adToBs — a BS year/month/day back to an AD "YYYY-MM-DD"
-  // string. Used for anything set by a Nepali calendar day (like a rent
-  // due day) that then needs real date math (countdowns, overdue checks).
+  // NEPALI_MONTHS/BS_MONTH_STARTS/bsBoundariesForBaisakhYear/adToBs/
+  // bsLabel/bsMonthKey/shiftBsMonth/nextBsDueDate all now live in
+  // src/nepaliCalendar.js (loaded first, as a <script type="module"> —
+  // see index.html) and are exposed as plain globals from there, same
+  // pattern as src/moneyMath.js. bsToAd keeps its "fall back to today"
+  // behavior as a thin wrapper here, since that's a UI-ish default the
+  // pure bsToAdPure() deliberately doesn't bake in.
   function bsToAd(bsYear, bsMonth, bsDay){
-    const Y = bsYear - 57;
-    const boundary = bsBoundariesForBaisakhYear(Y).find(b => b.bsMonth === bsMonth);
-    if (!boundary) return todayStr();
-    const d = new Date(boundary.date.getTime() + (bsDay - 1) * 86400000);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+    return bsToAdPure(bsYear, bsMonth, bsDay) || todayStr();
   }
 
   function showToast(msg){
@@ -1418,7 +1357,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `kharcha-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `kharcha-backup-${todayStr()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1445,7 +1384,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `kharcha-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `kharcha-transactions-${todayStr()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1511,7 +1450,7 @@
       return;
     }
     win.document.write(`<!doctype html>
-<html><head><meta charset="utf-8"><title>Kharchā statement ${new Date().toISOString().slice(0,10)}</title>
+<html><head><meta charset="utf-8"><title>Kharchā statement ${todayStr()}</title>
 <style>
   body{font-family:Arial,Helvetica,sans-serif; color:#1a1a1a; padding:28px; max-width:820px; margin:0 auto;}
   h1{font-size:20px; margin:0 0 2px;}
@@ -2798,11 +2737,6 @@
     showToast(`Added ${name}`);
   }
 
-  function bsMonthKey(dateStr){
-    const bs = adToBs(dateStr);
-    return `${bs.year}-${bs.month}`;
-  }
-
   function currentBsMonthKey(){
     return bsMonthKey(todayStr());
   }
@@ -3391,7 +3325,7 @@
     for (let i = 1; i <= count; i++){
       const d = new Date(loan.dateGiven + "T00:00:00");
       d.setMonth(d.getMonth() + i);
-      const payDate = d.toISOString().slice(0, 10);
+      const payDate = fmtLocalDate(d);
       const payment = { id: "pay" + Math.random().toString(36).slice(2, 9), date: payDate, amount: loan.emiAmount, note: "Marked as already paid", linkTxId: null };
       if (recordTx && account){
         ensureCategory("Loan");
@@ -3412,7 +3346,7 @@
     if (!loan.dueDate) return;
     const d = new Date(loan.dueDate + "T00:00:00");
     d.setMonth(d.getMonth() + 1);
-    loan.dueDate = d.toISOString().slice(0, 10);
+    loan.dueDate = fmtLocalDate(d);
   }
 
   // emiInstallmentsPaid() now lives in src/moneyMath.js (see the comment
@@ -3725,7 +3659,7 @@
     document.getElementById("loanDateGiven").value = lastLoanCalc.startDate || todayStr();
     const next = new Date((lastLoanCalc.startDate || todayStr()) + "T00:00:00");
     next.setMonth(next.getMonth() + (lastLoanCalc.elapsed || 0) + 1);
-    document.getElementById("loanDueDate").value = next.toISOString().slice(0, 10);
+    document.getElementById("loanDueDate").value = fmtLocalDate(next);
     document.getElementById("loanInterestRate").value = lastLoanCalc.annualRate || "";
     document.getElementById("loanInterestType").value = lastLoanCalc.type === "reducing" ? "reducing" : "flat";
     document.getElementById("loanNotes").value = "EMI loan set up from the calculator";
@@ -3745,22 +3679,17 @@
   // the app already groups things by BS month.
   // ---------------------------------------------------------------------
   function currentBsMonthKey(){
-    return bsMonthKey(new Date().toISOString().slice(0,10));
+    return bsMonthKey(todayStr());
   }
 
   function currentBsMonthLabel(){
-    const bs = adToBs(new Date().toISOString().slice(0,10));
+    const bs = adToBs(todayStr());
     return `${NEPALI_MONTHS[bs.month - 1].name} ${bs.year}`;
   }
 
   // Shifts a BS year/month by `delta` months (can be negative), wrapping the
   // year correctly. Only used for bucketing transactions by month, so exact
   // day counts per BS month don't matter here.
-  function shiftBsMonth(year, month, delta){
-    const total = (year * 12 + (month - 1)) + delta;
-    return { year: Math.floor(total / 12), month: (((total % 12) + 12) % 12) + 1 };
-  }
-
   function spendForMonthKey(key, category){
     return TRANSACTIONS
       .filter(t => t.type === "out" && !HIDDEN_ACCOUNTS.includes(t.account) && bsMonthKey(t.date) === key && (category ? t.category === category : true))
@@ -4341,14 +4270,7 @@
   // date keeps moving forward on its own instead of going stale/overdue
   // forever once a cycle's due date has come and gone.
   function currentRentDueDate(){
-    const day = Math.min(Math.max(1, parseInt(ROOM_RENT.dueDay, 10) || 1), 32);
-    const todayBs = adToBs(todayStr());
-    let due = bsToAd(todayBs.year, todayBs.month, day);
-    if (due < todayStr()){
-      const next = shiftBsMonth(todayBs.year, todayBs.month, 1);
-      due = bsToAd(next.year, next.month, day);
-    }
-    return due;
+    return nextBsDueDate(ROOM_RENT.dueDay, todayStr());
   }
 
   function currentRentExpense(){
@@ -4652,14 +4574,7 @@
   function currentRecurringCycleKey(){ return recurringCycleKey(todayStr()); }
 
   function recurringDueDate(dueDay){
-    const day = Math.min(Math.max(1, parseInt(dueDay, 10) || 1), 32);
-    const todayBs = adToBs(todayStr());
-    let due = bsToAd(todayBs.year, todayBs.month, day);
-    if (due < todayStr()){
-      const next = shiftBsMonth(todayBs.year, todayBs.month, 1);
-      due = bsToAd(next.year, next.month, day);
-    }
-    return due;
+    return nextBsDueDate(dueDay, todayStr());
   }
 
   function recurringLoggedTx(item){
@@ -4862,24 +4777,9 @@
     }
   }
 
-  // Derived, never stored: Upcoming/Open/Closed purely from today vs the
-  // IPO's own dates, so a forgotten status field can never drift from
-  // reality. `listed` is the one manual flag, for once shares actually
-  // start trading well after the close date.
-  function ipoStatus(ipo, today){
-    today = today || todayStr();
-    if (ipo.listed) return "Listed";
-    if (today < ipo.openDate) return "Upcoming";
-    if (today <= ipo.closeDate) return "Open";
-    return "Closed";
-  }
-
-  const IPO_STATUS_META = {
-    "Upcoming": { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
-    "Open":     { color: "#22c55e", bg: "rgba(34,197,94,.16)" },
-    "Closed":   { color: "#f59e0b", bg: "rgba(245,158,11,.16)" },
-    "Listed":   { color: "#3b82f6", bg: "rgba(59,130,246,.16)" },
-  };
+  // ipoStatus()/IPO_STATUS_META now live in src/ipoMath.js (loaded first,
+  // as a <script type="module"> — see index.html) and are exposed as
+  // plain globals from there, same pattern as src/moneyMath.js.
 
   // Looks up an IPO by id across both the person's own list and the
   // scraped shared one — every call site that used to only check IPOS
@@ -4993,7 +4893,7 @@
   function updateIpoApplyAmount(){
     const ipo = findAnyIpo(currentIpoApplyId);
     const units = parseInt(document.getElementById("ipoApplyUnits").value, 10) || 0;
-    document.getElementById("ipoApplyAmount").value = ipo ? units * ipo.price : "";
+    document.getElementById("ipoApplyAmount").value = ipo ? computeIpoApplicationAmount(units, ipo.price) : "";
   }
 
   function saveIpoApply(){
@@ -5005,7 +4905,7 @@
     const account = document.getElementById("ipoApplyAccount").value;
     if (!unitsApplied || unitsApplied <= 0){ status.textContent = "Enter how many units you applied for."; status.className = "kh-manual-status err"; return; }
     if (!account){ status.textContent = "Pick which account this is blocked from."; status.className = "kh-manual-status err"; return; }
-    const amountBlocked = unitsApplied * ipo.price;
+    const amountBlocked = computeIpoApplicationAmount(unitsApplied, ipo.price);
     ensureCategory("Investment");
     ensureAccount(account);
     const txId = "tx" + (nextTxId++);
@@ -5053,13 +4953,9 @@
         status.className = "kh-manual-status err";
         return;
       }
-      app.status = "Allotted";
-      app.unitsAllotted = unitsAllotted;
-      app.refundAmount = Math.max(0, app.amountBlocked - (unitsAllotted * app.price));
+      Object.assign(app, computeIpoAllotmentResult(app, "allotted", unitsAllotted));
     } else {
-      app.status = "Not Allotted";
-      app.unitsAllotted = 0;
-      app.refundAmount = app.amountBlocked;
+      Object.assign(app, computeIpoAllotmentResult(app, "notallotted", 0));
     }
     saveCurrentUser();
     renderIpoApplications();
@@ -5150,9 +5046,7 @@
     const el = document.getElementById("ipoApplicationList");
     const roiEl = document.getElementById("ipoRoiRow");
     if (roiEl){
-      const totalApplied = IPO_APPLICATIONS.reduce((s, a) => s + a.amountBlocked, 0);
-      const totalAllotted = IPO_APPLICATIONS.filter(a => a.unitsAllotted).reduce((s, a) => s + (a.unitsAllotted * a.price), 0);
-      const totalRefunded = IPO_APPLICATIONS.filter(a => a.refunded).reduce((s, a) => s + a.refundAmount, 0);
+      const { totalApplied, totalAllotted, totalRefunded } = computeIpoRoiTotals(IPO_APPLICATIONS);
       roiEl.innerHTML = `
         <div class="kh-loan-summary-item">
           <div class="kh-loan-summary-label">Total applied</div>
@@ -5226,7 +5120,7 @@
   }
 
   function renderInsightsPage(){
-    const cur = adToBs(new Date().toISOString().slice(0,10));
+    const cur = adToBs(todayStr());
     const curKey = `${cur.year}-${cur.month}`;
     const prev = shiftBsMonth(cur.year, cur.month, -1);
     const prevKey = `${prev.year}-${prev.month}`;
