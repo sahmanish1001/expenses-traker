@@ -308,6 +308,7 @@
   let currentIpoApplyId = null;
   let ipoResultAppId = null;
   let ipoResultOutcome = "allotted";
+  let ipoFilter = "all"; // "all" or a real ipoStatus() value ("Open"/"Upcoming"/"Closed"/"Listed")
 
   // Shared expenses scoped to the room page's own month filter. Balances
   // (who owes whom) deliberately do NOT use this — a debt someone still
@@ -4927,7 +4928,7 @@
     IPO_APPLICATIONS.push({
       id: "ipa" + (nextIpoAppId++), ipoId: ipo.id, company: ipo.company, price: ipo.price,
       unitsApplied, amountBlocked, applicationDate, account, status: "Applied",
-      unitsAllotted: null, refundAmount: null, refunded: false, txBlockedId: txId, txRefundId: null,
+      unitsAllotted: null, refundAmount: null, refunded: false, refundedDate: null, txBlockedId: txId, txRefundId: null,
     });
     saveCurrentUser();
     renderAll();
@@ -4987,6 +4988,7 @@
     app.refunded = true;
     app.status = "Refunded";
     app.txRefundId = txId;
+    app.refundedDate = todayStr();
     saveCurrentUser();
     renderAll();
     renderIpoApplications();
@@ -5009,16 +5011,72 @@
     renderIpoDashCard();
   }
 
+  function setIpoFilter(f){
+    ipoFilter = f;
+    renderIpoCalendar();
+  }
+
   function renderIpoCalendar(){
     const el = document.getElementById("ipoList");
     if (!el) return;
     const today = todayStr();
     const all = [...SHARED_IPOS, ...IPOS];
-    const refreshBtn = `<div style="text-align:right; margin-bottom:8px;"><button type="button" class="kh-loan-dash-link" onclick="refreshSharedIpos()">↻ Refresh from ShareSansar</button></div>`;
-    if (!all.length){
-      el.innerHTML = refreshBtn + `<div class="kh-empty">No IPOs yet — ShareSansar's own list will appear here once the scraper's first run lands, or tap "＋ Add IPO" to add one yourself.</div>`;
-      return;
+
+    // KPI row — the four headline numbers, all derived from real
+    // IPO_APPLICATIONS data (see computeIpoRoiTotals/computeIpoEfficiencyStats
+    // in src/ipoMath.js). "Blocked Liquidity" is what's still tied up right
+    // now, not an all-time total — see that function's own comment for the
+    // exact definition (full amount while a result is unknown, just the
+    // unrefunded remainder once it is, zero once actually refunded).
+    const roiEl = document.getElementById("ipoRoiRow");
+    if (roiEl){
+      const { totalApplied, totalAllotted, totalRefunded } = computeIpoRoiTotals(IPO_APPLICATIONS);
+      const { blockedLiquidity, allotmentRatePct, pendingRefundsCount } = computeIpoEfficiencyStats(IPO_APPLICATIONS);
+      roiEl.innerHTML = `
+        <div class="kh-ipo-kpi-card">
+          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Total Applied</span><span class="kh-ipo-kpi-icon" style="background:rgba(59,130,246,.15); color:#3b82f6;">📄</span></div>
+          <div class="kh-ipo-kpi-val">${rs(totalApplied)}</div>
+          <div class="kh-ipo-kpi-sub">${IPO_APPLICATIONS.length} application${IPO_APPLICATIONS.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="kh-ipo-kpi-card">
+          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Total Allotted</span><span class="kh-ipo-kpi-icon" style="background:rgba(34,197,94,.15); color:var(--in);">✓</span></div>
+          <div class="kh-ipo-kpi-val" style="color:var(--in)">${rs(totalAllotted)}</div>
+          <div class="kh-ipo-kpi-sub">${allotmentRatePct == null ? "Awaiting results" : `${allotmentRatePct.toFixed(1)}% unit rate`}</div>
+        </div>
+        <div class="kh-ipo-kpi-card">
+          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Total Refunded</span><span class="kh-ipo-kpi-icon" style="background:rgba(245,158,11,.15); color:#f59e0b;">↩</span></div>
+          <div class="kh-ipo-kpi-val">${rs(totalRefunded)}</div>
+          <div class="kh-ipo-kpi-sub">${pendingRefundsCount ? `${pendingRefundsCount} refund${pendingRefundsCount === 1 ? "" : "s"} pending` : "No refunds due"}</div>
+        </div>
+        <div class="kh-ipo-kpi-card accent">
+          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Blocked Liquidity</span><span class="kh-ipo-kpi-icon" style="background:rgba(16,185,129,.18); color:var(--accent);">🔒</span></div>
+          <div class="kh-ipo-kpi-val">${rs(blockedLiquidity)}</div>
+          <div class="kh-ipo-kpi-sub"><span class="kh-ipo-kpi-pill" style="background:rgba(16,185,129,.15); color:var(--accent);">● Funds on hold</span></div>
+        </div>
+      `;
     }
+
+    const countEl = document.getElementById("ipoMarketplaceCount");
+    if (countEl) countEl.innerHTML = `${all.length} Listed <button type="button" class="kh-loan-dash-link" style="margin-left:6px;" onclick="refreshSharedIpos()">↻ Refresh</button>`;
+
+    // Filter pills — only for statuses that actually have an IPO in them,
+    // so there's never an empty, useless "Listed (0)" chip sitting there.
+    const filterEl = document.getElementById("ipoFilterChips");
+    if (filterEl){
+      const counts = {};
+      all.forEach(i => { const st = ipoStatus(i, today); counts[st] = (counts[st] || 0) + 1; });
+      const chips = [`<button type="button" class="kh-loan-chip${ipoFilter === "all" ? " active" : ""}" onclick="setIpoFilter('all')">All (${all.length})</button>`];
+      ["Open", "Upcoming", "Closed", "Listed"].forEach(st => {
+        if (!counts[st]) return;
+        chips.push(`<button type="button" class="kh-loan-chip${ipoFilter === st ? " active" : ""}" onclick="setIpoFilter(${attrJson(st)})">${st} (${counts[st]})</button>`);
+      });
+      filterEl.innerHTML = chips.join("");
+      // The filter the person had selected can end up empty (e.g. every
+      // "Upcoming" IPO opened since they picked it) — fall back to "All"
+      // rather than silently showing a blank marketplace.
+      if (ipoFilter !== "all" && !counts[ipoFilter]) ipoFilter = "all";
+    }
+
     const closingSoon = all.filter(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
     const alertEl = document.getElementById("ipoAlert");
     if (alertEl){
@@ -5026,22 +5084,51 @@
         ? `<div class="kh-loan-alert"><div>⏳ ${closingSoon.length} IPO${closingSoon.length === 1 ? "" : "s"} closing within 2 days</div>${closingSoon.map(i => `<div class="kh-loan-alert-row"><span>${htmlEscape(i.company)} (${fmtDate(i.closeDate)})</span></div>`).join("")}</div>`
         : "";
     }
-    el.innerHTML = refreshBtn + [...all].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
+
+    const filtered = ipoFilter === "all" ? all : all.filter(i => ipoStatus(i, today) === ipoFilter);
+    if (!filtered.length){
+      el.innerHTML = `<div class="kh-empty">${all.length ? "No IPOs match this filter." : "No IPOs yet — ShareSansar's own list will appear here once the scraper's first run lands, or add one yourself above."}</div>`;
+      return;
+    }
+    el.innerHTML = [...filtered].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
       const st = ipoStatus(ipo, today);
       const meta = IPO_STATUS_META[st];
       const isShared = !!ipo.source;
-      return `<div class="kh-loan-card">
-        <div class="kh-loan-card-top">
-          <div>
-            <div class="kh-loan-person">${htmlEscape(ipo.company)}</div>
-            <div class="kh-loan-type" style="color:var(--dim)">${htmlEscape(ipo.sector || "—")}${isShared ? ` · <a href="${safeHref(ipo.sourceUrl || "#")}" target="_blank" rel="noopener" style="color:var(--dim);">via ShareSansar ↗</a>` : ""}</div>
+      const isOpen = st === "Open";
+      const initials = ipo.company.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+      let progressHtml = "";
+      if (isOpen && ipo.openDate && ipo.closeDate){
+        const totalDays = Math.max(1, daysBetween(ipo.openDate, ipo.closeDate));
+        const elapsedDays = Math.min(totalDays, Math.max(0, daysBetween(ipo.openDate, today)));
+        const pct = Math.min(100, (elapsedDays / totalDays) * 100);
+        const daysLeft = Math.max(0, Math.round(daysBetween(today, ipo.closeDate)));
+        const urgent = daysLeft <= 2;
+        progressHtml = `<div class="kh-ipo-progress">
+          <div class="kh-ipo-progress-top"><span style="color:${urgent ? "var(--out)" : "var(--dim)"}; font-weight:700;">${urgent ? "Closing soon" : "Open"}</span><span>${daysLeft}d left</span></div>
+          <div class="kh-ipo-progress-track"><div class="kh-ipo-progress-fill" style="width:${pct}%;${urgent ? " background:var(--out);" : ""}"></div></div>
+        </div>`;
+      }
+      return `<div class="kh-ipo-card${isOpen ? " open" : ""}">
+        <div>
+          <div class="kh-ipo-card-top">
+            <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+              <div class="kh-ipo-avatar">${htmlEscape(initials)}</div>
+              <div style="min-width:0;">
+                <div class="kh-ipo-card-name">${htmlEscape(ipo.company)}</div>
+                <div class="kh-ipo-card-sub"><span>${htmlEscape(ipo.sector || "—")}</span>${isShared ? `<span>·</span><a href="${safeHref(ipo.sourceUrl || "#")}" target="_blank" rel="noopener">via ShareSansar ↗</a>` : ""}</div>
+              </div>
+            </div>
+            <span class="kh-ipo-badge" style="color:${meta.color};background:${meta.bg}">${isOpen ? `<span class="kh-ipo-badge-dot"></span>` : ""}${st}</span>
           </div>
-          <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${st}</span>
+          <div class="kh-ipo-metrics">
+            <div><div class="kh-ipo-metrics-label">Offer Price</div><div class="kh-ipo-metrics-val">${rs(ipo.price)}/unit</div></div>
+            <div><div class="kh-ipo-metrics-label">Units Offered</div><div class="kh-ipo-metrics-val">${ipo.unitsOffered ? ipo.unitsOffered.toLocaleString() : "—"}</div></div>
+            <div class="kh-ipo-metrics-full"><span class="kh-ipo-metrics-label">${isOpen ? "Issue window" : "Window"}:</span><span class="kh-ipo-metrics-val">${fmtDate(ipo.openDate)} – ${fmtDate(ipo.closeDate)}</span></div>
+          </div>
+          ${progressHtml}
         </div>
-        <div class="kh-loan-meta">${rs(ipo.price)}/unit${ipo.unitsOffered ? ` · ${ipo.unitsOffered.toLocaleString()} units offered` : ""}</div>
-        <div class="kh-loan-meta">${fmtDate(ipo.openDate)} – ${fmtDate(ipo.closeDate)}</div>
-        <div class="kh-loan-actions">
-          ${st === "Open" ? `<button type="button" class="kh-loan-btn" onclick="openIpoApply(${attrJson(ipo.id)})">Apply</button>` : ""}
+        <div class="kh-ipo-card-actions">
+          ${isOpen ? `<button type="button" class="kh-loan-btn" onclick="openIpoApply(${attrJson(ipo.id)})">Apply</button>` : ""}
           ${isShared ? "" : `<button type="button" class="kh-loan-btn" onclick="openIpoForm(${attrJson(ipo.id)})">✎ Edit</button>
           <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpo(${attrJson(ipo.id)})">✕ Delete</button>`}
         </div>
@@ -5058,57 +5145,50 @@
 
   function renderIpoApplications(){
     const el = document.getElementById("ipoApplicationList");
-    const roiEl = document.getElementById("ipoRoiRow");
-    if (roiEl){
-      const { totalApplied, totalAllotted, totalRefunded } = computeIpoRoiTotals(IPO_APPLICATIONS);
-      roiEl.innerHTML = `
-        <div class="kh-loan-summary-item">
-          <div class="kh-loan-summary-label">Total applied</div>
-          <div class="kh-loan-summary-val">${rs(totalApplied)}</div>
-        </div>
-        <div class="kh-loan-summary-item">
-          <div class="kh-loan-summary-label">Total allotted</div>
-          <div class="kh-loan-summary-val" style="color:var(--in)">${rs(totalAllotted)}</div>
-        </div>
-        <div class="kh-loan-summary-item">
-          <div class="kh-loan-summary-label">Total refunded</div>
-          <div class="kh-loan-summary-val">${rs(totalRefunded)}</div>
-        </div>
-      `;
-    }
     if (!el) return;
     if (!IPO_APPLICATIONS.length){
       el.innerHTML = `<div class="kh-empty">No IPO applications logged yet.</div>`;
-      return;
-    }
-    el.innerHTML = [...IPO_APPLICATIONS].sort((a, b) => (a.applicationDate || "") < (b.applicationDate || "") ? 1 : -1).map(app => {
-      const meta = IPO_APP_STATUS_META[app.status];
-      const canEnterResult = app.status === "Applied";
-      const canRefund = app.refundAmount > 0 && !app.refunded;
-      return `<div class="kh-loan-card">
-        <div class="kh-loan-card-top">
-          <div>
-            <div class="kh-loan-person">${htmlEscape(app.company)}</div>
-            <div class="kh-loan-type" style="color:var(--dim)">${app.unitsApplied} units applied · ${fmtDate(app.applicationDate)}</div>
+    } else {
+      el.innerHTML = [...IPO_APPLICATIONS].sort((a, b) => (a.applicationDate || "") < (b.applicationDate || "") ? 1 : -1).map(app => {
+        const meta = IPO_APP_STATUS_META[app.status];
+        const canEnterResult = app.status === "Applied";
+        const canRefund = app.refundAmount > 0 && !app.refunded;
+        const initials = app.company.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+        return `<div class="kh-ipo-app-row">
+          <div class="kh-ipo-app-main">
+            <div class="kh-ipo-avatar">${htmlEscape(initials)}</div>
+            <div style="min-width:0;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span class="kh-ipo-card-name">${htmlEscape(app.company)}</span>
+                <span class="kh-ipo-badge" style="color:${meta.color};background:${meta.bg}">${app.status}</span>
+              </div>
+              <div class="kh-ipo-app-meta">
+                <span><b>${app.unitsApplied}</b> units applied</span>
+                <span>·</span>
+                <span>Applied: <b>${fmtDate(app.applicationDate)}</b></span>
+                <span>·</span>
+                <span>Blocked: <b>${rs(app.amountBlocked)}</b></span>
+                ${app.unitsAllotted != null ? `<span>·</span><span>Allotted: <b>${app.unitsAllotted} units (${rs(app.unitsAllotted * app.price)})</b></span>` : ""}
+                ${app.refundAmount ? `<span>·</span><span>${app.refunded ? "Refunded" : "Refund pending"}: <b>${rs(app.refundAmount)}</b></span>` : ""}
+              </div>
+            </div>
           </div>
-          <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${app.status}</span>
-        </div>
-        <div class="kh-loan-meta">Blocked: ${rs(app.amountBlocked)}${app.unitsAllotted != null ? ` · Allotted: ${app.unitsAllotted} units (${rs(app.unitsAllotted * app.price)})` : ""}</div>
-        ${app.refundAmount ? `<div class="kh-loan-meta">${app.refunded ? "Refunded" : "Refund pending"}: ${rs(app.refundAmount)}</div>` : ""}
-        <div class="kh-loan-actions">
-          ${canEnterResult ? `<button type="button" class="kh-loan-btn" onclick="openIpoResult(${attrJson(app.id)})">Enter result</button>` : ""}
-          ${canRefund ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#ffffff; border-color:transparent;" onclick="markIpoRefunded(${attrJson(app.id)})">Mark refunded</button>` : ""}
-          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpoApplication(${attrJson(app.id)})">✕ Delete</button>
-        </div>
-      </div>`;
-    }).join("");
+          <div class="kh-ipo-app-actions">
+            ${canEnterResult ? `<button type="button" class="kh-loan-btn" onclick="openIpoResult(${attrJson(app.id)})">Enter Result</button>` : ""}
+            ${canRefund ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#ffffff; border-color:transparent;" onclick="markIpoRefunded(${attrJson(app.id)})">Mark refunded</button>` : ""}
+            <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpoApplication(${attrJson(app.id)})">✕ Delete</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
     renderIpoRoiTrend();
+    renderIpoEfficiencyPanel();
   }
 
-  // The totals row above is all-time; this is the same three figures
-  // broken out by BS month, with each metric's bar length scaled against
-  // the largest single value across every month shown — so months are
-  // directly comparable to each other, not just to their own history.
+  // The KPI row above is all-time; this is the same three figures broken
+  // out by BS month as a real grouped bar chart, so a trend ("applying
+  // more than I'm getting refunded lately", say) is actually visible
+  // instead of buried in one running total.
   function renderIpoRoiTrend(){
     const el = document.getElementById("ipoRoiTrend");
     if (!el) return;
@@ -5118,20 +5198,52 @@
       return;
     }
     const maxVal = Math.max(1, ...trend.flatMap(t => [t.applied, t.allotted, t.refunded]));
-    const bar = (label, value, color) => `
-      <div class="kh-recurring-sub" style="margin-top:6px;">${label}: ${rs(value)}</div>
-      <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${(value / maxVal) * 100}%; background:${color};"></div></div>
-    `;
-    el.innerHTML = trend.map(t => {
+    const barsHtml = trend.map(t => {
       const [y, m] = t.monthKey.split("-").map(Number);
-      const label = `${NEPALI_MONTHS[m - 1].name} ${y}`;
-      return `<div class="kh-loan-card">
-        <div class="kh-loan-person">${label}</div>
-        ${bar("Applied", t.applied, "#f59e0b")}
-        ${bar("Allotted", t.allotted, "var(--in)")}
-        ${bar("Refunded", t.refunded, "#3b82f6")}
+      const label = `${NEPALI_MONTHS[m - 1].name.slice(0, 3)}`;
+      return `<div class="kh-ipo-chart-col">
+        <div class="kh-ipo-chart-bars">
+          <div class="kh-ipo-chart-bar" style="height:${(t.applied / maxVal) * 100}%; background:#f59e0b;" title="Applied: ${rs(t.applied)}"></div>
+          <div class="kh-ipo-chart-bar" style="height:${(t.allotted / maxVal) * 100}%; background:var(--in);" title="Allotted: ${rs(t.allotted)}"></div>
+          <div class="kh-ipo-chart-bar" style="height:${(t.refunded / maxVal) * 100}%; background:#3b82f6;" title="Refunded: ${rs(t.refunded)}"></div>
+        </div>
+        <span class="kh-ipo-chart-label">${label} ${y}</span>
       </div>`;
     }).join("");
+    el.innerHTML = `
+      <div class="kh-ipo-chart-legend">
+        <span><span class="kh-ipo-chart-dot" style="background:#f59e0b;"></span>Applied</span>
+        <span><span class="kh-ipo-chart-dot" style="background:var(--in);"></span>Allotted</span>
+        <span><span class="kh-ipo-chart-dot" style="background:#3b82f6;"></span>Refunded</span>
+      </div>
+      <div class="kh-ipo-chart">${barsHtml}</div>
+    `;
+  }
+
+  // Real, computed-from-your-own-data efficiency stats — deliberately no
+  // "listing gain" figure here, since Kharchā doesn't track post-listing
+  // market prices and showing one would mean making it up.
+  function renderIpoEfficiencyPanel(){
+    const el = document.getElementById("ipoEfficiencyPanel");
+    if (!el) return;
+    const { allotmentRatePct, avgRefundDays, pendingRefundsCount } = computeIpoEfficiencyStats(IPO_APPLICATIONS);
+    const bar = (label, valueLabel, pct, color) => `
+      <div>
+        <div class="kh-ipo-eff-row"><span style="color:var(--dim);">${label}</span><span style="font-weight:700; color:${color};">${valueLabel}</span></div>
+        <div class="kh-ipo-eff-track"><div class="kh-ipo-eff-fill" style="width:${pct}%; background:${color};"></div></div>
+      </div>
+    `;
+    el.innerHTML = `
+      <div class="kh-ipo-eff-title">Historical Efficiency</div>
+      ${bar("Overall Allotment Rate", allotmentRatePct == null ? "—" : `${allotmentRatePct.toFixed(1)}%`, allotmentRatePct || 0, "var(--in)")}
+      ${bar("Avg. Refund Turnaround", avgRefundDays == null ? "—" : `${avgRefundDays.toFixed(1)}d`, avgRefundDays == null ? 0 : Math.min(100, (avgRefundDays / 14) * 100), "#3b82f6")}
+      <div class="kh-ipo-tip">
+        <b>${pendingRefundsCount ? "💡 Heads up" : "✓ All clear"}</b>
+        ${pendingRefundsCount
+          ? `You have ${pendingRefundsCount} refund${pendingRefundsCount === 1 ? "" : "s"} pending — mark it refunded from "My applications" once the money actually lands in your account, so your books stay accurate.`
+          : "No refunds currently pending — every resolved application is either fully allotted or already refunded."}
+      </div>
+    `;
   }
 
   function renderIpoDashCard(){

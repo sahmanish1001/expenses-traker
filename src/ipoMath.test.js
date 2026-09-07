@@ -5,6 +5,7 @@ import {
   computeIpoAllotmentResult,
   computeIpoRoiTotals,
   computeIpoRoiTrend,
+  computeIpoEfficiencyStats,
 } from "./ipoMath.js";
 
 describe("ipoStatus", () => {
@@ -133,5 +134,59 @@ describe("computeIpoRoiTrend", () => {
 
   it("is an empty array for no applications", () => {
     expect(computeIpoRoiTrend([])).toEqual([]);
+  });
+});
+
+describe("computeIpoEfficiencyStats", () => {
+  it("counts the full blocked amount for a still-pending application", () => {
+    const apps = [{ status: "Applied", amountBlocked: 1000, unitsAllotted: null, refunded: false, refundAmount: null, unitsApplied: 10 }];
+    expect(computeIpoEfficiencyStats(apps).blockedLiquidity).toBe(1000);
+  });
+
+  it("counts only the unrefunded remainder once a result is known but not yet refunded", () => {
+    const apps = [{ status: "Allotted", amountBlocked: 1200, unitsAllotted: 8, price: 100, refunded: false, refundAmount: 400, unitsApplied: 12 }];
+    expect(computeIpoEfficiencyStats(apps).blockedLiquidity).toBe(400);
+  });
+
+  it("counts nothing as blocked once refunded", () => {
+    const apps = [{ status: "Refunded", amountBlocked: 1200, unitsAllotted: 8, price: 100, refunded: true, refundAmount: 400, unitsApplied: 12 }];
+    expect(computeIpoEfficiencyStats(apps).blockedLiquidity).toBe(0);
+  });
+
+  it("computes a unit-for-unit allotment rate across every decided application", () => {
+    const apps = [
+      { status: "Allotted", unitsApplied: 10, unitsAllotted: 5, amountBlocked: 1000, refunded: false, refundAmount: 500 },
+      { status: "Not Allotted", unitsApplied: 10, unitsAllotted: 0, amountBlocked: 1000, refunded: false, refundAmount: 1000 },
+    ];
+    // 5 of 20 total units applied for were allotted = 25%.
+    expect(computeIpoEfficiencyStats(apps).allotmentRatePct).toBe(25);
+  });
+
+  it("is null (not 0) when no application has a known result yet", () => {
+    const apps = [{ status: "Applied", unitsApplied: 10, unitsAllotted: null, amountBlocked: 1000, refunded: false, refundAmount: null }];
+    expect(computeIpoEfficiencyStats(apps).allotmentRatePct).toBeNull();
+  });
+
+  it("averages refund turnaround only across applications actually refunded", () => {
+    const apps = [
+      { status: "Refunded", applicationDate: "2026-09-01", refundedDate: "2026-09-05", refunded: true, refundAmount: 100, amountBlocked: 100, unitsApplied: 1, unitsAllotted: 0 },
+      { status: "Refunded", applicationDate: "2026-09-01", refundedDate: "2026-09-09", refunded: true, refundAmount: 100, amountBlocked: 100, unitsApplied: 1, unitsAllotted: 0 },
+      { status: "Not Allotted", applicationDate: "2026-09-01", refundedDate: null, refunded: false, refundAmount: 100, amountBlocked: 100, unitsApplied: 1, unitsAllotted: 0 }, // pending, excluded
+    ];
+    expect(computeIpoEfficiencyStats(apps).avgRefundDays).toBe(6); // (4 + 8) / 2
+  });
+
+  it("is null (not 0) when nothing has been refunded yet", () => {
+    const apps = [{ status: "Applied", applicationDate: "2026-09-01", refundedDate: null, refunded: false, refundAmount: null, amountBlocked: 100, unitsApplied: 1, unitsAllotted: null }];
+    expect(computeIpoEfficiencyStats(apps).avgRefundDays).toBeNull();
+  });
+
+  it("counts applications with a known, unpaid refund as pending", () => {
+    const apps = [
+      { status: "Allotted", refundAmount: 400, refunded: false, amountBlocked: 1200, unitsApplied: 12, unitsAllotted: 8 },
+      { status: "Refunded", refundAmount: 100, refunded: true, amountBlocked: 100, unitsApplied: 1, unitsAllotted: 0 },
+      { status: "Allotted", refundAmount: 0, refunded: false, amountBlocked: 1000, unitsApplied: 10, unitsAllotted: 10 }, // fully allotted, nothing pending
+    ];
+    expect(computeIpoEfficiencyStats(apps).pendingRefundsCount).toBe(1);
   });
 });

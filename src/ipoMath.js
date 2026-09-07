@@ -5,6 +5,7 @@
 // for why: main.js is a classic, non-module script loaded after this one,
 // and picks these up as plain globals — see the bottom of this file).
 import { bsMonthKey } from "./nepaliCalendar.js";
+import { daysBetween } from "./moneyMath.js";
 
 // "status" is never stored on an IPO — every caller already passes
 // `today` explicitly (never relies on a default), so this stays a pure
@@ -72,9 +73,44 @@ export function computeIpoRoiTrend(applications){
   return [...byMonth.values()].sort((a, b) => a.monthKey < b.monthKey ? -1 : 1);
 }
 
+// Real, computable stats for the "Historical Efficiency" panel — every
+// number here is derived straight from IPO_APPLICATIONS, never a
+// fabricated/estimated figure. Notably does NOT include anything like a
+// listing-day price gain — Kharchā doesn't track post-listing market
+// prices, so there's no honest way to compute one.
+export function computeIpoEfficiencyStats(applications){
+  // Still locked up: the whole blocked amount while the result is
+  // unknown, or just the unrefunded remainder once it is — the allotted
+  // portion isn't "blocked" any more, it's converted into owned units.
+  const blockedLiquidity = applications.reduce((s, a) => {
+    if (a.status === "Applied") return s + a.amountBlocked;
+    if (!a.refunded && a.refundAmount) return s + a.refundAmount;
+    return s;
+  }, 0);
+
+  // Unit-for-unit allotment rate (not a money ratio) — only counts
+  // applications whose result is actually known.
+  const decided = applications.filter(a => a.unitsAllotted != null);
+  const unitsApplied = decided.reduce((s, a) => s + a.unitsApplied, 0);
+  const unitsAllotted = decided.reduce((s, a) => s + a.unitsAllotted, 0);
+  const allotmentRatePct = unitsApplied > 0 ? (unitsAllotted / unitsApplied) * 100 : null;
+
+  // Application date -> the day the refund was actually logged, averaged
+  // across every refund that's happened so far.
+  const refundedWithDates = applications.filter(a => a.refunded && a.refundedDate);
+  const avgRefundDays = refundedWithDates.length
+    ? refundedWithDates.reduce((s, a) => s + daysBetween(a.applicationDate, a.refundedDate), 0) / refundedWithDates.length
+    : null;
+
+  const pendingRefundsCount = applications.filter(a => a.refundAmount > 0 && !a.refunded).length;
+
+  return { blockedLiquidity, allotmentRatePct, avgRefundDays, pendingRefundsCount };
+}
+
 if (typeof window !== "undefined"){
   Object.assign(window, {
     ipoStatus, IPO_STATUS_META, computeIpoApplicationAmount,
     computeIpoAllotmentResult, computeIpoRoiTotals, computeIpoRoiTrend,
+    computeIpoEfficiencyStats,
   });
 }

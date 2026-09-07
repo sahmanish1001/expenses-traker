@@ -1134,26 +1134,42 @@
       <p class="kh-eyebrow">Primary market</p>
       <h2>IPO Calendar</h2>
     </div>
-    <p class="kh-cat-hint" style="margin:0 0 14px;">Kharchā has no live IPO feed — there's no free public API for NEPSE/MeroLagani/ShareSansar data. Add IPOs yourself, or paste an announcement and let Claude turn it into the fields below.</p>
+    <p class="kh-cat-hint" style="margin:0 0 14px;">Kharchā has no live IPO feed — there's no free public API for NEPSE/MeroLagani/ShareSansar data. This calendar is kept up to date by a scheduled sync against ShareSansar's own listing, plus anything you add yourself.</p>
 
-    <div id="ipoRoiRow" class="kh-loan-summary" style="margin-bottom:14px;"></div>
+    <div id="ipoRoiRow" class="kh-ipo-kpi-grid"></div>
     <div id="ipoAlert"></div>
 
+    <div class="kh-ipo-banner">
+      <div class="kh-ipo-banner-top">
+        <span class="kh-ipo-banner-icon">⚡</span>
+        <div>
+          <div class="kh-ipo-banner-title">Track a new IPO</div>
+          <div class="kh-ipo-banner-sub">Add it by hand, or paste an announcement and let Claude fill in the fields for you.</div>
+        </div>
+      </div>
+      <button type="button" onclick="openIpoForm(null)">＋ Add IPO announcement</button>
+    </div>
+
     <div class="kh-cat-manager" style="margin-top:0;">
-      <p class="kh-cat-title">IPOs</p>
-      <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-bottom:14px;" onclick="openIpoForm(null)">＋ Add IPO</button>
+      <div class="kh-ipo-section-head">
+        <div class="kh-ipo-section-title">IPO Marketplace <span class="kh-ipo-section-count" id="ipoMarketplaceCount"></span></div>
+        <div class="kh-loan-filter" id="ipoFilterChips"></div>
+      </div>
       <div id="ipoList"></div>
     </div>
 
     <div class="kh-cat-manager" style="margin-top:18px;">
       <p class="kh-cat-title">My applications</p>
-      <div id="ipoApplicationList"></div>
+      <div id="ipoApplicationList" class="kh-ipo-app-list"></div>
     </div>
 
     <div class="kh-cat-manager" style="margin-top:18px;">
       <p class="kh-cat-title">ROI over time</p>
       <p class="kh-cat-hint" style="margin:0 0 12px;">Applied, allotted, and refunded amounts by the month you applied — the totals above are all-time; this is the trend behind them.</p>
-      <div id="ipoRoiTrend"></div>
+      <div class="kh-ipo-roi-layout">
+        <div id="ipoRoiTrend"></div>
+        <div class="kh-ipo-eff" id="ipoEfficiencyPanel"></div>
+      </div>
     </div>
   </div>
 
