@@ -43,6 +43,7 @@
     { id: "budget",        label: "Budget",           icon: "🎯" },
     { id: "room",          label: "Room expenses",    icon: "🏠" },
     { id: "recurring",     label: "Recurring bills",  icon: "🔁" },
+    { id: "ipo",           label: "IPO calendar",     icon: "📈" },
     { id: "transactions",  label: "Transactions",     icon: "🧾" },
     { id: "pie",           label: "Spending pie chart", icon: "🥧" },
     { id: "nppie",          label: "Nepali month pie chart", icon: "📆" },
@@ -283,6 +284,27 @@
   let nextRecurringId = 1;
   let editingRecurringId = null;
 
+  // IPO calendar + "My Applications" tracker. There's no free public API
+  // for NEPSE/MeroLagani/ShareSansar IPO data, so IPOS is just a plain
+  // list the person maintains themselves — added by hand or pasted from a
+  // Claude-parsed announcement (see openClaudeForIpo() below), same trick
+  // as the statement-photo importer. `status` isn't stored on the IPO —
+  // it's derived from openDate/closeDate vs today (see ipoStatus()) so it
+  // can never go stale; `listed` is the one manual override, for once
+  // shares actually start trading on NEPSE well after closing.
+  let IPOS = []; // { id, company, sector, openDate, closeDate, price, unitsOffered, listed }
+  let nextIpoId = 1;
+  let editingIpoId = null;
+  // Each application tracks its own money-blocked outflow and (once a
+  // result is known) refund inflow transaction ids, so the app's own
+  // transaction log always reflects what's actually happened to that cash
+  // rather than just remembering a static "status" string.
+  let IPO_APPLICATIONS = []; // { id, ipoId, company, price, unitsApplied, amountBlocked, applicationDate, account, status, unitsAllotted, refundAmount, refunded, txBlockedId, txRefundId }
+  let nextIpoAppId = 1;
+  let currentIpoApplyId = null;
+  let ipoResultAppId = null;
+  let ipoResultOutcome = "allotted";
+
   // Shared expenses scoped to the room page's own month filter. Balances
   // (who owes whom) deliberately do NOT use this — a debt someone still
   // owes doesn't stop being owed just because you've filtered the view to
@@ -449,7 +471,7 @@
 
   const CURRENCY_SYMBOLS = { NPR: "Rs", INR: "₹", USD: "$", EUR: "€", GBP: "£" };
   const CURRENCY_LOCALES = { NPR: "en-IN", INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
-  let PROFILE = { name: "", age: "", email: "", currency: "NPR", monthlyIncome: "" };
+  let PROFILE = { name: "", age: "", email: "", currency: "NPR", monthlyIncome: "", boid: "" };
 
   let activeAccount = "All";
   let activeNepaliMonth = "current"; // "All", "current" (resolved to this-month on first render), or a "bsYear-bsMonth" key like "2083-5"
@@ -956,7 +978,7 @@
     }, 300);
   }
 
-  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate", roomexpense: "panelRoomExpense", rentsetup: "panelRentSetup", recurring: "panelRecurring" };
+  const PANEL_IDS = { manual: "panelManual", import: "panelImport", loanform: "panelLoanForm", loanpay: "panelLoanPayment", roommate: "panelRoommate", roomexpense: "panelRoomExpense", rentsetup: "panelRentSetup", recurring: "panelRecurring", ipoform: "panelIpoForm", ipoapply: "panelIpoApply", iporesult: "panelIpoResult" };
 
   function openPanel(name){
     if (openPanelName === name){ closePanel(); return; }
@@ -1101,6 +1123,16 @@
         const days = Math.round(daysBetween(today, dueSoon.dueDate));
         const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
         showToast(dueSoon.isEmi ? `⏰ EMI to ${dueSoon.person} ${when}` : `⏰ Loan with ${dueSoon.person} ${when}`);
+        return;
+      }
+    }
+    if (getNotifPref("ipo")){
+      const today = todayStr();
+      const closingSoon = IPOS.find(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
+      if (closingSoon){
+        const days = Math.round(daysBetween(today, closingSoon.closeDate));
+        const when = days <= 0 ? "closes today" : `closes in ${days}d`;
+        showToast(`⏳ ${closingSoon.company} IPO ${when} — apply now`);
       }
     }
   }
@@ -1109,8 +1141,10 @@
     applyThemeUI();
     const budgetToggle = document.getElementById("notifBudgetToggle");
     const loansToggle = document.getElementById("notifLoansToggle");
+    const ipoToggle = document.getElementById("notifIpoToggle");
     if (budgetToggle) budgetToggle.checked = getNotifPref("budget");
     if (loansToggle) loansToggle.checked = getNotifPref("loans");
+    if (ipoToggle) ipoToggle.checked = getNotifPref("ipo");
     const calToggle = document.getElementById("calendarBsFirstToggle");
     if (calToggle) calToggle.checked = getCalendarBsFirst();
   }
@@ -1157,6 +1191,7 @@
     document.getElementById("budgetPage").classList.toggle("active", name === "budget");
     document.getElementById("roomPage").classList.toggle("active", name === "room");
     document.getElementById("recurringPage").classList.toggle("active", name === "recurring");
+    document.getElementById("ipoPage").classList.toggle("active", name === "ipo");
     document.getElementById("insightsPage").classList.toggle("active", name === "insights");
     document.getElementById("settingsPage").classList.toggle("active", name === "settings");
     document.getElementById("privacyPage").classList.toggle("active", name === "privacy");
@@ -1191,7 +1226,7 @@
       const label = name === "loans" ? "Add loan" : (name === "room" ? "Add shared expense" : "Add transaction manually");
       fab.title = label;
       fab.setAttribute("aria-label", label);
-      fab.style.display = (name === "budget" || name === "recurring" || name === "insights" || name === "settings" || name === "privacy" || name === "security" || name === "bikramsambat" || name === "terms") ? "none" : "";
+      fab.style.display = (name === "budget" || name === "recurring" || name === "ipo" || name === "insights" || name === "settings" || name === "privacy" || name === "security" || name === "bikramsambat" || name === "terms") ? "none" : "";
     }
   }
 
@@ -1359,6 +1394,10 @@
       roomLayout: ROOM_LAYOUT,
       recurring: RECURRING,
       nextRecurringId,
+      ipos: IPOS,
+      nextIpoId,
+      ipoApplications: IPO_APPLICATIONS,
+      nextIpoAppId,
       hiddenAccounts: HIDDEN_ACCOUNTS,
       roommates: ROOMMATES,
       roomExpenses: ROOM_EXPENSES,
@@ -1482,6 +1521,10 @@
     ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
     RECURRING = data.recurring || [];
     nextRecurringId = data.nextRecurringId || (RECURRING.length + 1);
+    IPOS = data.ipos || [];
+    nextIpoId = data.nextIpoId || (IPOS.length + 1);
+    IPO_APPLICATIONS = data.ipoApplications || [];
+    nextIpoAppId = data.nextIpoAppId || (IPO_APPLICATIONS.length + 1);
     HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
     TRANSACTIONS = data.transactions || [];
     BALANCES = data.balances || {};
@@ -1848,6 +1891,10 @@
       roomLayout: ROOM_LAYOUT,
       recurring: RECURRING,
       nextRecurringId,
+      ipos: IPOS,
+      nextIpoId,
+      ipoApplications: IPO_APPLICATIONS,
+      nextIpoAppId,
       hiddenAccounts: HIDDEN_ACCOUNTS,
       roommates: ROOMMATES,
       roomExpenses: ROOM_EXPENSES,
@@ -1918,6 +1965,10 @@
       ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
       RECURRING = data.recurring || [];
       nextRecurringId = data.nextRecurringId || (RECURRING.length + 1);
+      IPOS = data.ipos || [];
+      nextIpoId = data.nextIpoId || (IPOS.length + 1);
+      IPO_APPLICATIONS = data.ipoApplications || [];
+      nextIpoAppId = data.nextIpoAppId || (IPO_APPLICATIONS.length + 1);
       HIDDEN_ACCOUNTS = data.hiddenAccounts || [];
       TRANSACTIONS = data.transactions || [];
       BALANCES = data.balances || {};
@@ -1994,6 +2045,7 @@
     document.getElementById("profileEmail").value = PROFILE.email || "";
     document.getElementById("profileCurrency").value = PROFILE.currency || "NPR";
     document.getElementById("profileIncome").value = PROFILE.monthlyIncome || "";
+    document.getElementById("profileBoid").value = PROFILE.boid || "";
     document.getElementById("profileSavedNote").textContent = "";
   }
 
@@ -2004,6 +2056,7 @@
       email: document.getElementById("profileEmail").value.trim(),
       currency: document.getElementById("profileCurrency").value,
       monthlyIncome: document.getElementById("profileIncome").value.trim(),
+      boid: document.getElementById("profileBoid").value.trim(),
     };
     saveCurrentUser();
     renderAll(); // currency symbol may have changed — refresh every amount on screen
@@ -2080,6 +2133,15 @@
         { id: "rx2", date: "2026-08-15", desc: "WiFi router replacement", category: "Bills & Payments", amount: 3600, paidBy: "Sabin", splitAmong: ["Me", "Sabin", "Prakriti"] },
       ];
       nextRoomExpenseId = 3;
+      IPOS = [
+        { id: "ipo1", company: "Himalayan Hydropower Ltd.", sector: "Hydropower", price: 100, openDate: "2026-09-05", closeDate: "2026-09-09", unitsOffered: 500000, listed: false },
+        { id: "ipo2", company: "Sagarmatha Microfinance", sector: "Microfinance", price: 100, openDate: "2026-08-01", closeDate: "2026-08-05", unitsOffered: 200000, listed: false },
+      ];
+      nextIpoId = 3;
+      IPO_APPLICATIONS = [
+        { id: "ipa1", ipoId: "ipo2", company: "Sagarmatha Microfinance", price: 100, unitsApplied: 10, amountBlocked: 1000, applicationDate: "2026-08-03", account: "Global IME Bank", status: "Allotted", unitsAllotted: 5, refundAmount: 500, refunded: false, txBlockedId: null, txRefundId: null },
+      ];
+      nextIpoAppId = 2;
       saveCurrentUser();
       renderAll();
     }
@@ -4715,6 +4777,373 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // ---------------------------------------------------------------------
+  // IPO Calendar + My Applications. Same "AI-powered, no backend" trick as
+  // the statement importer above: open a Claude chat with a prewritten
+  // prompt, the person pastes an announcement there, and pastes the JSON
+  // Claude replies with back into the Add IPO form.
+  // ---------------------------------------------------------------------
+  const IPO_IMPORT_PROMPT = [
+    "I'm going to paste a Nepal IPO announcement (from MeroLagani, ShareSansar, or a company notice).",
+    "Please read it and reply with ONLY a single JSON code block (no extra commentary) in exactly this shape:",
+    "",
+    '{"company":"<full company name>","sector":"<one short sector word, e.g. Hydropower, Microfinance, Life Insurance>","openDate":"YYYY-MM-DD","closeDate":"YYYY-MM-DD","price":<price per unit as a plain number>,"unitsOffered":<total units offered as a plain number>}',
+    "",
+    "If a value isn't mentioned in the announcement, use null for it. Output valid JSON only, wrapped in a single ```json code block.",
+  ].join("\n");
+
+  function openClaudeForIpo(){
+    window.open("https://claude.ai/new?q=" + encodeURIComponent(IPO_IMPORT_PROMPT), "_blank", "noopener");
+  }
+
+  function copyIpoPrompt(){
+    const status = document.getElementById("ipoParseStatus");
+    const done = (ok) => {
+      if (!status) return;
+      status.textContent = ok ? "Prompt copied — paste it into a Claude chat along with the announcement." : "Couldn't copy automatically — copy the announcement and describe the fields to Claude manually.";
+      status.className = ok ? "kh-import-status ok" : "kh-import-status err";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(IPO_IMPORT_PROMPT).then(() => done(true)).catch(() => done(false));
+    } else {
+      done(false);
+    }
+  }
+
+  function parseIpoAnnouncement(){
+    const status = document.getElementById("ipoParseStatus");
+    const raw = document.getElementById("ipoParseInput").value.trim();
+    if (!raw){ status.textContent = "Paste the JSON Claude replied with first."; status.className = "kh-import-status err"; return; }
+    try{
+      const match = raw.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(match ? match[0] : raw);
+      if (parsed.company) document.getElementById("ipoCompany").value = parsed.company;
+      if (parsed.sector) document.getElementById("ipoSector").value = parsed.sector;
+      if (parsed.price != null) document.getElementById("ipoPrice").value = parsed.price;
+      if (parsed.openDate) document.getElementById("ipoOpenDate").value = parsed.openDate;
+      if (parsed.closeDate) document.getElementById("ipoCloseDate").value = parsed.closeDate;
+      if (parsed.unitsOffered != null) document.getElementById("ipoUnitsOffered").value = parsed.unitsOffered;
+      status.textContent = "Filled in below — review before saving.";
+      status.className = "kh-import-status ok";
+    }catch(e){
+      status.textContent = "Couldn't read that as JSON — make sure you pasted Claude's whole code block.";
+      status.className = "kh-import-status err";
+    }
+  }
+
+  // Derived, never stored: Upcoming/Open/Closed purely from today vs the
+  // IPO's own dates, so a forgotten status field can never drift from
+  // reality. `listed` is the one manual flag, for once shares actually
+  // start trading well after the close date.
+  function ipoStatus(ipo, today){
+    today = today || todayStr();
+    if (ipo.listed) return "Listed";
+    if (today < ipo.openDate) return "Upcoming";
+    if (today <= ipo.closeDate) return "Open";
+    return "Closed";
+  }
+
+  const IPO_STATUS_META = {
+    "Upcoming": { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
+    "Open":     { color: "#22c55e", bg: "rgba(34,197,94,.16)" },
+    "Closed":   { color: "#f59e0b", bg: "rgba(245,158,11,.16)" },
+    "Listed":   { color: "#3b82f6", bg: "rgba(59,130,246,.16)" },
+  };
+
+  function openIpoForm(id){
+    editingIpoId = id || null;
+    const ipo = id ? IPOS.find(i => i.id === id) : null;
+    document.getElementById("ipoFormStatus").textContent = "";
+    document.getElementById("ipoFormStatus").className = "kh-manual-status";
+    document.getElementById("ipoParseInput").value = "";
+    document.getElementById("ipoParseStatus").textContent = "";
+    document.getElementById("ipoCompany").value = ipo ? ipo.company : "";
+    document.getElementById("ipoSector").value = ipo ? ipo.sector : "";
+    document.getElementById("ipoPrice").value = ipo ? ipo.price : "";
+    document.getElementById("ipoOpenDate").value = ipo ? ipo.openDate : "";
+    document.getElementById("ipoCloseDate").value = ipo ? ipo.closeDate : "";
+    document.getElementById("ipoUnitsOffered").value = ipo ? ipo.unitsOffered : "";
+    document.getElementById("ipoListed").checked = ipo ? !!ipo.listed : false;
+    document.getElementById("ipoFormTitle").textContent = ipo ? "Edit IPO" : "Add IPO";
+    document.getElementById("ipoSaveBtn").textContent = ipo ? "Save changes" : "Add IPO";
+    openPanel("ipoform");
+  }
+
+  function saveIpoForm(){
+    const status = document.getElementById("ipoFormStatus");
+    const company = document.getElementById("ipoCompany").value.trim();
+    const sector = document.getElementById("ipoSector").value.trim();
+    const price = parseFloat(document.getElementById("ipoPrice").value);
+    const openDate = document.getElementById("ipoOpenDate").value || null;
+    const closeDate = document.getElementById("ipoCloseDate").value || null;
+    const unitsOffered = parseInt(document.getElementById("ipoUnitsOffered").value, 10) || null;
+    const listed = document.getElementById("ipoListed").checked;
+    if (!company){ status.textContent = "Enter a company name."; status.className = "kh-manual-status err"; return; }
+    if (!price || price <= 0){ status.textContent = "Enter a valid price per unit."; status.className = "kh-manual-status err"; return; }
+    if (!openDate || !closeDate){ status.textContent = "Pick both an open and close date."; status.className = "kh-manual-status err"; return; }
+    if (editingIpoId){
+      const ipo = IPOS.find(i => i.id === editingIpoId);
+      if (ipo) Object.assign(ipo, { company, sector, price, openDate, closeDate, unitsOffered, listed });
+    } else {
+      IPOS.push({ id: "ipo" + (nextIpoId++), company, sector, price, openDate, closeDate, unitsOffered, listed });
+    }
+    editingIpoId = null;
+    saveCurrentUser();
+    renderIpoCalendar();
+    renderIpoDashCard();
+    closePanel();
+    showToast("Saved");
+  }
+
+  function deleteIpo(id){
+    IPOS = IPOS.filter(i => i.id !== id);
+    saveCurrentUser();
+    renderIpoCalendar();
+    renderIpoDashCard();
+    showToast("Removed — any applications you logged against it are kept");
+  }
+
+  function openIpoApply(id){
+    const ipo = IPOS.find(i => i.id === id);
+    if (!ipo) return;
+    currentIpoApplyId = id;
+    document.getElementById("ipoApplyContext").textContent = `${ipo.company} — ${rs(ipo.price)}/unit`;
+    document.getElementById("ipoApplyUnits").value = "";
+    document.getElementById("ipoApplyAmount").value = "";
+    document.getElementById("ipoApplyDate").value = todayStr();
+    document.getElementById("ipoApplyStatus").textContent = "";
+    document.getElementById("ipoApplyStatus").className = "kh-manual-status";
+    const accSel = document.getElementById("ipoApplyAccount");
+    const accounts = visibleAccounts();
+    accSel.innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join("");
+    openPanel("ipoapply");
+    setTimeout(() => document.getElementById("ipoApplyUnits").focus(), 300);
+  }
+
+  function updateIpoApplyAmount(){
+    const ipo = IPOS.find(i => i.id === currentIpoApplyId);
+    const units = parseInt(document.getElementById("ipoApplyUnits").value, 10) || 0;
+    document.getElementById("ipoApplyAmount").value = ipo ? units * ipo.price : "";
+  }
+
+  function saveIpoApply(){
+    const status = document.getElementById("ipoApplyStatus");
+    const ipo = IPOS.find(i => i.id === currentIpoApplyId);
+    if (!ipo){ status.textContent = "That IPO was removed."; status.className = "kh-manual-status err"; return; }
+    const unitsApplied = parseInt(document.getElementById("ipoApplyUnits").value, 10);
+    const applicationDate = document.getElementById("ipoApplyDate").value || todayStr();
+    const account = document.getElementById("ipoApplyAccount").value;
+    if (!unitsApplied || unitsApplied <= 0){ status.textContent = "Enter how many units you applied for."; status.className = "kh-manual-status err"; return; }
+    if (!account){ status.textContent = "Pick which account this is blocked from."; status.className = "kh-manual-status err"; return; }
+    const amountBlocked = unitsApplied * ipo.price;
+    ensureCategory("Investment");
+    ensureAccount(account);
+    const txId = "tx" + (nextTxId++);
+    TRANSACTIONS.push({ date: applicationDate, vendor: `IPO application — ${ipo.company}`, category: "Investment", type: "out", amount: amountBlocked, account, id: txId });
+    IPO_APPLICATIONS.push({
+      id: "ipa" + (nextIpoAppId++), ipoId: ipo.id, company: ipo.company, price: ipo.price,
+      unitsApplied, amountBlocked, applicationDate, account, status: "Applied",
+      unitsAllotted: null, refundAmount: null, refunded: false, txBlockedId: txId, txRefundId: null,
+    });
+    saveCurrentUser();
+    renderAll();
+    renderIpoApplications();
+    renderIpoDashCard();
+    showToast(`Applied — ${rs(amountBlocked)} blocked from ${account}`);
+    closePanel();
+  }
+
+  function openIpoResult(appId){
+    const app = IPO_APPLICATIONS.find(a => a.id === appId);
+    if (!app) return;
+    ipoResultAppId = appId;
+    document.getElementById("ipoResultContext").textContent = `${app.company} — applied for ${app.unitsApplied} units (${rs(app.amountBlocked)} blocked)`;
+    document.getElementById("ipoResultUnits").value = app.unitsApplied;
+    document.getElementById("ipoResultStatus").textContent = "";
+    document.getElementById("ipoResultStatus").className = "kh-manual-status";
+    setIpoResultOutcome("allotted");
+    openPanel("iporesult");
+  }
+
+  function setIpoResultOutcome(outcome){
+    ipoResultOutcome = outcome;
+    document.getElementById("ipoResultAllottedBtn").className = "kh-manual-type-btn" + (outcome === "allotted" ? " active-out" : "");
+    document.getElementById("ipoResultNotAllottedBtn").className = "kh-manual-type-btn" + (outcome === "notallotted" ? " active-out" : "");
+    document.getElementById("ipoResultUnitsField").style.display = outcome === "allotted" ? "" : "none";
+  }
+
+  function saveIpoResult(){
+    const status = document.getElementById("ipoResultStatus");
+    const app = IPO_APPLICATIONS.find(a => a.id === ipoResultAppId);
+    if (!app){ status.textContent = "That application was removed."; status.className = "kh-manual-status err"; return; }
+    if (ipoResultOutcome === "allotted"){
+      const unitsAllotted = parseInt(document.getElementById("ipoResultUnits").value, 10);
+      if (unitsAllotted == null || isNaN(unitsAllotted) || unitsAllotted < 0 || unitsAllotted > app.unitsApplied){
+        status.textContent = `Enter a number of units between 0 and ${app.unitsApplied}.`;
+        status.className = "kh-manual-status err";
+        return;
+      }
+      app.status = "Allotted";
+      app.unitsAllotted = unitsAllotted;
+      app.refundAmount = Math.max(0, app.amountBlocked - (unitsAllotted * app.price));
+    } else {
+      app.status = "Not Allotted";
+      app.unitsAllotted = 0;
+      app.refundAmount = app.amountBlocked;
+    }
+    saveCurrentUser();
+    renderIpoApplications();
+    closePanel();
+    showToast(app.refundAmount > 0 ? "Saved — mark it Refunded once the money's back in your account" : "Saved — fully allotted, nothing to refund");
+  }
+
+  function markIpoRefunded(appId){
+    const app = IPO_APPLICATIONS.find(a => a.id === appId);
+    if (!app || !app.refundAmount || app.refunded) return;
+    ensureCategory("Refund");
+    ensureAccount(app.account);
+    const txId = "tx" + (nextTxId++);
+    TRANSACTIONS.push({ date: todayStr(), vendor: `IPO refund — ${app.company}`, category: "Refund", type: "in", amount: app.refundAmount, account: app.account, id: txId });
+    app.refunded = true;
+    app.status = "Refunded";
+    app.txRefundId = txId;
+    saveCurrentUser();
+    renderAll();
+    renderIpoApplications();
+    renderIpoDashCard();
+    showToast(`${rs(app.refundAmount)} refund logged to ${app.account}`);
+  }
+
+  function deleteIpoApplication(id){
+    IPO_APPLICATIONS = IPO_APPLICATIONS.filter(a => a.id !== id);
+    saveCurrentUser();
+    renderIpoApplications();
+    renderIpoDashCard();
+    showToast("Removed — past logged transactions for it are kept");
+  }
+
+  function renderIpoCalendar(){
+    const el = document.getElementById("ipoList");
+    if (!el) return;
+    const today = todayStr();
+    if (!IPOS.length){
+      el.innerHTML = `<div class="kh-empty">No IPOs added yet. Tap "＋ Add IPO" or paste an announcement above.</div>`;
+      return;
+    }
+    const closingSoon = IPOS.filter(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
+    const alertEl = document.getElementById("ipoAlert");
+    if (alertEl){
+      alertEl.innerHTML = closingSoon.length
+        ? `<div class="kh-loan-alert"><div>⏳ ${closingSoon.length} IPO${closingSoon.length === 1 ? "" : "s"} closing within 2 days</div>${closingSoon.map(i => `<div class="kh-loan-alert-row"><span>${i.company} (${fmtDate(i.closeDate)})</span></div>`).join("")}</div>`
+        : "";
+    }
+    el.innerHTML = [...IPOS].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
+      const st = ipoStatus(ipo, today);
+      const meta = IPO_STATUS_META[st];
+      return `<div class="kh-loan-card">
+        <div class="kh-loan-card-top">
+          <div>
+            <div class="kh-loan-person">${ipo.company}</div>
+            <div class="kh-loan-type" style="color:var(--dim)">${ipo.sector || "—"}</div>
+          </div>
+          <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${st}</span>
+        </div>
+        <div class="kh-loan-meta">${rs(ipo.price)}/unit${ipo.unitsOffered ? ` · ${ipo.unitsOffered.toLocaleString()} units offered` : ""}</div>
+        <div class="kh-loan-meta">${fmtDate(ipo.openDate)} – ${fmtDate(ipo.closeDate)}</div>
+        <div class="kh-loan-actions">
+          ${st === "Open" ? `<button type="button" class="kh-loan-btn" onclick="openIpoApply(${attrJson(ipo.id)})">Apply</button>` : ""}
+          <button type="button" class="kh-loan-btn" onclick="openIpoForm(${attrJson(ipo.id)})">✎ Edit</button>
+          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpo(${attrJson(ipo.id)})">✕ Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  const IPO_APP_STATUS_META = {
+    "Applied":      { color: "#9396a8", bg: "rgba(147,150,168,.16)" },
+    "Allotted":     { color: "#22c55e", bg: "rgba(34,197,94,.16)" },
+    "Not Allotted": { color: "#f97316", bg: "rgba(249,115,22,.16)" },
+    "Refunded":     { color: "#3b82f6", bg: "rgba(59,130,246,.16)" },
+  };
+
+  function renderIpoApplications(){
+    const el = document.getElementById("ipoApplicationList");
+    const roiEl = document.getElementById("ipoRoiRow");
+    if (roiEl){
+      const totalApplied = IPO_APPLICATIONS.reduce((s, a) => s + a.amountBlocked, 0);
+      const totalAllotted = IPO_APPLICATIONS.filter(a => a.unitsAllotted).reduce((s, a) => s + (a.unitsAllotted * a.price), 0);
+      const totalRefunded = IPO_APPLICATIONS.filter(a => a.refunded).reduce((s, a) => s + a.refundAmount, 0);
+      roiEl.innerHTML = `
+        <div class="kh-loan-summary-item">
+          <div class="kh-loan-summary-label">Total applied</div>
+          <div class="kh-loan-summary-val">${rs(totalApplied)}</div>
+        </div>
+        <div class="kh-loan-summary-item">
+          <div class="kh-loan-summary-label">Total allotted</div>
+          <div class="kh-loan-summary-val" style="color:var(--in)">${rs(totalAllotted)}</div>
+        </div>
+        <div class="kh-loan-summary-item">
+          <div class="kh-loan-summary-label">Total refunded</div>
+          <div class="kh-loan-summary-val">${rs(totalRefunded)}</div>
+        </div>
+      `;
+    }
+    if (!el) return;
+    if (!IPO_APPLICATIONS.length){
+      el.innerHTML = `<div class="kh-empty">No IPO applications logged yet.</div>`;
+      return;
+    }
+    el.innerHTML = [...IPO_APPLICATIONS].sort((a, b) => (a.applicationDate || "") < (b.applicationDate || "") ? 1 : -1).map(app => {
+      const meta = IPO_APP_STATUS_META[app.status];
+      const canEnterResult = app.status === "Applied";
+      const canRefund = app.refundAmount > 0 && !app.refunded;
+      return `<div class="kh-loan-card">
+        <div class="kh-loan-card-top">
+          <div>
+            <div class="kh-loan-person">${app.company}</div>
+            <div class="kh-loan-type" style="color:var(--dim)">${app.unitsApplied} units applied · ${fmtDate(app.applicationDate)}</div>
+          </div>
+          <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${app.status}</span>
+        </div>
+        <div class="kh-loan-meta">Blocked: ${rs(app.amountBlocked)}${app.unitsAllotted != null ? ` · Allotted: ${app.unitsAllotted} units (${rs(app.unitsAllotted * app.price)})` : ""}</div>
+        ${app.refundAmount ? `<div class="kh-loan-meta">${app.refunded ? "Refunded" : "Refund pending"}: ${rs(app.refundAmount)}</div>` : ""}
+        <div class="kh-loan-actions">
+          ${canEnterResult ? `<button type="button" class="kh-loan-btn" onclick="openIpoResult(${attrJson(app.id)})">Enter result</button>` : ""}
+          ${canRefund ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#ffffff; border-color:transparent;" onclick="markIpoRefunded(${attrJson(app.id)})">Mark refunded</button>` : ""}
+          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpoApplication(${attrJson(app.id)})">✕ Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderIpoDashCard(){
+    const el = document.getElementById("ipoDashCard");
+    if (!el) return;
+    const today = todayStr();
+    const open = IPOS.filter(i => ipoStatus(i, today) === "Open");
+    if (!IPOS.length && !IPO_APPLICATIONS.length){
+      el.innerHTML = `<div class="kh-loan-dash-empty">No IPOs tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showIpoPage()">Add one →</button></div>`;
+      return;
+    }
+    const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
+    el.innerHTML = `
+      <div class="kh-loan-dash-top">
+        <span class="kh-loan-dash-title">IPO calendar</span>
+        <button type="button" class="kh-loan-dash-link" onclick="showIpoPage()">View all →</button>
+      </div>
+      <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;">${open.length} open right now</div>
+      <div style="margin-top:4px; font-size:12px; color:var(--dim);">${pendingRefunds ? `${pendingRefunds} refund${pendingRefunds === 1 ? "" : "s"} pending` : `${IPO_APPLICATIONS.length} application${IPO_APPLICATIONS.length === 1 ? "" : "s"} tracked`}</div>
+    `;
+  }
+
+  function showIpoPage(){
+    closePanel();
+    showPage("ipo");
+    renderIpoCalendar();
+    renderIpoApplications();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function renderInsightsPage(){
     const cur = adToBs(new Date().toISOString().slice(0,10));
     const curKey = `${cur.year}-${cur.month}`;
@@ -5047,6 +5476,7 @@
     renderBudgetDashCard();
     renderRoomDashCard();
     renderRecurringDashCard();
+    renderIpoDashCard();
     renderHomeLayoutManager();
     renderRoomLayoutManager();
     renderDesktopDashboard();
