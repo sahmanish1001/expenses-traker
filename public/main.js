@@ -1453,6 +1453,14 @@
     showToast("CSV downloaded");
   }
 
+  // A custom account/category name of literally "__proto__" (etc.) would,
+  // via ACCOUNTS[name] = {...} / CAT[name] = {...}, reassign that object's
+  // own prototype instead of adding a normal property — reachable from a
+  // restored/imported backup file. Guards both restore paths below.
+  function isUnsafeKeyName(name){
+    return name === "__proto__" || name === "constructor" || name === "prototype";
+  }
+
   // For an href built from a third-party string (e.g. the scraped IPO
   // calendar's source link) — only allow http(s) URLs through, so a
   // malicious "javascript:..." or "data:..." value can never end up as a
@@ -1538,8 +1546,8 @@
   // both just need to hand this a parsed snapshot object.
   function applyBackupSnapshot(data){
     resetAccountsAndCategoriesToDefault();
-    (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
-    (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+    (data.customAccounts || []).forEach(a => { if (isUnsafeKeyName(a.name)) return; ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
+    (data.customCategories || []).forEach(c => { if (isUnsafeKeyName(c.name)) return; CAT[c.name] = { color: c.color, icon: c.icon }; });
     HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
     ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
     RECURRING = data.recurring || [];
@@ -1982,8 +1990,8 @@
   function applyUserDataSnapshot(data, email){
     resetAccountsAndCategoriesToDefault();
     if (data){
-      (data.customAccounts || []).forEach(a => { ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
-      (data.customCategories || []).forEach(c => { CAT[c.name] = { color: c.color, icon: c.icon }; });
+      (data.customAccounts || []).forEach(a => { if (isUnsafeKeyName(a.name)) return; ensureAccount(a.name); ACCOUNTS[a.name] = { color: a.color, icon: a.icon }; });
+      (data.customCategories || []).forEach(c => { if (isUnsafeKeyName(c.name)) return; CAT[c.name] = { color: c.color, icon: c.icon }; });
       HOME_LAYOUT = normalizeHomeLayout(data.homeLayout);
       ROOM_LAYOUT = normalizeRoomLayout(data.roomLayout);
       RECURRING = data.recurring || [];
