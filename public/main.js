@@ -43,7 +43,7 @@
     { id: "budget",        label: "Budget",           icon: "🎯" },
     { id: "room",          label: "Room expenses",    icon: "🏠" },
     { id: "recurring",     label: "Recurring bills",  icon: "🔁" },
-    { id: "ipo",           label: "IPO calendar",     icon: "📈" },
+    { id: "ipo",           label: "IPO Tracker",      icon: "📈" },
     { id: "transactions",  label: "Transactions",     icon: "🧾" },
     { id: "pie",           label: "Spending pie chart", icon: "🥧" },
     { id: "nppie",          label: "Nepali month pie chart", icon: "📆" },
@@ -284,7 +284,7 @@
   let nextRecurringId = 1;
   let editingRecurringId = null;
 
-  // IPO calendar + "My Applications" tracker. There's no free public API
+  // IPO Tracker + "My Applications" tracker. There's no free public API
   // for NEPSE/MeroLagani/ShareSansar IPO data, so IPOS is the person's own
   // hand-added/AI-parsed list (see openClaudeForIpo() below), and
   // SHARED_IPOS is a second, read-only list scraped from ShareSansar by a
@@ -4739,7 +4739,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // IPO Calendar + My Applications. Same "AI-powered, no backend" trick as
+  // IPO Tracker + My Applications. Same "AI-powered, no backend" trick as
   // the statement importer above: open a Claude chat with a prewritten
   // prompt, the person pastes an announcement there, and pastes the JSON
   // Claude replies with back into the Add IPO form.
@@ -4831,7 +4831,7 @@
       }));
       sharedIposLoaded = true;
     }catch(e){
-      console.warn("Kharcha: couldn't load shared IPO calendar —", e);
+      console.warn("Kharcha: couldn't load shared IPO Tracker —", e);
     }
   }
 
@@ -5005,7 +5005,7 @@
   }
 
   async function refreshSharedIpos(){
-    showToast("Refreshing IPO calendar…");
+    showToast("Refreshing IPO Tracker…");
     await loadSharedIpos(true);
     renderIpoCalendar();
     renderIpoDashCard();
@@ -5258,7 +5258,7 @@
     const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
     el.innerHTML = `
       <div class="kh-loan-dash-top">
-        <span class="kh-loan-dash-title">IPO calendar</span>
+        <span class="kh-loan-dash-title">IPO Tracker</span>
         <button type="button" class="kh-loan-dash-link" onclick="showIpoPage()">View all →</button>
       </div>
       <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;">${open.length} open right now</div>
@@ -5849,7 +5849,7 @@
       }
     }
 
-    // IPO calendar card.
+    // IPO Tracker card.
     const ipoEl = document.getElementById("kdIpoCard");
     if (ipoEl){
       const todayIso = todayStr();

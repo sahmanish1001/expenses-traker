@@ -1,7 +1,7 @@
 name: Scrape IPOs
 
 # Keeps Supabase's shared `ipos` table (see scripts/scrape-ipos.mjs) up to
-# date so the app's IPO Calendar shows real Nepal IPOs automatically,
+# date so the app's IPO Tracker shows real Nepal IPOs automatically,
 # instead of only whatever a person added by hand. IPOs open/close over
 # days, not minutes, so a few runs a day is plenty.
 on:

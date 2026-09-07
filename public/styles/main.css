@@ -467,7 +467,7 @@
   .kh-loan-btn{background:var(--surface2); border:1px solid var(--border); color:var(--text); font-size:11.5px; font-weight:600; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:inherit;}
   .kh-loan-btn-danger{color:var(--out);}
 
-  /* IPO Calendar — plain single-column cards on mobile; the
+  /* IPO Tracker — plain single-column cards on mobile; the
      @media(min-width:768px) block further down turns these into the
      richer glass-card marketplace/dashboard layout for wider screens. */
   .kh-ipo-kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;}
@@ -703,7 +703,7 @@
     #insightsPage > .kh-budget-page-head{grid-column:1 / -1;}
     #insightsPage > .kh-insight-card{margin-bottom:0;}
 
-    /* IPO Calendar — richer glass-card marketplace layout once there's
+    /* IPO Tracker — richer glass-card marketplace layout once there's
        room for it. Same underlying data/markup as mobile, just laid out
        differently: KPI tiles side by side, IPO cards in a real grid, "My
        Applications" stays single-column (a wide row reads better than a

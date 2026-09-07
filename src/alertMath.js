@@ -54,7 +54,7 @@ export function computeLoanAlerts(data, today){
 
 // `sharedIpos` is the scraped public calendar (already in the app's
 // {id, company, openDate, closeDate, listed} shape) — merged with the
-// user's own hand-added IPOs the same way the IPO Calendar page itself
+// user's own hand-added IPOs the same way the IPO Tracker page itself
 // does, so a push fires for either kind exactly like the in-app alert.
 export function computeIpoAlerts(data, sharedIpos, today){
   const alerts = [];
