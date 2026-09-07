@@ -285,16 +285,20 @@
   let editingRecurringId = null;
 
   // IPO calendar + "My Applications" tracker. There's no free public API
-  // for NEPSE/MeroLagani/ShareSansar IPO data, so IPOS is just a plain
-  // list the person maintains themselves — added by hand or pasted from a
-  // Claude-parsed announcement (see openClaudeForIpo() below), same trick
-  // as the statement-photo importer. `status` isn't stored on the IPO —
-  // it's derived from openDate/closeDate vs today (see ipoStatus()) so it
-  // can never go stale; `listed` is the one manual override, for once
-  // shares actually start trading on NEPSE well after closing.
+  // for NEPSE/MeroLagani/ShareSansar IPO data, so IPOS is the person's own
+  // hand-added/AI-parsed list (see openClaudeForIpo() below), and
+  // SHARED_IPOS is a second, read-only list scraped from ShareSansar by a
+  // scheduled GitHub Action (scripts/scrape-ipos.mjs) into a public
+  // Supabase table — see loadSharedIpos(). The calendar renders both
+  // together. `status` isn't stored on either — it's derived from
+  // openDate/closeDate vs today (see ipoStatus()) so it can never go
+  // stale; `listed` is the one manual override, for once shares actually
+  // start trading on NEPSE well after closing.
   let IPOS = []; // { id, company, sector, openDate, closeDate, price, unitsOffered, listed }
   let nextIpoId = 1;
   let editingIpoId = null;
+  let SHARED_IPOS = []; // same shape as IPOS, plus { source, sourceUrl } — read-only in the UI
+  let sharedIposLoaded = false;
   // Each application tracks its own money-blocked outflow and (once a
   // result is known) refund inflow transaction ids, so the app's own
   // transaction log always reflects what's actually happened to that cash
@@ -1128,7 +1132,7 @@
     }
     if (getNotifPref("ipo")){
       const today = todayStr();
-      const closingSoon = IPOS.find(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
+      const closingSoon = [...IPOS, ...SHARED_IPOS].find(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
       if (closingSoon){
         const days = Math.round(daysBetween(today, closingSoon.closeDate));
         const when = days <= 0 ? "closes today" : `closes in ${days}d`;
@@ -4850,6 +4854,45 @@
     "Listed":   { color: "#3b82f6", bg: "rgba(59,130,246,.16)" },
   };
 
+  // Looks up an IPO by id across both the person's own list and the
+  // scraped shared one — every call site that used to only check IPOS
+  // (Apply, alerts, status lookups) now needs both.
+  function findAnyIpo(id){
+    return IPOS.find(i => i.id === id) || SHARED_IPOS.find(i => i.id === id);
+  }
+
+  // Reads the public `ipos` table (populated by scripts/scrape-ipos.mjs on
+  // a schedule, see .github/workflows/scrape-ipos.yml) — no sign-in
+  // required, it's a public "select" RLS policy, same anon key the rest
+  // of the app already loads. Only called once per session (see
+  // sharedIposLoaded) plus on demand via the Refresh button on the IPO
+  // page; the scraper only runs a few times a day, so re-fetching more
+  // often than that wouldn't show anything new anyway.
+  async function loadSharedIpos(force){
+    if (sharedIposLoaded && !force) return;
+    const sb = getSb();
+    if (!sb) return;
+    try{
+      const { data, error } = await sb.from("ipos").select("*");
+      if (error) throw error;
+      SHARED_IPOS = (data || []).map(row => ({
+        id: row.id,
+        company: row.company,
+        sector: row.sector,
+        price: row.price,
+        unitsOffered: row.units_offered,
+        openDate: row.open_date,
+        closeDate: row.close_date,
+        listed: false,
+        source: row.source || "sharesansar",
+        sourceUrl: row.source_url,
+      }));
+      sharedIposLoaded = true;
+    }catch(e){
+      console.warn("Kharcha: couldn't load shared IPO calendar —", e);
+    }
+  }
+
   function openIpoForm(id){
     editingIpoId = id || null;
     const ipo = id ? IPOS.find(i => i.id === id) : null;
@@ -4904,7 +4947,7 @@
   }
 
   function openIpoApply(id){
-    const ipo = IPOS.find(i => i.id === id);
+    const ipo = findAnyIpo(id);
     if (!ipo) return;
     currentIpoApplyId = id;
     document.getElementById("ipoApplyContext").textContent = `${ipo.company} — ${rs(ipo.price)}/unit`;
@@ -4921,14 +4964,14 @@
   }
 
   function updateIpoApplyAmount(){
-    const ipo = IPOS.find(i => i.id === currentIpoApplyId);
+    const ipo = findAnyIpo(currentIpoApplyId);
     const units = parseInt(document.getElementById("ipoApplyUnits").value, 10) || 0;
     document.getElementById("ipoApplyAmount").value = ipo ? units * ipo.price : "";
   }
 
   function saveIpoApply(){
     const status = document.getElementById("ipoApplyStatus");
-    const ipo = IPOS.find(i => i.id === currentIpoApplyId);
+    const ipo = findAnyIpo(currentIpoApplyId);
     if (!ipo){ status.textContent = "That IPO was removed."; status.className = "kh-manual-status err"; return; }
     const unitsApplied = parseInt(document.getElementById("ipoApplyUnits").value, 10);
     const applicationDate = document.getElementById("ipoApplyDate").value || todayStr();
@@ -5022,29 +5065,39 @@
     showToast("Removed — past logged transactions for it are kept");
   }
 
+  async function refreshSharedIpos(){
+    showToast("Refreshing IPO calendar…");
+    await loadSharedIpos(true);
+    renderIpoCalendar();
+    renderIpoDashCard();
+  }
+
   function renderIpoCalendar(){
     const el = document.getElementById("ipoList");
     if (!el) return;
     const today = todayStr();
-    if (!IPOS.length){
-      el.innerHTML = `<div class="kh-empty">No IPOs added yet. Tap "＋ Add IPO" or paste an announcement above.</div>`;
+    const all = [...SHARED_IPOS, ...IPOS];
+    const refreshBtn = `<div style="text-align:right; margin-bottom:8px;"><button type="button" class="kh-loan-dash-link" onclick="refreshSharedIpos()">↻ Refresh from ShareSansar</button></div>`;
+    if (!all.length){
+      el.innerHTML = refreshBtn + `<div class="kh-empty">No IPOs yet — ShareSansar's own list will appear here once the scraper's first run lands, or tap "＋ Add IPO" to add one yourself.</div>`;
       return;
     }
-    const closingSoon = IPOS.filter(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
+    const closingSoon = all.filter(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
     const alertEl = document.getElementById("ipoAlert");
     if (alertEl){
       alertEl.innerHTML = closingSoon.length
         ? `<div class="kh-loan-alert"><div>⏳ ${closingSoon.length} IPO${closingSoon.length === 1 ? "" : "s"} closing within 2 days</div>${closingSoon.map(i => `<div class="kh-loan-alert-row"><span>${i.company} (${fmtDate(i.closeDate)})</span></div>`).join("")}</div>`
         : "";
     }
-    el.innerHTML = [...IPOS].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
+    el.innerHTML = refreshBtn + [...all].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
       const st = ipoStatus(ipo, today);
       const meta = IPO_STATUS_META[st];
+      const isShared = !!ipo.source;
       return `<div class="kh-loan-card">
         <div class="kh-loan-card-top">
           <div>
             <div class="kh-loan-person">${ipo.company}</div>
-            <div class="kh-loan-type" style="color:var(--dim)">${ipo.sector || "—"}</div>
+            <div class="kh-loan-type" style="color:var(--dim)">${ipo.sector || "—"}${isShared ? ` · <a href="${ipo.sourceUrl || "#"}" target="_blank" rel="noopener" style="color:var(--dim);">via ShareSansar ↗</a>` : ""}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${st}</span>
         </div>
@@ -5052,8 +5105,8 @@
         <div class="kh-loan-meta">${fmtDate(ipo.openDate)} – ${fmtDate(ipo.closeDate)}</div>
         <div class="kh-loan-actions">
           ${st === "Open" ? `<button type="button" class="kh-loan-btn" onclick="openIpoApply(${attrJson(ipo.id)})">Apply</button>` : ""}
-          <button type="button" class="kh-loan-btn" onclick="openIpoForm(${attrJson(ipo.id)})">✎ Edit</button>
-          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpo(${attrJson(ipo.id)})">✕ Delete</button>
+          ${isShared ? "" : `<button type="button" class="kh-loan-btn" onclick="openIpoForm(${attrJson(ipo.id)})">✎ Edit</button>
+          <button type="button" class="kh-loan-btn kh-loan-btn-danger" onclick="deleteIpo(${attrJson(ipo.id)})">✕ Delete</button>`}
         </div>
       </div>`;
     }).join("");
@@ -5120,8 +5173,8 @@
     const el = document.getElementById("ipoDashCard");
     if (!el) return;
     const today = todayStr();
-    const open = IPOS.filter(i => ipoStatus(i, today) === "Open");
-    if (!IPOS.length && !IPO_APPLICATIONS.length){
+    const open = [...IPOS, ...SHARED_IPOS].filter(i => ipoStatus(i, today) === "Open");
+    if (!IPOS.length && !SHARED_IPOS.length && !IPO_APPLICATIONS.length){
       el.innerHTML = `<div class="kh-loan-dash-empty">No IPOs tracked yet. <button type="button" class="kh-np-filter-clear" style="display:inline" onclick="showIpoPage()">Add one →</button></div>`;
       return;
     }
@@ -5142,6 +5195,7 @@
     renderIpoCalendar();
     renderIpoApplications();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    loadSharedIpos().then(renderIpoCalendar);
   }
 
   function renderInsightsPage(){
@@ -6030,6 +6084,7 @@
     renderAccountManager();
     renderDriveSyncStatus();
     startRealtimeSync();
+    loadSharedIpos().then(() => { renderIpoDashCard(); if (currentPage === "ipo") renderIpoCalendar(); });
     setTimeout(checkAlerts, 600);
   }
 
