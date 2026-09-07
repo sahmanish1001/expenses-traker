@@ -1,0 +1,29 @@
+name: Send Push Notifications
+
+# Scans every user with an active push subscription for the same
+# budget/loan/IPO conditions the in-app toast checks (see
+# scripts/send-push-notifications.mjs) and sends a real Web Push
+# notification for anything new. Those conditions change slowly (a due
+# date, a monthly budget), so a couple of checks an hour is plenty —
+# there's no benefit to checking more often than that.
+on:
+  schedule:
+    - cron: "20 */2 * * *" # every 2 hours, UTC
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/send-push-notifications.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}

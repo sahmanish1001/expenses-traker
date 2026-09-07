@@ -58,3 +58,43 @@ self.addEventListener("fetch", (event) => {
       )
   );
 });
+
+// ---------------------------------------------------------------------
+// Real Web Push — arrives even when the app/tab isn't open, unlike the
+// on-app-open toasts checkAlerts() shows in main.js. Sent by
+// scripts/send-push-notifications.mjs on a schedule (see
+// .github/workflows/send-push-notifications.yml); this handler is just
+// "show whatever payload arrived", the actual budget/loan/IPO condition
+// checking happens server-side there, not here.
+// ---------------------------------------------------------------------
+self.addEventListener("push", (event) => {
+  let payload = { title: "Kharchā", body: "You have an update." };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch (e) {
+    // Not JSON (shouldn't happen — the sender always sends JSON) — fall
+    // back to the default payload above rather than throwing away the
+    // whole notification.
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/og-image.png",
+      badge: "/og-image.png",
+      tag: payload.tag || "kharcha-alert",
+      data: { url: payload.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((c) => new URL(c.url).origin === self.location.origin);
+      if (existing) return existing.focus();
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});

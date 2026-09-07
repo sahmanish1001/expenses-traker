@@ -4,6 +4,7 @@ import {
   computeIpoApplicationAmount,
   computeIpoAllotmentResult,
   computeIpoRoiTotals,
+  computeIpoRoiTrend,
 } from "./ipoMath.js";
 
 describe("ipoStatus", () => {
@@ -97,5 +98,40 @@ describe("computeIpoRoiTotals", () => {
 
   it("is all zeroes for an empty list", () => {
     expect(computeIpoRoiTotals([])).toEqual({ totalApplied: 0, totalAllotted: 0, totalRefunded: 0 });
+  });
+});
+
+describe("computeIpoRoiTrend", () => {
+  it("groups applications by the BS month they were applied in", () => {
+    const apps = [
+      { applicationDate: "2026-08-01", amountBlocked: 1000, unitsAllotted: null, price: 100, refunded: false, refundAmount: null },
+      { applicationDate: "2026-09-07", amountBlocked: 500, unitsAllotted: null, price: 100, refunded: false, refundAmount: null },
+    ];
+    const trend = computeIpoRoiTrend(apps);
+    expect(trend).toHaveLength(2);
+    expect(trend.map(t => t.monthKey)).toEqual(["2083-4", "2083-5"]); // chronological
+  });
+
+  it("sums applied/allotted/refunded within the same month", () => {
+    const apps = [
+      { applicationDate: "2026-09-01", amountBlocked: 1000, unitsAllotted: 8, price: 100, refunded: true, refundAmount: 200 },
+      { applicationDate: "2026-09-07", amountBlocked: 500, unitsAllotted: null, price: 100, refunded: false, refundAmount: null },
+    ];
+    const trend = computeIpoRoiTrend(apps);
+    expect(trend).toHaveLength(1);
+    expect(trend[0]).toEqual({ monthKey: "2083-5", applied: 1500, allotted: 800, refunded: 200 });
+  });
+
+  it("sorts oldest month first", () => {
+    const apps = [
+      { applicationDate: "2026-09-07", amountBlocked: 100, unitsAllotted: null, price: 100, refunded: false, refundAmount: null },
+      { applicationDate: "2026-01-01", amountBlocked: 100, unitsAllotted: null, price: 100, refunded: false, refundAmount: null },
+    ];
+    const trend = computeIpoRoiTrend(apps);
+    expect(trend[0].monthKey < trend[1].monthKey).toBe(true);
+  });
+
+  it("is an empty array for no applications", () => {
+    expect(computeIpoRoiTrend([])).toEqual([]);
   });
 });

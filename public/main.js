@@ -1051,31 +1051,26 @@
     renderTx();
   }
 
+  // The actual "is this worth alerting about" logic lives in
+  // src/alertMath.js — shared with scripts/send-push-notifications.mjs's
+  // scheduled real-push scan, so a push notification and this on-app-open
+  // toast can never quietly disagree about what counts as "due soon" or
+  // "over budget". This just picks the first one the person hasn't turned
+  // off, in the same budget → loans → IPO priority the toast always had
+  // (a single toast can only show one thing at a time; the scheduled push
+  // scan isn't limited that way and sends every applicable alert instead).
   function checkAlerts(){
-    if (getNotifPref("budget") && BUDGET_OVERALL){
-      const overallSpent = spendThisMonth(null);
-      if (overallSpent >= BUDGET_OVERALL){
-        showToast(`⚠ Over your overall budget by ${rs(overallSpent - BUDGET_OVERALL)}`);
+    const today = todayStr();
+    const data = { budgetOverall: BUDGET_OVERALL, hiddenAccounts: HIDDEN_ACCOUNTS, transactions: TRANSACTIONS, loans: LOANS, ipos: IPOS };
+    const alerts = computeAllAlerts(data, SHARED_IPOS, today);
+    const icons = { budget: "⚠", loan: "⏰", ipo: "⏳" };
+    for (const category of ["budget", "loans", "ipo"]){
+      if (!getNotifPref(category)) continue;
+      const prefix = category === "loans" ? "loan" : category;
+      const alert = alerts.find(a => a.key.startsWith(prefix + ":"));
+      if (alert){
+        showToast(`${icons[prefix]} ${alert.body}`);
         return;
-      }
-    }
-    if (getNotifPref("loans")){
-      const today = todayStr();
-      const dueSoon = LOANS.find(l => l.dueDate && loanStatus(l) !== "Cleared" && daysBetween(today, l.dueDate) <= 3);
-      if (dueSoon){
-        const days = Math.round(daysBetween(today, dueSoon.dueDate));
-        const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
-        showToast(dueSoon.isEmi ? `⏰ EMI to ${dueSoon.person} ${when}` : `⏰ Loan with ${dueSoon.person} ${when}`);
-        return;
-      }
-    }
-    if (getNotifPref("ipo")){
-      const today = todayStr();
-      const closingSoon = [...IPOS, ...SHARED_IPOS].find(i => ipoStatus(i, today) === "Open" && daysBetween(today, i.closeDate) <= 2);
-      if (closingSoon){
-        const days = Math.round(daysBetween(today, closingSoon.closeDate));
-        const when = days <= 0 ? "closes today" : `closes in ${days}d`;
-        showToast(`⏳ ${closingSoon.company} IPO ${when} — apply now`);
       }
     }
   }
@@ -1090,6 +1085,7 @@
     if (ipoToggle) ipoToggle.checked = getNotifPref("ipo");
     const calToggle = document.getElementById("calendarBsFirstToggle");
     if (calToggle) calToggle.checked = getCalendarBsFirst();
+    refreshPushToggleState();
   }
 
   function closePanel(){
@@ -5106,6 +5102,36 @@
         </div>
       </div>`;
     }).join("");
+    renderIpoRoiTrend();
+  }
+
+  // The totals row above is all-time; this is the same three figures
+  // broken out by BS month, with each metric's bar length scaled against
+  // the largest single value across every month shown — so months are
+  // directly comparable to each other, not just to their own history.
+  function renderIpoRoiTrend(){
+    const el = document.getElementById("ipoRoiTrend");
+    if (!el) return;
+    const trend = computeIpoRoiTrend(IPO_APPLICATIONS);
+    if (!trend.length){
+      el.innerHTML = `<div class="kh-empty">No applications yet — this fills in once you've applied to a few IPOs.</div>`;
+      return;
+    }
+    const maxVal = Math.max(1, ...trend.flatMap(t => [t.applied, t.allotted, t.refunded]));
+    const bar = (label, value, color) => `
+      <div class="kh-recurring-sub" style="margin-top:6px;">${label}: ${rs(value)}</div>
+      <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${(value / maxVal) * 100}%; background:${color};"></div></div>
+    `;
+    el.innerHTML = trend.map(t => {
+      const [y, m] = t.monthKey.split("-").map(Number);
+      const label = `${NEPALI_MONTHS[m - 1].name} ${y}`;
+      return `<div class="kh-loan-card">
+        <div class="kh-loan-person">${label}</div>
+        ${bar("Applied", t.applied, "#f59e0b")}
+        ${bar("Allotted", t.allotted, "var(--in)")}
+        ${bar("Refunded", t.refunded, "#3b82f6")}
+      </div>`;
+    }).join("");
   }
 
   function renderIpoDashCard(){
@@ -6238,13 +6264,138 @@
   // load with zero network connection — see that file for the caching
   // strategy. Registration failing (unsupported browser, not served over
   // HTTPS, etc.) is non-fatal; the app already works fine without it,
-  // just without the offline-shell guarantee.
+  // just without the offline-shell guarantee. Also the thing real Web
+  // Push subscribes through — see enablePushNotifications() below.
+  let swRegistration = null;
   if ("serviceWorker" in navigator){
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch((e) => {
-        console.warn("Kharcha: service worker registration failed — the app still works online.", e);
-      });
+      navigator.serviceWorker.register("/sw.js")
+        .then((reg) => { swRegistration = reg; refreshPushToggleState(); })
+        .catch((e) => {
+          console.warn("Kharcha: service worker registration failed — the app still works online.", e);
+        });
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Real Web Push — arrives even with the app closed, unlike checkAlerts()'s
+  // on-app-open toasts above. The public key is safe to ship in client
+  // code (that's what it's for — it's how the push service verifies the
+  // *server* sending pushes is really this app's server, via the matching
+  // private key, which lives only as a GitHub Actions secret — see
+  // scripts/send-push-notifications.mjs). Requires being signed in with a
+  // real account (not Guest Mode) since the subscription has to be linked
+  // to a user_id the scheduled sender can look up alongside that user's
+  // budget/loan/IPO data.
+  // ---------------------------------------------------------------------
+  const VAPID_PUBLIC_KEY = "BAMxHpl5TEVEa-qdijn-B6ZVrTp-DOU-a2pbMm-tdk_1EUWkSnXRwixfnJ0fHAKM3EDLDUCVxswugMFtTSEuKPg";
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
+  async function enablePushNotifications(){
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)){
+      showToast("Push notifications aren't supported in this browser");
+      return false;
+    }
+    if (isGuestMode || !supabaseUserId){
+      showToast("Sign in with Google first — push needs a real account to know whose data to check");
+      return false;
+    }
+    if (!swRegistration){
+      try{ swRegistration = await navigator.serviceWorker.ready; }catch(e){ showToast("Couldn't set up push — try again in a moment"); return false; }
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted"){
+      showToast(permission === "denied" ? "Notifications are blocked — enable them in your browser's site settings" : "Notification permission not granted");
+      return false;
+    }
+    try{
+      const sub = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      const sb = getSb();
+      const subJson = sub.toJSON();
+      const { error } = await sb.from("push_subscriptions").upsert({
+        user_id: supabaseUserId,
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth_key: subJson.keys.auth,
+      }, { onConflict: "endpoint" });
+      if (error){
+        console.warn("Kharcha: saving push subscription failed —", error.message);
+        showToast("Couldn't save your notification subscription — try again");
+        return false;
+      }
+      showToast("Push notifications enabled");
+      return true;
+    }catch(e){
+      console.warn("Kharcha: push subscribe failed —", e);
+      showToast("Couldn't enable push notifications");
+      return false;
+    }
+  }
+
+  async function disablePushNotifications(){
+    try{
+      if (swRegistration){
+        const sub = await swRegistration.pushManager.getSubscription();
+        if (sub){
+          const sb = getSb();
+          if (sb) await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+          await sub.unsubscribe();
+        }
+      }
+    }catch(e){
+      console.warn("Kharcha: push unsubscribe failed —", e);
+    }
+    showToast("Push notifications turned off");
+  }
+
+  async function togglePushNotifications(enabled){
+    const toggle = document.getElementById("notifPushToggle");
+    if (enabled){
+      const ok = await enablePushNotifications();
+      if (!ok && toggle) toggle.checked = false;
+    } else {
+      await disablePushNotifications();
+    }
+  }
+
+  // Reflects whatever the browser's actual subscription state is (not a
+  // locally-remembered flag, which could silently drift — e.g. the person
+  // revoked notification permission from their browser's own settings)
+  // into the Settings toggle. Called after the service worker registers
+  // and whenever the Notifications settings tab is opened.
+  async function refreshPushToggleState(){
+    const toggle = document.getElementById("notifPushToggle");
+    const sub = document.getElementById("notifPushSub");
+    if (!toggle) return;
+    if (isGuestMode || !supabaseUserId){
+      toggle.checked = false;
+      toggle.disabled = true;
+      if (sub) sub.textContent = "Sign in with Google to enable — a scheduled check sends a real notification for the alerts below, roughly every couple of hours, even with the app closed.";
+      return;
+    }
+    toggle.disabled = false;
+    if (!swRegistration || !("PushManager" in window)){
+      toggle.checked = false;
+      return;
+    }
+    try{
+      const existing = await swRegistration.pushManager.getSubscription();
+      toggle.checked = !!existing;
+      if (sub) sub.textContent = existing
+        ? "On — a scheduled check sends a real notification for the alerts below, roughly every couple of hours, even with the app closed."
+        : "A scheduled check sends a real notification for the alerts below, roughly every couple of hours, even with the app closed.";
+    }catch(e){
+      toggle.checked = false;
+    }
   }
 
   // Splash screen: show the animated mark briefly, then reveal the auth/app screen beneath it.

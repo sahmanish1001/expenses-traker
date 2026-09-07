@@ -7,11 +7,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "scrape:ipos": "node scripts/scrape-ipos.mjs"
+    "scrape:ipos": "node scripts/scrape-ipos.mjs",
+    "send:push": "node scripts/send-push-notifications.mjs"
   },
   "devDependencies": {
     "cheerio": "^1.2.0",
     "vite": "^5.4.0",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "web-push": "^3.6.7"
   }
 }

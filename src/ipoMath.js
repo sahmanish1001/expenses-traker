@@ -4,6 +4,7 @@
 // src/moneyMath.js already was (see the comment at the top of that file
 // for why: main.js is a classic, non-module script loaded after this one,
 // and picks these up as plain globals — see the bottom of this file).
+import { bsMonthKey } from "./nepaliCalendar.js";
 
 // "status" is never stored on an IPO — every caller already passes
 // `today` explicitly (never relies on a default), so this stays a pure
@@ -53,9 +54,27 @@ export function computeIpoRoiTotals(applications){
   return { totalApplied, totalAllotted, totalRefunded };
 }
 
+// The totals row only ever shows "so far, all time" — this is the same
+// three numbers broken out by the BS month each application was made in,
+// so a trend ("applying more than I'm getting refunded lately", say) is
+// actually visible instead of buried in one running total. Sorted
+// chronologically (oldest first) since that's how a trend reads.
+export function computeIpoRoiTrend(applications){
+  const byMonth = new Map();
+  for (const app of applications){
+    const key = bsMonthKey(app.applicationDate);
+    if (!byMonth.has(key)) byMonth.set(key, { monthKey: key, applied: 0, allotted: 0, refunded: 0 });
+    const bucket = byMonth.get(key);
+    bucket.applied += app.amountBlocked;
+    if (app.unitsAllotted) bucket.allotted += app.unitsAllotted * app.price;
+    if (app.refunded) bucket.refunded += app.refundAmount;
+  }
+  return [...byMonth.values()].sort((a, b) => a.monthKey < b.monthKey ? -1 : 1);
+}
+
 if (typeof window !== "undefined"){
   Object.assign(window, {
     ipoStatus, IPO_STATUS_META, computeIpoApplicationAmount,
-    computeIpoAllotmentResult, computeIpoRoiTotals,
+    computeIpoAllotmentResult, computeIpoRoiTotals, computeIpoRoiTrend,
   });
 }

@@ -572,8 +572,18 @@
         <span class="kh-ssh-icon">🔔</span>
         <div class="kh-ssh-text">
           <h3>Notifications</h3>
-          <p>Kharchā has no server, so these are on-device alerts shown when you open the app — not push notifications.</p>
+          <p>These alerts always show on-device when you open the app. Turn on push below to also get them as a real notification, even when Kharchā isn't open — needs sign-in and browser permission.</p>
         </div>
+      </div>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">Push notifications</div>
+          <div class="kh-toggle-row-sub" id="notifPushSub">Sign in with Google to enable — a scheduled check sends a real notification for the alerts below, roughly every couple of hours, even with the app closed.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="notifPushToggle" onchange="togglePushNotifications(this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
       </div>
       <div class="kh-toggle-row">
         <div class="kh-toggle-row-text">
@@ -1138,6 +1148,12 @@
     <div class="kh-cat-manager" style="margin-top:18px;">
       <p class="kh-cat-title">My applications</p>
       <div id="ipoApplicationList"></div>
+    </div>
+
+    <div class="kh-cat-manager" style="margin-top:18px;">
+      <p class="kh-cat-title">ROI over time</p>
+      <p class="kh-cat-hint" style="margin:0 0 12px;">Applied, allotted, and refunded amounts by the month you applied — the totals above are all-time; this is the trend behind them.</p>
+      <div id="ipoRoiTrend"></div>
     </div>
   </div>
 
@@ -2033,6 +2049,7 @@
 <script type="module" src="/src/moneyMath.js"></script>
 <script type="module" src="/src/nepaliCalendar.js"></script>
 <script type="module" src="/src/ipoMath.js"></script>
+<script type="module" src="/src/alertMath.js"></script>
 <script defer src="/main.js"></script>
 </body>
 </html>
