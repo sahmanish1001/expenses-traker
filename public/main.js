@@ -846,17 +846,17 @@
 
   function populateManualForm(){
     const accSel = document.getElementById("manualAccount");
-    accSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${name}"${name === activeAccount ? " selected" : ""}>${name}</option>`).join("");
+    accSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${htmlEscape(name)}"${name === activeAccount ? " selected" : ""}>${htmlEscape(name)}</option>`).join("");
     if (activeAccount === "All" && ACCOUNT_LIST.length) accSel.value = ACCOUNT_LIST[0];
 
     const toAccSel = document.getElementById("manualToAccount");
-    toAccSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${name}">${name}</option>`).join("");
+    toAccSel.innerHTML = ACCOUNT_LIST.map(name => `<option value="${htmlEscape(name)}">${htmlEscape(name)}</option>`).join("");
     // Default "to" to a different account than "from" so a fresh transfer
     // form doesn't start pointed at the same wallet on both sides.
     toAccSel.value = ACCOUNT_LIST.find(n => n !== accSel.value) || ACCOUNT_LIST[0];
 
     const catSel = document.getElementById("manualCategory");
-    catSel.innerHTML = Object.keys(CAT).map(name => `<option value="${name}">${name}</option>`).join("");
+    catSel.innerHTML = Object.keys(CAT).map(name => `<option value="${htmlEscape(name)}">${htmlEscape(name)}</option>`).join("");
 
     const dateEl = document.getElementById("manualDate");
     if (!dateEl.value){
@@ -1046,7 +1046,7 @@
       document.getElementById("loanInterestType").value = "none";
       document.getElementById("loanNotes").value = "";
       const accSel = document.getElementById("loanAccount");
-      accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${n}">${n}</option>`).join("");
+      accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
       document.getElementById("loanRecordTx").checked = true;
       document.getElementById("loanRecordTx").disabled = false;
       document.getElementById("loanRecordTxLabel").textContent = "Also record as a transaction, so it shows in your cash flow charts";
@@ -1453,8 +1453,27 @@
     showToast("CSV downloaded");
   }
 
+  // For an href built from a third-party string (e.g. the scraped IPO
+  // calendar's source link) — only allow http(s) URLs through, so a
+  // malicious "javascript:..." or "data:..." value can never end up as a
+  // clickable link. Escaping alone protects against breaking out of the
+  // attribute, but not against the URL's own scheme being dangerous.
+  function safeHref(url){
+    try{
+      const u = new URL(url, window.location.href);
+      return (u.protocol === "http:" || u.protocol === "https:") ? u.href : "#";
+    }catch(e){
+      return "#";
+    }
+  }
+
+  // Escapes &, <, >, and both quote characters — safe to use for both HTML
+  // text content and inside "..."/'...' attribute values (e.g.
+  // value="${htmlEscape(name)}"), which plain &/</> escaping isn't: a
+  // stray " in user-typed text could otherwise close an attribute early
+  // and let the rest of the string add new attributes/event handlers.
   function htmlEscape(s){
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
   // No PDF library — this just opens a print-formatted statement in a new
@@ -2230,7 +2249,7 @@
       const canRename = name !== "Other";
       return `<span class="kh-cat-tag-vibrant" style="background:${CAT[name].color}">
         <span>${CAT[name].icon}</span>
-        ${name}
+        ${htmlEscape(name)}
         ${canRename ? `<button class="kh-cat-edit-v" onclick="renameCategory(${attrJson(name)})" title="Rename">✎</button>` : ""}
         ${isDefault ? "" : `<button class="kh-cat-remove-v" onclick="removeCategory(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
@@ -2300,7 +2319,7 @@
       const meta = ACCOUNTS[name] || { color: "#9aa0ac", icon: "👛" };
       return `<span class="kh-cat-tag" style="${isHidden ? "opacity:.55" : ""}">
         <span class="kh-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${meta.color}"></span>
-        ${meta.icon} ${name}${isHidden ? " (hidden)" : ""}
+        ${meta.icon} ${htmlEscape(name)}${isHidden ? " (hidden)" : ""}
         <button class="kh-cat-remove" onclick="toggleAccountHidden(${attrJson(name)})" title="${isHidden ? "Unhide" : "Hide"}">${isHidden ? "👁️" : "🙈"}</button>
         ${isDefault ? "" : `<button class="kh-cat-remove" onclick="removeAccountManual(${attrJson(name)})" title="Remove">✕</button>`}
       </span>`;
@@ -2728,7 +2747,7 @@
       const btn = document.createElement("button");
       btn.className = "kh-chip" + (activeAccount === name ? " active" : "");
       btn.style.background = activeAccount === name ? meta.color : "";
-      btn.innerHTML = `<span class="kh-chip-dot" style="background:${meta.color}; opacity:${has ? 1 : 0.35}"></span>${name}`;
+      btn.innerHTML = `<span class="kh-chip-dot" style="background:${meta.color}; opacity:${has ? 1 : 0.35}"></span>${htmlEscape(name)}`;
       btn.onclick = () => { activeAccount = name; renderAll(); };
       el.appendChild(btn);
     });
@@ -2873,11 +2892,11 @@
       return `${d.color} ${start}deg ${angle}deg`;
     }).join(", ");
 
-    let html = `<div class="kh-pie-wrap"><div class="kh-pie" style="background:conic-gradient(${stops})"><div class="kh-pie-center"><span class="kh-pie-center-label">Top</span><span class="kh-pie-center-value">${data[0].name}</span></div></div></div><div class="kh-legend">`;
+    let html = `<div class="kh-pie-wrap"><div class="kh-pie" style="background:conic-gradient(${stops})"><div class="kh-pie-center"><span class="kh-pie-center-label">Top</span><span class="kh-pie-center-value">${htmlEscape(data[0].name)}</span></div></div></div><div class="kh-legend">`;
     data.forEach(d => {
       html += `<div class="kh-legend-row">
         <span class="kh-legend-dot" style="background:${d.color}"></span>
-        <span class="kh-legend-name">${d.name}</span>
+        <span class="kh-legend-name">${htmlEscape(d.name)}</span>
         <span class="kh-legend-amt">${rs(d.value)}</span>
         <span class="kh-legend-pct">${Math.round((d.value/total)*100)}%</span>
       </div>`;
@@ -2979,8 +2998,8 @@
         html += `<div class="kh-row">
           <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
           <div class="kh-row-mid">
-            <div class="kh-row-vendor">${t.vendor}</div>
-            <div class="kh-row-cat">${sub}</div>
+            <div class="kh-row-vendor">${htmlEscape(t.vendor)}</div>
+            <div class="kh-row-cat">${htmlEscape(sub)}</div>
           </div>
           <div class="kh-row-amt" style="color:${t.type === "in" ? "var(--in)" : "var(--out)"}">${t.type === "in" ? "+" : "−"}${rs(t.amount)}</div>
           <button class="kh-row-del" onclick="editTx('${t.id}')" title="Edit">✎</button>
@@ -3038,7 +3057,7 @@
           const days = Math.round(daysBetween(today, l.dueDate));
           const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
           return `<div class="kh-loan-alert-row">
-            <span>${l.isEmi ? "EMI: " : ""}${l.person} (${when})</span>
+            <span>${l.isEmi ? "EMI: " : ""}${htmlEscape(l.person)} (${when})</span>
             ${l.isEmi && l.emiAmount ? `<button type="button" class="kh-loan-btn" style="padding:4px 10px; font-size:11px;" onclick="quickPayEmi('${l.id}')">⚡ Pay ${rs(l.emiAmount)}</button>` : ""}
           </div>`;
         }).join("")}
@@ -3074,7 +3093,7 @@
       return `<div class="kh-loan-card${l.isEmi ? " kh-emi-card" : ""}">
         <div class="kh-loan-card-top">
           <div>
-            <div class="kh-loan-person">${l.person}</div>
+            <div class="kh-loan-person">${htmlEscape(l.person)}</div>
             <div class="kh-loan-type" style="color:${typeColor}">${typeLabel}${l.isEmi ? ` <span class="kh-loan-badge" style="color:#059669;background:rgba(16,185,129,.16); margin-left:4px;">EMI</span>` : ""}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${status}</span>
@@ -3093,7 +3112,7 @@
           <div><span class="kh-loan-amt-label">Outstanding</span><span class="kh-loan-amt-val" style="color:${outstanding > 0.5 ? typeColor : "var(--in)"}">${rs(outstanding)}</span></div>
         </div>
         <div class="kh-loan-meta">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}${payoff ? ` · Payoff ~${fmtDate(payoff)}` : ""}</div>
-        ${l.notes ? `<div class="kh-loan-notes">${l.notes}</div>` : ""}
+        ${l.notes ? `<div class="kh-loan-notes">${htmlEscape(l.notes)}</div>` : ""}
         <div class="kh-loan-actions">
           ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" style="background:var(--accent); color:#ffffff; border-color:transparent;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay ${rs(l.emiAmount)}</button>` : ""}
           ${outstanding > 0.5 ? `<button type="button" class="kh-loan-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
@@ -3161,7 +3180,7 @@
             const days = Math.round(daysBetween(today, l.dueDate));
             const when = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "due today" : `due in ${days}d`;
             return `<div class="kd-mini-row" style="padding:6px 0;">
-              <div style="flex:1;">${l.isEmi ? "EMI: " : ""}${l.person} <span style="color:var(--kd-dim);">(${when})</span></div>
+              <div style="flex:1;">${l.isEmi ? "EMI: " : ""}${htmlEscape(l.person)} <span style="color:var(--kd-dim);">(${when})</span></div>
               ${l.isEmi && l.emiAmount ? `<button type="button" class="kd-btn kd-btn-primary" style="padding:5px 12px; font-size:11.5px;" onclick="quickPayEmi('${l.id}')">⚡ Pay ${rs(l.emiAmount)}</button>` : ""}
             </div>`;
           }).join("")}
@@ -3204,7 +3223,7 @@
           return `<div class="kd-card kd-loan-card">
             <div class="kd-card-head" style="margin-bottom:10px;">
               <div>
-                <div style="font-weight:700; font-size:14.5px;">${l.person}</div>
+                <div style="font-weight:700; font-size:14.5px;">${htmlEscape(l.person)}</div>
                 <div style="font-size:12px; color:${typeColor};">${typeLabel}${l.isEmi ? ` <span class="kd-pill kd-pill-jade" style="margin-left:4px;">EMI</span>` : ""}</div>
               </div>
               <span class="kd-pill" style="color:${meta.color}; background:${meta.bg};">${status}</span>
@@ -3218,7 +3237,7 @@
             <div class="kd-mini-row" style="border-bottom:none; padding:4px 0;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Paid</div><span>${rs(paid)}</span></div>
             <div class="kd-mini-row" style="border-bottom:none; padding:4px 0 10px;"><div style="flex:1; color:var(--kd-dim); font-size:12px;">Outstanding</div><span style="color:${outstanding>0.5?typeColor:"var(--kd-primary)"}; font-weight:700;">${rs(outstanding)}</span></div>
             <div style="font-size:11px; color:var(--kd-dim); margin-bottom:10px;">Given ${fmtDate(l.dateGiven)}${!l.isEmi && l.dueDate ? ` · Due ${fmtDate(l.dueDate)}` : ""}${l.interestRate ? ` · ${l.interestRate}% ${l.interestType}` : ""}${emiMeta}${payoff ? ` · Payoff ~${fmtDate(payoff)}` : ""}</div>
-            ${l.notes ? `<div style="font-size:12px; color:var(--kd-dim); margin-bottom:10px; font-style:italic;">${l.notes}</div>` : ""}
+            ${l.notes ? `<div style="font-size:12px; color:var(--kd-dim); margin-bottom:10px; font-style:italic;">${htmlEscape(l.notes)}</div>` : ""}
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
               ${l.isEmi && outstanding > 0.5 ? `<button type="button" class="kd-btn kd-btn-primary" style="padding:6px 12px; font-size:11.5px;" onclick="quickPayEmi('${l.id}')">⚡ Quick pay</button>` : ""}
               ${outstanding > 0.5 ? `<button type="button" class="kd-chip-btn" onclick="openLoanPayment('${l.id}')">＋ Log payment</button>` : ""}
@@ -3534,7 +3553,7 @@
     document.getElementById("loanPaymentDate").value = todayStr();
     document.getElementById("loanPaymentNote").value = "";
     const accSel = document.getElementById("loanPaymentAccount");
-    accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${n}">${n}</option>`).join("");
+    accSel.innerHTML = ACCOUNT_LIST.map(n => `<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
     accSel.value = l.account || ACCOUNT_LIST[0];
     document.getElementById("loanPaymentRecordTx").checked = true;
     document.getElementById("loanPaymentStatus").textContent = "";
@@ -3908,7 +3927,7 @@
       const meta = CAT[name] || CAT.Other;
       return `<div class="kh-layout-row">
         <span class="kh-layout-row-icon">${meta.icon}</span>
-        <span class="kh-layout-row-label">${name}</span>
+        <span class="kh-layout-row-label">${htmlEscape(name)}</span>
         <div class="kh-layout-row-btns">
           <button class="kh-layout-btn" onclick="moveBudgetCategory(${attrJson(name)}, -1)" ${i === 0 ? "disabled" : ""} title="Move up">↑</button>
           <button class="kh-layout-btn" onclick="moveBudgetCategory(${attrJson(name)}, 1)" ${i === names.length - 1 ? "disabled" : ""} title="Move down">↓</button>
@@ -3963,7 +3982,7 @@
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
           <span class="kh-budget-row-icon" style="background:${meta.color}">${meta.icon}</span>
-          <span class="kh-budget-row-name">${name}</span>
+          <span class="kh-budget-row-name">${htmlEscape(name)}</span>
           <span class="kh-budget-row-amt">${amtText}</span>
         </div>
         <div class="kh-budget-bar-track"><div class="kh-budget-bar-fill" style="width:${limit ? pct : 0}%; background:${color};"></div></div>
@@ -4052,8 +4071,8 @@
       const invited = !isMe && ROOMMATE_EMAILS[name];
       return `<div class="kh-roommate-card">
         ${!isMe ? `<button class="kh-roommate-remove" onclick="removeRoommate(${attrJson(name)})" title="Remove">✕</button>` : ""}
-        <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : name.charAt(0).toUpperCase()}</div>
-        <span class="kh-roommate-name">${roommateDisplayName(name)}${invited ? " ✉️" : ""}</span>
+        <div class="kh-roommate-avatar${isMe ? " me" : ""}" style="background:${roommateColor(name)}">${isMe ? "🙋" : htmlEscape(name.charAt(0).toUpperCase())}</div>
+        <span class="kh-roommate-name">${htmlEscape(roommateDisplayName(name))}${invited ? " ✉️" : ""}</span>
       </div>`;
     }).join("") + `<button type="button" class="kh-roommate-add-card" onclick="openPanel('roommate')" title="Add roommate">
       <div class="kh-roommate-avatar">＋</div>
@@ -4118,7 +4137,7 @@
     const sel = document.getElementById("roomExpPaidBy");
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = ROOMMATES.map(n => `<option value="${n}">${roommateDisplayName(n)}</option>`).join("");
+    sel.innerHTML = ROOMMATES.map(n => `<option value="${htmlEscape(n)}">${htmlEscape(roommateDisplayName(n))}</option>`).join("");
     sel.value = ROOMMATES.includes(prev) ? prev : ROOMMATES[0];
     renderRoomLogToggle();
   }
@@ -4128,7 +4147,7 @@
     if (!sel) return;
     const prev = sel.value;
     const names = Object.keys(CAT);
-    sel.innerHTML = names.map(n => `<option value="${n}">${CAT[n].icon} ${n}</option>`).join("");
+    sel.innerHTML = names.map(n => `<option value="${htmlEscape(n)}">${CAT[n].icon} ${htmlEscape(n)}</option>`).join("");
     sel.value = names.includes(prev) ? prev : (names.includes("Rent") ? "Rent" : names[0]);
   }
 
@@ -4150,8 +4169,8 @@
     el.querySelectorAll("input[type=checkbox]").forEach(cb => { checked[cb.value] = cb.checked; });
     el.innerHTML = others.map(n => `
       <label class="kh-cat-tag" style="cursor:pointer;">
-        <input type="checkbox" value="${n}" ${(checked[n] !== undefined ? checked[n] : true) ? "checked" : ""} style="margin:0;" />
-        ${roommateDisplayName(n)}
+        <input type="checkbox" value="${htmlEscape(n)}" ${(checked[n] !== undefined ? checked[n] : true) ? "checked" : ""} style="margin:0;" />
+        ${htmlEscape(roommateDisplayName(n))}
       </label>
     `).join("");
   }
@@ -4167,7 +4186,7 @@
         Also log this as my own expense, from
       </label>
       <select id="roomLogAccount" class="kh-cat-input" style="margin-top:6px; width:100%;">
-        ${visibleAccounts().map(a => `<option value="${a}">${a}</option>`).join("")}
+        ${visibleAccounts().map(a => `<option value="${htmlEscape(a)}">${htmlEscape(a)}</option>`).join("")}
       </select>
     `;
   }
@@ -4216,12 +4235,12 @@
       const meta = CAT[e.category] || CAT.Other;
       const otherSplitters = e.splitAmong.filter(n => n !== e.paidBy);
       const otherRoommates = ROOMMATES.filter(n => n !== e.paidBy);
-      const splitLabel = otherSplitters.length && otherSplitters.length === otherRoommates.length ? "everyone else" : otherSplitters.map(roommateDisplayName).join(", ");
+      const splitLabel = otherSplitters.length && otherSplitters.length === otherRoommates.length ? "everyone else" : otherSplitters.map(n => htmlEscape(roommateDisplayName(n))).join(", ");
       return `<div class="kh-row">
         <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
         <div class="kh-row-mid">
-          <div class="kh-row-vendor">${e.desc}</div>
-          <div class="kh-row-cat">Paid by ${roommateDisplayName(e.paidBy)} · split with ${splitLabel}</div>
+          <div class="kh-row-vendor">${htmlEscape(e.desc)}</div>
+          <div class="kh-row-cat">Paid by ${htmlEscape(roommateDisplayName(e.paidBy))} · split with ${splitLabel}</div>
         </div>
         <div class="kh-row-amt" style="color:var(--out)">${rs(e.amount)}</div>
         <button class="kh-row-del" onclick="deleteRoomExpense(${attrJson(e.id)})" title="Delete">✕</button>
@@ -4269,8 +4288,8 @@
       const label = amt > 0.5 ? `owed ${rs(amt)}` : amt < -0.5 ? `owes ${rs(-amt)}` : "settled up";
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
-          <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
-          <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
+          <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${htmlEscape(name.charAt(0).toUpperCase())}</span>
+          <span class="kh-budget-row-name">${htmlEscape(roommateDisplayName(name))}</span>
           <span class="kh-pill ${pillClass}">${label}</span>
         </div>
       </div>`;
@@ -4283,7 +4302,7 @@
       ${settlements.map(s => `
         <div class="kh-budget-row">
           <div class="kh-budget-row-top">
-            <span class="kh-budget-row-name">${roommateDisplayName(s.from)} → ${roommateDisplayName(s.to)}</span>
+            <span class="kh-budget-row-name">${htmlEscape(roommateDisplayName(s.from))} → ${htmlEscape(roommateDisplayName(s.to))}</span>
             <span class="kh-budget-row-amt">${rs(s.amount)}</span>
           </div>
           <div class="kh-budget-row-set">
@@ -4467,13 +4486,13 @@
 
     const landlordHtml = ROOM_RENT.landlordName ? `
       <div class="kh-landlord-card">
-        <div class="kh-roommate-avatar" style="width:44px;height:44px;font-size:15px;background:#4B5563">${ROOM_RENT.landlordName.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}</div>
+        <div class="kh-roommate-avatar" style="width:44px;height:44px;font-size:15px;background:#4B5563">${htmlEscape(ROOM_RENT.landlordName.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase())}</div>
         <div class="kh-landlord-info">
-          <p class="kh-landlord-name">${ROOM_RENT.landlordName}</p>
+          <p class="kh-landlord-name">${htmlEscape(ROOM_RENT.landlordName)}</p>
           <p class="kh-landlord-role">Flat owner / landlord</p>
         </div>
         <div class="kh-landlord-actions">
-          ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${ROOM_RENT.landlordPhone}" title="Call">📞 Call</a>` : ""}
+          ${ROOM_RENT.landlordPhone ? `<a class="kh-landlord-call" href="tel:${htmlEscape(ROOM_RENT.landlordPhone)}" title="Call">📞 Call</a>` : ""}
         </div>
       </div>
     ` : "";
@@ -4489,7 +4508,7 @@
         ${ROOMMATES.length > 1 ? `
           <p class="kh-cat-hint" style="margin:14px 0 4px;">Who paid the landlord?</p>
           <select id="rentPayerSelect" class="kh-cat-input" style="width:100%;">
-            ${ROOMMATES.map(n => `<option value="${n}">${roommateDisplayName(n)}</option>`).join("")}
+            ${ROOMMATES.map(n => `<option value="${htmlEscape(n)}">${htmlEscape(roommateDisplayName(n))}</option>`).join("")}
           </select>
         ` : ""}
         <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-top:12px;" onclick="logMonthlyRent()">＋ Log this month's rent</button>
@@ -4503,7 +4522,7 @@
           : settlement ? `<span class="kh-pill kh-pill-jade">Settled ✓</span>` : `<span class="kh-pill kh-pill-amber">Unpaid</span>`;
         const sub = isPayer
           ? `Paid full bill (${rs(expense.amount)})`
-          : settlement ? `Paid via ${settlement.method} on ${bsLabel(settlement.date)}`
+          : settlement ? `Paid via ${htmlEscape(settlement.method)} on ${bsLabel(settlement.date)}`
           : name === "Me" ? "You owe your room share" : "Owes their room share";
         const amtLabel = isPayer ? "Self covered" : rs(yourShare);
         const actions = (isPayer || settlement) ? "" : name === "Me" ? `
@@ -4518,8 +4537,8 @@
         `;
         return `<div class="kh-budget-row">
           <div class="kh-budget-row-top">
-            <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${name.charAt(0).toUpperCase()}</span>
-            <span class="kh-budget-row-name">${roommateDisplayName(name)}</span>
+            <span class="kh-budget-row-icon" style="background:${roommateColor(name)}">${htmlEscape(name.charAt(0).toUpperCase())}</span>
+            <span class="kh-budget-row-name">${htmlEscape(roommateDisplayName(name))}</span>
             ${badge}
           </div>
           <div class="kh-rent-person-sub">${sub} · <b style="color:var(--text)">${amtLabel}</b></div>
@@ -4645,7 +4664,7 @@
     if (!sel) return;
     const prev = sel.value;
     const names = Object.keys(CAT);
-    sel.innerHTML = names.map(n => `<option value="${n}">${CAT[n].icon} ${n}</option>`).join("");
+    sel.innerHTML = names.map(n => `<option value="${htmlEscape(n)}">${CAT[n].icon} ${htmlEscape(n)}</option>`).join("");
     sel.value = names.includes(prev) ? prev : names[0];
   }
 
@@ -4654,7 +4673,7 @@
     if (!sel) return;
     const prev = sel.value;
     const accounts = visibleAccounts();
-    sel.innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join("");
+    sel.innerHTML = accounts.map(a => `<option value="${htmlEscape(a)}">${htmlEscape(a)}</option>`).join("");
     if (accounts.includes(prev)) sel.value = prev;
   }
 
@@ -4740,12 +4759,12 @@
       return `<div class="kh-budget-row">
         <div class="kh-budget-row-top">
           <span class="kh-budget-row-icon" style="background:${meta.color}">${meta.icon}</span>
-          <span class="kh-budget-row-name">${item.name}</span>
+          <span class="kh-budget-row-name">${htmlEscape(item.name)}</span>
           <span class="kh-budget-row-amt">${rs(item.amount)}</span>
         </div>
         <div class="kh-recurring-sub">${bsLabel(due)} <span class="kh-pill ${duePillClass}">${dueLabel}</span></div>
         <div class="kh-recurring-actions">
-          ${logged ? `<span class="kh-pill kh-pill-jade">✓ Logged this month</span>` : `<button type="button" class="kh-rent-paid-btn" onclick="logRecurringItem(${attrJson(item.id)})">＋ Log this month's ${item.name}</button>`}
+          ${logged ? `<span class="kh-pill kh-pill-jade">✓ Logged this month</span>` : `<button type="button" class="kh-rent-paid-btn" onclick="logRecurringItem(${attrJson(item.id)})">＋ Log this month's ${htmlEscape(item.name)}</button>`}
           <div style="display:flex; gap:6px;">
             <button type="button" class="kh-row-del" onclick="openRecurringForm(${attrJson(item.id)})" title="Edit">✎</button>
             <button type="button" class="kh-row-del" onclick="deleteRecurringItem(${attrJson(item.id)})" title="Delete">✕</button>
@@ -4958,7 +4977,7 @@
     document.getElementById("ipoApplyStatus").className = "kh-manual-status";
     const accSel = document.getElementById("ipoApplyAccount");
     const accounts = visibleAccounts();
-    accSel.innerHTML = accounts.map(a => `<option value="${a}">${a}</option>`).join("");
+    accSel.innerHTML = accounts.map(a => `<option value="${htmlEscape(a)}">${htmlEscape(a)}</option>`).join("");
     openPanel("ipoapply");
     setTimeout(() => document.getElementById("ipoApplyUnits").focus(), 300);
   }
@@ -5086,7 +5105,7 @@
     const alertEl = document.getElementById("ipoAlert");
     if (alertEl){
       alertEl.innerHTML = closingSoon.length
-        ? `<div class="kh-loan-alert"><div>⏳ ${closingSoon.length} IPO${closingSoon.length === 1 ? "" : "s"} closing within 2 days</div>${closingSoon.map(i => `<div class="kh-loan-alert-row"><span>${i.company} (${fmtDate(i.closeDate)})</span></div>`).join("")}</div>`
+        ? `<div class="kh-loan-alert"><div>⏳ ${closingSoon.length} IPO${closingSoon.length === 1 ? "" : "s"} closing within 2 days</div>${closingSoon.map(i => `<div class="kh-loan-alert-row"><span>${htmlEscape(i.company)} (${fmtDate(i.closeDate)})</span></div>`).join("")}</div>`
         : "";
     }
     el.innerHTML = refreshBtn + [...all].sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? 1 : -1).map(ipo => {
@@ -5096,8 +5115,8 @@
       return `<div class="kh-loan-card">
         <div class="kh-loan-card-top">
           <div>
-            <div class="kh-loan-person">${ipo.company}</div>
-            <div class="kh-loan-type" style="color:var(--dim)">${ipo.sector || "—"}${isShared ? ` · <a href="${ipo.sourceUrl || "#"}" target="_blank" rel="noopener" style="color:var(--dim);">via ShareSansar ↗</a>` : ""}</div>
+            <div class="kh-loan-person">${htmlEscape(ipo.company)}</div>
+            <div class="kh-loan-type" style="color:var(--dim)">${htmlEscape(ipo.sector || "—")}${isShared ? ` · <a href="${safeHref(ipo.sourceUrl || "#")}" target="_blank" rel="noopener" style="color:var(--dim);">via ShareSansar ↗</a>` : ""}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${st}</span>
         </div>
@@ -5153,7 +5172,7 @@
       return `<div class="kh-loan-card">
         <div class="kh-loan-card-top">
           <div>
-            <div class="kh-loan-person">${app.company}</div>
+            <div class="kh-loan-person">${htmlEscape(app.company)}</div>
             <div class="kh-loan-type" style="color:var(--dim)">${app.unitsApplied} units applied · ${fmtDate(app.applicationDate)}</div>
           </div>
           <span class="kh-loan-badge" style="color:${meta.color};background:${meta.bg}">${app.status}</span>
@@ -5270,7 +5289,7 @@
           ${pieData.map(d => `
             <div class="kh-legend-row">
               <span class="kh-legend-dot" style="background:${d.color}"></span>
-              <span class="kh-legend-name">${d.name}</span>
+              <span class="kh-legend-name">${htmlEscape(d.name)}</span>
               <span class="kh-legend-amt">${rs(d.value)}</span>
               <span class="kh-legend-pct">${Math.round((d.value / catGrandTotal) * 100)}%</span>
             </div>
@@ -5284,7 +5303,7 @@
       <div class="kh-rank-row">
         <span class="kh-rank-num">${i + 1}</span>
         <div class="kh-rank-mid">
-          <div class="kh-rank-name">${name}</div>
+          <div class="kh-rank-name">${htmlEscape(name)}</div>
           <div class="kh-rank-sub">${Math.round((amt / catGrandTotal) * 100)}% of this month's spending</div>
         </div>
         <span class="kh-rank-amt">${rs(amt)}</span>
@@ -5305,7 +5324,7 @@
       <div class="kh-rank-row">
         <span class="kh-rank-num">${i + 1}</span>
         <div class="kh-rank-mid">
-          <div class="kh-rank-name">${name}</div>
+          <div class="kh-rank-name">${htmlEscape(name)}</div>
           <div class="kh-rank-sub">${v.count} transaction${v.count === 1 ? "" : "s"}</div>
         </div>
         <span class="kh-rank-amt">${rs(v.amt)}</span>
@@ -5621,8 +5640,8 @@
       visibleAccounts().forEach(name => {
         const meta = ACCOUNTS[name];
         const bal = BALANCES[name] || 0;
-        html += `<button type="button" class="kd-wallet-chip${activeAccount === name ? " active" : ""}" onclick="activeAccount='${name.replace(/'/g,"\\'")}'; renderAll();">
-          <span class="kd-wallet-dot" style="background:${meta.color}"></span>${name}
+        html += `<button type="button" class="kd-wallet-chip${activeAccount === name ? " active" : ""}" onclick="activeAccount=${attrJson(name)}; renderAll();">
+          <span class="kd-wallet-dot" style="background:${meta.color}"></span>${htmlEscape(name)}
           <span class="kd-wallet-amt">${rs(bal)}</span>
         </button>`;
       });
@@ -5670,7 +5689,7 @@
       filtersEl.innerHTML = [`All (${scoped.length})`, ...catsInScope].map((label, i) => {
         const cat = i === 0 ? "All" : label;
         const active = desktopLedgerCategory === cat;
-        return `<button type="button" class="${active ? "active" : ""}" onclick="setDesktopLedgerCategory('${cat.replace(/'/g,"\\'")}')">${label}</button>`;
+        return `<button type="button" class="${active ? "active" : ""}" onclick="setDesktopLedgerCategory(${attrJson(cat)})">${htmlEscape(label)}</button>`;
       }).join("");
     }
 
@@ -5698,8 +5717,8 @@
             return `<div class="kd-row" onclick="editTx('${t.id}')">
               <div class="kd-row-icon" style="background:color-mix(in srgb, ${meta.color} 22%, transparent); color:${meta.color}">${meta.icon}</div>
               <div class="kd-row-mid">
-                <div class="kd-row-vendor">${t.vendor}</div>
-                <div class="kd-row-sub">${t.account} · ${t.category}</div>
+                <div class="kd-row-vendor">${htmlEscape(t.vendor)}</div>
+                <div class="kd-row-sub">${htmlEscape(t.account)} · ${htmlEscape(t.category)}</div>
               </div>
               <div class="kd-row-amt" style="color:${t.type==="in"?"var(--kd-primary)":"var(--kd-text)"}">${t.type==="in"?"+":"−"}${rs(t.amount)}</div>
             </div>`;
@@ -5721,9 +5740,9 @@
         const colors = ["#4be277","#ffca45","#7cd0ff","#ff9f6b","#c792ea","#6bd9c8"];
         roomEl.innerHTML = Object.entries(net).map(([name, amt], i) => `
           <div class="kd-mini-row">
-            <div class="kd-mini-avatar" style="background:${colors[i % colors.length]}">${name[0].toUpperCase()}</div>
+            <div class="kd-mini-avatar" style="background:${colors[i % colors.length]}">${htmlEscape(name[0].toUpperCase())}</div>
             <div style="flex:1; min-width:0;">
-              <div class="kd-mini-name">${name}</div>
+              <div class="kd-mini-name">${htmlEscape(name)}</div>
               <div class="kd-mini-sub">${Math.abs(amt) < 0.5 ? "Settled up" : (amt > 0 ? "Owed to them" : "They owe")}</div>
             </div>
             <span class="kd-pill ${amt >= 0 ? "kd-pill-jade" : "kd-pill-amber"}">${amt>=0?"":"−"}${rs(Math.abs(amt))}</span>
@@ -5809,7 +5828,7 @@
             <div class="kd-donut" style="background:conic-gradient(${stops})">
               <div class="kd-donut-center">
                 <span style="font-size:10px; color:var(--kd-dim);">Top</span>
-                <b>${entries[0][0]}</b>
+                <b>${htmlEscape(entries[0][0])}</b>
               </div>
             </div>
           </div>
@@ -5817,7 +5836,7 @@
             const meta = CAT[cat] || CAT.Other;
             const pct = total ? Math.round((amt/total)*100) : 0;
             return `<div class="kd-legend-row">
-              <div class="kd-legend-left"><span class="kd-wallet-dot" style="background:${meta.color}"></span><span>${cat}</span></div>
+              <div class="kd-legend-left"><span class="kd-wallet-dot" style="background:${meta.color}"></span><span>${htmlEscape(cat)}</span></div>
               <span style="color:var(--kd-dim);">${pct}% · ${rs(amt)}</span>
             </div>`;
           }).join("")}
@@ -6076,7 +6095,7 @@
     }
 
     const firstName = (user.name || user.email.split("@")[0]).split(" ")[0];
-    document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${firstName}</strong>`;
+    document.getElementById("welcomeGreeting").innerHTML = `Welcome, <strong>${htmlEscape(firstName)}</strong>`;
 
     await loadUserData(user.email);
 
