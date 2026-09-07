@@ -361,14 +361,24 @@
       <select id="npMonthFilter" onchange="setNepaliMonthFilter(this.value)"></select>
     </div>
 
-    <button type="button" class="kh-ipo-shortcut" onclick="showIpoPage()">
-      <span class="kh-ipo-shortcut-icon">📈</span>
-      <span class="kh-ipo-shortcut-text">
-        <span class="kh-ipo-shortcut-title">Apply for an IPO</span>
-        <span class="kh-ipo-shortcut-sub" id="ipoShortcutSub">Track applications &amp; allotments</span>
-      </span>
-      <span class="kh-ipo-shortcut-arrow">→</span>
-    </button>
+    <div class="kh-quick-actions-grid">
+      <button type="button" class="kh-quick-action-btn" onclick="toggleManualAdd()">
+        <span class="kh-quick-action-icon" style="background:rgba(16,185,129,.14); color:var(--accent);">＋</span>
+        <span class="kh-quick-action-label">Expense</span>
+      </button>
+      <button type="button" class="kh-quick-action-btn" onclick="showIpoPage()">
+        <span class="kh-quick-action-icon" style="background:rgba(59,130,246,.14); color:#3b82f6;">📈</span>
+        <span class="kh-quick-action-label">Apply IPO</span>
+      </button>
+      <button type="button" class="kh-quick-action-btn" onclick="homeSplitBill()">
+        <span class="kh-quick-action-icon" style="background:rgba(245,158,11,.14); color:#f59e0b;">🏠</span>
+        <span class="kh-quick-action-label">Split Bill</span>
+      </button>
+      <button type="button" class="kh-quick-action-btn" onclick="homeQuickPayEmi()">
+        <span class="kh-quick-action-icon" style="background:rgba(139,92,246,.14); color:#8b5cf6;">📄</span>
+        <span class="kh-quick-action-label">Pay EMI</span>
+      </button>
+    </div>
 
     <div class="kh-home-sections" id="homeSections">
       <div class="kh-home-section" data-section="stats" id="homeSectionStats">

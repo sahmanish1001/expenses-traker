@@ -3244,6 +3244,17 @@
           <div><span class="kh-loan-dash-label">Active EMIs</span><span class="kh-loan-dash-val">${activeEmis.length}</span></div>
         </div>
       ` : ""}
+      ${(() => {
+        // Nearest-due active EMI's own due date + the account it's paid
+        // from — real, per-loan data, not a fabricated "bank name".
+        const withDue = activeEmis.filter(l => l.dueDate).sort((a, b) => a.dueDate < b.dueDate ? -1 : 1);
+        if (!withDue.length) return "";
+        const next = withDue[0];
+        return `<div class="kh-loan-dash-footer">
+          <span>⏰ Next EMI: <strong style="color:var(--text);">${bsLabel(next.dueDate)}</strong></span>
+          <span>${htmlEscape(next.account || "")}</span>
+        </div>`;
+      })()}
     `;
   }
 
@@ -4005,6 +4016,15 @@
         </div>
       `;
     }
+    // Footer: everyone else in the room as a small overlapping avatar
+    // stack, plus a "Settle Up" shortcut straight into the Room page's
+    // own settle-up flow — only shown when there's actually an unsettled
+    // balance, real per simplifyRoomDebts() on the current balances.
+    const others = ROOMMATES.filter(n => n !== "Me");
+    const avatarsHtml = others.length
+      ? `<div class="kh-room-dash-avatars">${others.slice(0, 4).map(n => `<span style="background:${roommateColor(n)}">${htmlEscape(n.charAt(0).toUpperCase())}</span>`).join("")}</div><span>${others.length} flatmate${others.length === 1 ? "" : "s"} shared</span>`
+      : `<span>Just you so far</span>`;
+    const hasUnsettled = Math.abs(mine) > 0.5;
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">Room expenses</span>
@@ -4012,6 +4032,10 @@
       </div>
       <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:${color}">${label}</div>
       ${dueHtml}
+      <div class="kh-loan-dash-footer">
+        <div style="display:flex; align-items:center; gap:8px;">${avatarsHtml}</div>
+        ${hasUnsettled ? `<button type="button" class="kh-loan-btn" style="padding:5px 12px; font-size:10.5px;" onclick="showRoomPage()">Settle Up</button>` : ""}
+      </div>
     `;
   }
 
@@ -4721,14 +4745,36 @@
     }
     const totalMonthly = RECURRING.reduce((s, r) => s + r.amount, 0);
     const unlogged = RECURRING.filter(r => !recurringLoggedTx(r));
+    // Small status chips for up to 4 bills — green dot once logged this
+    // month, amber "(Pending)" while it's still owed — same real
+    // recurringLoggedTx() check the Recurring page itself uses.
+    const chipsHtml = RECURRING.slice(0, 4).map(r => {
+      const isLogged = !!recurringLoggedTx(r);
+      return `<span class="kh-recurring-dash-chip"><span class="kh-recurring-dash-dot" style="background:${isLogged ? "var(--in)" : "#f59e0b"};"></span>${htmlEscape(r.name)}${isLogged ? "" : " (Pending)"}</span>`;
+    }).join("");
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">Recurring bills</span>
         <button type="button" class="kh-loan-dash-link" onclick="showRecurringPage()">View all →</button>
       </div>
-      <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;">${rs(totalMonthly)}/month</div>
-      <div style="margin-top:4px; font-size:12px; color:var(--dim);">${unlogged.length ? `${unlogged.length} not logged yet this month` : "All logged for this month ✓"}</div>
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:10px;">
+        <div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;">${rs(totalMonthly)}/month</div>
+          <div style="margin-top:4px; font-size:12px; color:var(--dim);">${unlogged.length ? `${unlogged.length} not logged yet this month` : "All logged for this month ✓"}</div>
+        </div>
+        ${unlogged.length ? `<button type="button" class="kh-loan-btn" style="padding:5px 12px; font-size:10.5px; flex-shrink:0;" onclick="homeLogFirstUnloggedBill()">＋ Log Bill</button>` : ""}
+      </div>
+      ${chipsHtml ? `<div class="kh-recurring-dash-chips">${chipsHtml}</div>` : ""}
     `;
+  }
+
+  function homeLogFirstUnloggedBill(){
+    const unlogged = RECURRING.filter(r => !recurringLoggedTx(r));
+    if (unlogged.length === 1){
+      logRecurringItem(unlogged[0].id);
+    } else {
+      showRecurringPage();
+    }
   }
 
   function showRecurringPage(){
@@ -5267,17 +5313,24 @@
     return openIpo ? { kind: "ipo", ipo: openIpo } : null;
   }
 
-  function renderIpoShortcut(){
-    const sub = document.getElementById("ipoShortcutSub");
-    if (!sub) return;
-    const today = todayStr();
-    const openCount = [...IPOS, ...SHARED_IPOS].filter(i => ipoStatus(i, today) === "Open").length;
-    const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
-    sub.textContent = openCount
-      ? `${openCount} open right now`
-      : pendingRefunds
-        ? `${pendingRefunds} refund${pendingRefunds === 1 ? "" : "s"} pending`
-        : "Track applications & allotments";
+  // Home screen quick actions — Expense (toggleManualAdd) and Apply IPO
+  // (showIpoPage) already had direct, unambiguous handlers; these two
+  // need a bit of routing since "which bill" / "which EMI" isn't
+  // specified by a single tap from Home the way it is from a page that's
+  // already scoped to one loan/roommate.
+  function homeSplitBill(){
+    showRoomPage();
+    if (ROOMMATES.length > 1) openPanel("roomexpense");
+  }
+
+  function homeQuickPayEmi(){
+    const activeEmis = LOANS.filter(l => l.isEmi && l.emiAmount && loanStatus(l) !== "Cleared");
+    if (activeEmis.length === 1){
+      quickPayEmi(activeEmis[0].id);
+    } else {
+      showLoanPage();
+      setLoanFilter("emi");
+    }
   }
 
   function renderIpoDashCard(){
@@ -5678,7 +5731,6 @@
     renderRoomDashCard();
     renderRecurringDashCard();
     renderIpoDashCard();
-    renderIpoShortcut();
     renderHomeLayoutManager();
     renderRoomLayoutManager();
     renderDesktopDashboard();
