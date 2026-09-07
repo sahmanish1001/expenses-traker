@@ -5246,6 +5246,40 @@
     `;
   }
 
+  // Picks the one IPO-related thing most worth surfacing on the Home
+  // card's mini-preview row: an application that still needs you to do
+  // something (enter its result, or collect a pending refund) beats a
+  // resolved one, which beats just showing the most recently applied-to
+  // IPO, which beats falling back to the calendar's own most urgent Open
+  // IPO if you haven't applied to anything at all yet.
+  function pickIpoHighlight(){
+    const needsAction = IPO_APPLICATIONS.find(a => a.status === "Applied")
+      || IPO_APPLICATIONS.find(a => a.refundAmount > 0 && !a.refunded);
+    if (needsAction) return { kind: "application", app: needsAction };
+    if (IPO_APPLICATIONS.length){
+      const mostRecent = [...IPO_APPLICATIONS].sort((a, b) => (a.applicationDate || "") < (b.applicationDate || "") ? 1 : -1)[0];
+      return { kind: "application", app: mostRecent };
+    }
+    const today = todayStr();
+    const openIpo = [...IPOS, ...SHARED_IPOS]
+      .filter(i => ipoStatus(i, today) === "Open")
+      .sort((a, b) => (a.closeDate || "") < (b.closeDate || "") ? -1 : 1)[0];
+    return openIpo ? { kind: "ipo", ipo: openIpo } : null;
+  }
+
+  function renderIpoShortcut(){
+    const sub = document.getElementById("ipoShortcutSub");
+    if (!sub) return;
+    const today = todayStr();
+    const openCount = [...IPOS, ...SHARED_IPOS].filter(i => ipoStatus(i, today) === "Open").length;
+    const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
+    sub.textContent = openCount
+      ? `${openCount} open right now`
+      : pendingRefunds
+        ? `${pendingRefunds} refund${pendingRefunds === 1 ? "" : "s"} pending`
+        : "Track applications & allotments";
+  }
+
   function renderIpoDashCard(){
     const el = document.getElementById("ipoDashCard");
     if (!el) return;
@@ -5256,6 +5290,37 @@
       return;
     }
     const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
+    const highlight = pickIpoHighlight();
+    let previewHtml = "";
+    if (highlight){
+      const initials = (highlight.kind === "application" ? highlight.app.company : highlight.ipo.company)
+        .split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+      let name, sub, pillText, pillColor, pillBg;
+      if (highlight.kind === "application"){
+        const app = highlight.app;
+        name = app.company;
+        sub = `${rs(app.price)}/unit · ${app.unitsApplied} unit${app.unitsApplied === 1 ? "" : "s"}`;
+        const meta = IPO_APP_STATUS_META[app.status];
+        pillText = app.status; pillColor = meta.color; pillBg = meta.bg;
+      } else {
+        const ipo = highlight.ipo;
+        name = ipo.company;
+        sub = `${rs(ipo.price)}/unit${ipo.unitsOffered ? ` · ${ipo.unitsOffered.toLocaleString()} units offered` : ""}`;
+        pillText = "Open"; pillColor = IPO_STATUS_META.Open.color; pillBg = IPO_STATUS_META.Open.bg;
+      }
+      previewHtml = `
+        <div class="kh-ipo-mini-preview">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <div class="kh-ipo-avatar" style="width:30px; height:30px; font-size:10.5px;">${htmlEscape(initials)}</div>
+            <div style="min-width:0;">
+              <div style="font-size:11.5px; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">${htmlEscape(name)}</div>
+              <div style="font-size:10px; color:var(--dim); margin-top:1px;">${sub}</div>
+            </div>
+          </div>
+          <span class="kh-ipo-badge" style="color:${pillColor}; background:${pillBg}; font-size:9.5px; padding:3px 8px; flex-shrink:0;">${pillText}</span>
+        </div>
+      `;
+    }
     el.innerHTML = `
       <div class="kh-loan-dash-top">
         <span class="kh-loan-dash-title">IPO Tracker</span>
@@ -5263,6 +5328,11 @@
       </div>
       <div style="margin-top:10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;">${open.length} open right now</div>
       <div style="margin-top:4px; font-size:12px; color:var(--dim);">${pendingRefunds ? `${pendingRefunds} refund${pendingRefunds === 1 ? "" : "s"} pending` : `${IPO_APPLICATIONS.length} application${IPO_APPLICATIONS.length === 1 ? "" : "s"} tracked`}</div>
+      ${previewHtml}
+      <div class="kh-ipo-mini-footer">
+        <span>Synced from ShareSansar</span>
+        <button type="button" class="kh-loan-dash-link" onclick="showIpoPage()">Check status ↗</button>
+      </div>
     `;
   }
 
@@ -5608,6 +5678,7 @@
     renderRoomDashCard();
     renderRecurringDashCard();
     renderIpoDashCard();
+    renderIpoShortcut();
     renderHomeLayoutManager();
     renderRoomLayoutManager();
     renderDesktopDashboard();
