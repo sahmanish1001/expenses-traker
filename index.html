@@ -382,6 +382,10 @@
         <div class="kh-loan-dash-card" id="recurringDashCard"></div>
       </div>
 
+      <div class="kh-home-section" data-section="ipo" id="homeSectionIpo">
+        <div class="kh-loan-dash-card" id="ipoDashCard"></div>
+      </div>
+
       <div class="kh-home-section" data-section="transactions" id="homeSectionTransactions">
         <p class="kh-section-title">Transactions</p>
         <input id="txSearch" class="kh-cat-input" style="width:100%; margin-bottom:10px;" placeholder="Search by vendor or category…" oninput="setTxSearch(this.value)" />
@@ -531,6 +535,10 @@
             <label for="profileIncome">Monthly income</label>
             <input id="profileIncome" type="number" min="0" placeholder="e.g. 50000" />
           </div>
+          <div class="kh-profile-field full">
+            <label for="profileBoid">BOID (for IPO applications)</label>
+            <input id="profileBoid" type="text" inputmode="numeric" placeholder="e.g. 1301234567890123" />
+          </div>
           <button class="kh-profile-save" onclick="saveProfile()">Save profile</button>
           <span class="kh-profile-saved-note" id="profileSavedNote"></span>
         </div>
@@ -584,6 +592,16 @@
         </div>
         <label class="kh-toggle-switch">
           <input type="checkbox" id="notifLoansToggle" onchange="setNotifPref('loans', this.checked)" />
+          <span class="kh-toggle-slider"></span>
+        </label>
+      </div>
+      <div class="kh-toggle-row">
+        <div class="kh-toggle-row-text">
+          <div class="kh-toggle-row-title">IPO closing-soon alerts</div>
+          <div class="kh-toggle-row-sub">Flag an open IPO on the calendar whose closing date is within 2 days.</div>
+        </div>
+        <label class="kh-toggle-switch">
+          <input type="checkbox" id="notifIpoToggle" onchange="setNotifPref('ipo', this.checked)" />
           <span class="kh-toggle-slider"></span>
         </label>
       </div>
@@ -1098,6 +1116,29 @@
     <p class="kh-cat-hint" style="margin:0 0 14px;">Netflix, wifi, gym — anything that repeats every month. Same idea as Room rent: set it up once, then a tap logs it each cycle.</p>
     <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-bottom:14px;" onclick="openRecurringForm(null)">＋ Add recurring bill</button>
     <div id="recurringList"></div>
+  </div>
+
+  <div class="kh-page" id="ipoPage">
+    <div class="kh-loan-page-head">
+      <button type="button" class="kh-clear-btn" style="margin-bottom:10px;" onclick="goHome()">← Back</button>
+      <p class="kh-eyebrow">Primary market</p>
+      <h2>IPO Calendar</h2>
+    </div>
+    <p class="kh-cat-hint" style="margin:0 0 14px;">Kharchā has no live IPO feed — there's no free public API for NEPSE/MeroLagani/ShareSansar data. Add IPOs yourself, or paste an announcement and let Claude turn it into the fields below.</p>
+
+    <div id="ipoRoiRow" class="kh-loan-summary" style="margin-bottom:14px;"></div>
+    <div id="ipoAlert"></div>
+
+    <div class="kh-cat-manager" style="margin-top:0;">
+      <p class="kh-cat-title">IPOs</p>
+      <button type="button" class="kh-manual-btn" style="width:100%; justify-content:center; margin-bottom:14px;" onclick="openIpoForm(null)">＋ Add IPO</button>
+      <div id="ipoList"></div>
+    </div>
+
+    <div class="kh-cat-manager" style="margin-top:18px;">
+      <p class="kh-cat-title">My applications</p>
+      <div id="ipoApplicationList"></div>
+    </div>
   </div>
 
   <div class="kh-page" id="insightsPage">
@@ -1651,6 +1692,111 @@
     </div>
     <div class="kh-manual-actions">
       <button type="button" class="kh-manual-btn" id="recurringSaveBtn" onclick="saveRecurringForm()">Add recurring bill</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelIpoForm" role="dialog" aria-modal="true" aria-labelledby="ipoFormTitle" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title" id="ipoFormTitle">Add IPO</p>
+
+    <div class="kh-cat-manager" style="margin:0 0 14px; padding:12px; background:var(--card2, rgba(127,127,127,.08)); border-radius:12px;">
+      <p class="kh-cat-hint" style="margin:0 0 8px;">Paste an IPO announcement (from a notice, news article, or Meroshare) and have Claude turn it into these fields for you.</p>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button type="button" class="kh-import-btn" onclick="openClaudeForIpo()">🔗 Open Claude</button>
+        <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="copyIpoPrompt()">📋 Copy prompt</button>
+      </div>
+      <textarea id="ipoParseInput" class="kh-import-textarea" style="min-height:70px;" placeholder='Paste the JSON block Claude replies with, e.g. {"company":"...","sector":"...","openDate":"2026-01-05","closeDate":"2026-01-09","price":100,"unitsOffered":500000}'></textarea>
+      <button type="button" class="kh-import-btn" style="width:100%; justify-content:center; margin-top:8px;" onclick="parseIpoAnnouncement()">✨ Parse &amp; fill form</button>
+      <p class="kh-import-status" id="ipoParseStatus"></p>
+    </div>
+
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full">
+        <label for="ipoCompany">Company</label>
+        <input id="ipoCompany" placeholder="e.g. Himalayan Hydropower Ltd." />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoSector">Sector</label>
+        <input id="ipoSector" placeholder="e.g. Hydropower" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoPrice">Price per unit (Rs)</label>
+        <input id="ipoPrice" type="number" min="0" step="any" placeholder="100" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoOpenDate">Open date</label>
+        <input id="ipoOpenDate" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoCloseDate">Close date</label>
+        <input id="ipoCloseDate" type="date" />
+      </div>
+      <div class="kh-manual-field full">
+        <label for="ipoUnitsOffered">Units offered</label>
+        <input id="ipoUnitsOffered" type="number" min="0" step="1" placeholder="e.g. 500000" />
+      </div>
+      <div class="kh-manual-field full" style="flex-direction:row; align-items:center; gap:8px;">
+        <input id="ipoListed" type="checkbox" style="width:auto;" />
+        <label for="ipoListed" style="text-transform:none; letter-spacing:0; font-size:12px; color:var(--text); margin:0;">Already listed on NEPSE (shares are trading)</label>
+      </div>
+    </div>
+    <p class="kh-manual-status" id="ipoFormStatus"></p>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" id="ipoSaveBtn" onclick="saveIpoForm()">Add IPO</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="kh-panel kh-panel-large" id="panelIpoApply" role="dialog" aria-modal="true" aria-labelledby="ipoApplyTitle" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title" id="ipoApplyTitle">Apply to IPO</p>
+    <p class="kh-import-hint" id="ipoApplyContext"></p>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field">
+        <label for="ipoApplyUnits">Units applied for</label>
+        <input id="ipoApplyUnits" type="number" min="1" step="1" placeholder="e.g. 10" oninput="updateIpoApplyAmount()" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoApplyAmount">Amount blocked (Rs)</label>
+        <input id="ipoApplyAmount" type="number" readonly />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoApplyDate">Application date</label>
+        <input id="ipoApplyDate" type="date" />
+      </div>
+      <div class="kh-manual-field">
+        <label for="ipoApplyAccount">Blocked from account</label>
+        <select id="ipoApplyAccount"></select>
+      </div>
+    </div>
+    <p class="kh-manual-status" id="ipoApplyStatus"></p>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="saveIpoApply()">Apply</button>
+      <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="kh-panel" id="panelIpoResult" role="dialog" aria-modal="true" aria-labelledby="ipoResultTitle" onclick="event.stopPropagation()">
+    <div class="kh-panel-handle"></div>
+    <button type="button" class="kh-panel-close" onclick="closePanel()" aria-label="Close">&#10005;</button>
+    <p class="kh-panel-title" id="ipoResultTitle">Enter allotment result</p>
+    <p class="kh-import-hint" id="ipoResultContext"></p>
+    <div class="kh-manual-type">
+      <button type="button" class="kh-manual-type-btn active-out" id="ipoResultAllottedBtn" onclick="setIpoResultOutcome('allotted')">Allotted</button>
+      <button type="button" class="kh-manual-type-btn" id="ipoResultNotAllottedBtn" onclick="setIpoResultOutcome('notallotted')">Not allotted</button>
+    </div>
+    <div class="kh-manual-form">
+      <div class="kh-manual-field full" id="ipoResultUnitsField">
+        <label for="ipoResultUnits">Units allotted</label>
+        <input id="ipoResultUnits" type="number" min="0" step="1" />
+      </div>
+    </div>
+    <p class="kh-manual-status" id="ipoResultStatus"></p>
+    <div class="kh-manual-actions">
+      <button type="button" class="kh-manual-btn" onclick="saveIpoResult()">Save result</button>
       <button type="button" class="kh-manual-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
     </div>
   </div>
