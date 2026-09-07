@@ -122,6 +122,31 @@ async function main() {
     throw new Error(`Supabase upsert failed: ${upsertRes.status} ${await upsertRes.text()}`);
   }
   console.log(`Upserted ${rows.length} IPO row(s): ${rows.map((r) => r.company).join(", ")}`);
+
+  // The `ipos` table only ever holds rows this script wrote, so it's safe
+  // to prune purely by age — nothing else writes to it. A user's own past
+  // application already snapshotted the company/price/etc it needs at
+  // apply time (see IPO_APPLICATIONS in public/main.js), so deleting the
+  // shared calendar row weeks later doesn't touch their history. 60 days
+  // comfortably covers the allotment + refund cycle, well past the point
+  // an IPO is still useful to show on the calendar.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/ipos?close_date=lt.${cutoffStr}`, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: "return=representation",
+    },
+  });
+  if (!deleteRes.ok) {
+    console.warn(`Prune of IPOs closed before ${cutoffStr} failed: ${deleteRes.status} ${await deleteRes.text()}`);
+  } else {
+    const deleted = await deleteRes.json();
+    if (deleted.length) console.log(`Pruned ${deleted.length} IPO(s) closed before ${cutoffStr}: ${deleted.map((r) => r.company).join(", ")}`);
+  }
 }
 
 main().catch((e) => {

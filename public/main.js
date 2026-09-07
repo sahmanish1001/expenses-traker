@@ -2016,21 +2016,39 @@
     document.getElementById("profileCurrency").value = PROFILE.currency || "NPR";
     document.getElementById("profileIncome").value = PROFILE.monthlyIncome || "";
     document.getElementById("profileBoid").value = PROFILE.boid || "";
-    document.getElementById("profileSavedNote").textContent = "";
+    const savedNote = document.getElementById("profileSavedNote");
+    savedNote.textContent = "";
+    savedNote.style.color = "";
+  }
+
+  // Every Nepali BOID (the account number Meroshare/CDS Clearing uses to
+  // identify who's applying) is exactly 16 digits — same format for
+  // everyone, so this can be validated outright instead of left as
+  // free text that silently doesn't work when you actually go apply.
+  function isValidBoid(boid){
+    return /^\d{16}$/.test(boid);
   }
 
   function saveProfile(){
+    const note = document.getElementById("profileSavedNote");
+    const boid = document.getElementById("profileBoid").value.trim();
+    if (boid && !isValidBoid(boid)){
+      note.textContent = "BOID should be exactly 16 digits — check it against your Meroshare account.";
+      note.style.color = "var(--out)";
+      document.getElementById("profileBoid").focus();
+      return;
+    }
     PROFILE = {
       name: document.getElementById("profileName").value.trim(),
       age: document.getElementById("profileAge").value.trim(),
       email: document.getElementById("profileEmail").value.trim(),
       currency: document.getElementById("profileCurrency").value,
       monthlyIncome: document.getElementById("profileIncome").value.trim(),
-      boid: document.getElementById("profileBoid").value.trim(),
+      boid,
     };
     saveCurrentUser();
     renderAll(); // currency symbol may have changed — refresh every amount on screen
-    const note = document.getElementById("profileSavedNote");
+    note.style.color = "";
     note.textContent = "Saved.";
     setTimeout(() => { if (note.textContent === "Saved.") note.textContent = ""; }, 2500);
   }

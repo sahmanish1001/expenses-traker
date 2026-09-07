@@ -537,7 +537,7 @@
           </div>
           <div class="kh-profile-field full">
             <label for="profileBoid">BOID (for IPO applications)</label>
-            <input id="profileBoid" type="text" inputmode="numeric" placeholder="e.g. 1301234567890123" />
+            <input id="profileBoid" type="text" inputmode="numeric" pattern="\d{16}" maxlength="16" placeholder="16-digit BOID, e.g. 1301234567890123" />
           </div>
           <button class="kh-profile-save" onclick="saveProfile()">Save profile</button>
           <span class="kh-profile-saved-note" id="profileSavedNote"></span>
