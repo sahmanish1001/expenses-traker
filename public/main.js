@@ -5772,6 +5772,19 @@
       }
     }
 
+    // IPO calendar card.
+    const ipoEl = document.getElementById("kdIpoCard");
+    if (ipoEl){
+      const todayIso = todayStr();
+      const openIpos = [...IPOS, ...SHARED_IPOS].filter(i => ipoStatus(i, todayIso) === "Open");
+      const pendingRefunds = IPO_APPLICATIONS.filter(a => a.refundAmount > 0 && !a.refunded).length;
+      if (!IPOS.length && !SHARED_IPOS.length && !IPO_APPLICATIONS.length){
+        ipoEl.innerHTML = `<div class="kd-empty">No IPOs tracked. <button type="button" class="kd-link" onclick="showIpoPage()">Add one →</button></div>`;
+      } else {
+        ipoEl.innerHTML = `<div class="kd-mini-row" style="border-bottom:none;"><div style="flex:1;"><div class="kd-mini-name">Open right now</div><div class="kd-mini-sub">${pendingRefunds ? `${pendingRefunds} refund${pendingRefunds===1?"":"s"} pending` : `${IPO_APPLICATIONS.length} application${IPO_APPLICATIONS.length===1?"":"s"} tracked`}</div></div><span class="kd-pill kd-pill-jade">${openIpos.length}</span></div>`;
+      }
+    }
+
     // Category breakdown — an actual donut (conic-gradient, same technique
     // the mobile pie chart uses) with a legend underneath, instead of a
     // plain list, so it reads at a glance the way the mockup's chart does.
