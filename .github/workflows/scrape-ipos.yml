@@ -1,0 +1,24 @@
+name: Scrape IPOs
+
+# Keeps Supabase's shared `ipos` table (see scripts/scrape-ipos.mjs) up to
+# date so the app's IPO Calendar shows real Nepal IPOs automatically,
+# instead of only whatever a person added by hand. IPOs open/close over
+# days, not minutes, so a few runs a day is plenty.
+on:
+  schedule:
+    - cron: "15 3,9,15,21 * * *" # ~4x/day, UTC
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/scrape-ipos.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
