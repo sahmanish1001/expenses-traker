@@ -470,14 +470,14 @@
   /* IPO Calendar — plain single-column cards on mobile; the
      @media(min-width:768px) block further down turns these into the
      richer glass-card marketplace/dashboard layout for wider screens. */
-  .kh-ipo-kpi-grid{display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:14px;}
-  .kh-ipo-kpi-card{position:relative; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; overflow:hidden;}
+  .kh-ipo-kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;}
+  .kh-ipo-kpi-card{position:relative; background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:10px; overflow:hidden;}
   .kh-ipo-kpi-card.accent{border-color:color-mix(in srgb, var(--accent) 35%, var(--border));}
-  .kh-ipo-kpi-top{display:flex; align-items:center; justify-content:space-between;}
-  .kh-ipo-kpi-label{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--dim);}
-  .kh-ipo-kpi-icon{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
-  .kh-ipo-kpi-val{font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:800; margin-top:8px; color:var(--text);}
-  .kh-ipo-kpi-sub{display:flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; color:var(--dim); flex-wrap:wrap;}
+  .kh-ipo-kpi-top{display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .kh-ipo-kpi-label{font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .kh-ipo-kpi-icon{width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0;}
+  .kh-ipo-kpi-val{font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:800; margin-top:5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .kh-ipo-kpi-sub{display:flex; align-items:center; gap:4px; margin-top:5px; font-size:9.5px; color:var(--dim); flex-wrap:wrap;}
   .kh-ipo-kpi-pill{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap;}
 
   .kh-ipo-banner{background:linear-gradient(120deg, var(--accent2), var(--accent) 60%, #14b8a6); border-radius:18px; padding:16px 18px; display:flex; flex-direction:column; gap:12px; margin-bottom:18px; color:#04120c;}
@@ -709,7 +709,12 @@
        Applications" stays single-column (a wide row reads better than a
        narrow card once it has this much detail in it), and the ROI trend
        becomes a two-column chart + efficiency-stats layout. */
-    .kh-ipo-kpi-grid{grid-template-columns:repeat(4,1fr);}
+    .kh-ipo-kpi-grid{grid-template-columns:repeat(4,1fr); gap:10px;}
+    .kh-ipo-kpi-card{padding:16px; border-radius:16px;}
+    .kh-ipo-kpi-label{font-size:10.5px; letter-spacing:.04em;}
+    .kh-ipo-kpi-icon{width:30px; height:30px; border-radius:9px; font-size:15px;}
+    .kh-ipo-kpi-val{font-size:22px; margin-top:8px;}
+    .kh-ipo-kpi-sub{font-size:11px; gap:6px; margin-top:8px;}
     #ipoList{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; align-items:start;}
     .kh-ipo-roi-layout{display:grid; grid-template-columns:2fr 1fr; gap:24px; align-items:start;}
     .kh-ipo-eff{border-top:none; margin-top:0; padding-top:0; padding-left:20px; border-left:1px solid var(--border); height:100%;}

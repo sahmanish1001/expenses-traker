@@ -5049,7 +5049,7 @@
           <div class="kh-ipo-kpi-sub">${pendingRefundsCount ? `${pendingRefundsCount} refund${pendingRefundsCount === 1 ? "" : "s"} pending` : "No refunds due"}</div>
         </div>
         <div class="kh-ipo-kpi-card accent">
-          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Blocked Liquidity</span><span class="kh-ipo-kpi-icon" style="background:rgba(16,185,129,.18); color:var(--accent);">🔒</span></div>
+          <div class="kh-ipo-kpi-top"><span class="kh-ipo-kpi-label">Blocked</span><span class="kh-ipo-kpi-icon" style="background:rgba(16,185,129,.18); color:var(--accent);">🔒</span></div>
           <div class="kh-ipo-kpi-val">${rs(blockedLiquidity)}</div>
           <div class="kh-ipo-kpi-sub"><span class="kh-ipo-kpi-pill" style="background:rgba(16,185,129,.15); color:var(--accent);">● Funds on hold</span></div>
         </div>
