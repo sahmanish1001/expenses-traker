@@ -34,6 +34,40 @@ function guessSector(company) {
   return hit ? hit[0] : null;
 }
 
+function isValidDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s + "T00:00:00Z");
+  // Catches things a plain regex lets through, like month 13 or day 32 —
+  // Date rolls those over into a different month/day instead of throwing,
+  // so compare the parsed value back against the original string.
+  return !isNaN(d) && d.toISOString().slice(0, 10) === s;
+}
+
+function isHttpUrl(u) {
+  try {
+    const parsed = new URL(u);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// A row from a page we don't control ends up in a table every visitor's
+// browser renders from. Reject anything that doesn't look like a real IPO
+// row instead of trusting ShareSansar's markup blindly — a scrape that
+// breaks (or gets tampered with) should just write nothing, not garbage.
+// A malformed source_url alone doesn't sink the row (see main()) — it's
+// just dropped to null — but every other field failing does.
+function isSaneRow(row) {
+  if (!row.company || row.company.length > 200) return false;
+  if (row.sector && row.sector.length > 100) return false;
+  if (row.price == null || !(row.price > 0) || row.price > 1_000_000) return false;
+  if (row.units_offered != null && (!(row.units_offered > 0) || row.units_offered > 1_000_000_000)) return false;
+  if (!isValidDate(row.open_date) || !isValidDate(row.close_date)) return false;
+  if (row.close_date < row.open_date) return false;
+  return true;
+}
+
 async function main() {
   const res = await fetch("https://www.sharesansar.com/", {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; KharchaIpoBot/1.0; +https://expenses-traker-olive.vercel.app/)" },
@@ -52,9 +86,9 @@ async function main() {
     const price = parseFloat($(cells[4]).text().replace(/,/g, "")) || null;
     const openDate = $(cells[5]).text().trim();
     const closeDate = $(cells[6]).text().trim();
-    const sourceUrl = $(cells[8]).find("a").first().attr("href") || null;
-    if (!symbol || !company || !/^\d{4}-\d{2}-\d{2}$/.test(openDate) || !/^\d{4}-\d{2}-\d{2}$/.test(closeDate)) return;
-    rows.push({
+    const sourceUrlRaw = $(cells[8]).find("a").first().attr("href") || null;
+    if (!symbol) return;
+    const row = {
       id: `ss-${symbol.toLowerCase()}`,
       company,
       sector: guessSector(company),
@@ -63,13 +97,14 @@ async function main() {
       open_date: openDate,
       close_date: closeDate,
       source: "sharesansar",
-      source_url: sourceUrl,
+      source_url: sourceUrlRaw && isHttpUrl(sourceUrlRaw) ? sourceUrlRaw : null,
       updated_at: new Date().toISOString(),
-    });
+    };
+    if (isSaneRow(row)) rows.push(row);
   });
 
   if (!rows.length) {
-    console.log("No IPO rows found — ShareSansar's markup may have changed. Nothing written.");
+    console.log("No IPO rows found — ShareSansar's markup may have changed, or every row failed the sanity check. Nothing written.");
     return;
   }
 
