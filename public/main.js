@@ -4240,6 +4240,173 @@
     showToast("Removed");
   }
 
+  // ---------------------------------------------------------------------
+  // Share this month's shared expenses as a plain PNG — for the roommates
+  // who don't use Kharchā themselves, so there's an unambiguous, sendable
+  // record of what was logged and who still owes what, instead of asking
+  // them to just trust the balance you tell them.
+  // ---------------------------------------------------------------------
+  function roomShareMonthLabel(){
+    if (activeRoomNepaliMonth === "All") return "All time";
+    const [y, m] = activeRoomNepaliMonth.split("-").map(Number);
+    return `${NEPALI_MONTHS[m - 1].name} ${y}`;
+  }
+
+  function buildRoomShareCanvas(){
+    const scoped = getScopedRoomExpenses();
+    const perPerson = {};
+    ROOMMATES.forEach(n => { perPerson[n] = { paid: 0, share: 0 }; });
+    let total = 0;
+    scoped.forEach(e => {
+      if (!perPerson[e.paidBy]) perPerson[e.paidBy] = { paid: 0, share: 0 };
+      perPerson[e.paidBy].paid += e.amount;
+      total += e.amount;
+      const among = e.splitAmong.length ? e.splitAmong : [e.paidBy];
+      const per = e.amount / among.length;
+      among.forEach(n => {
+        if (!perPerson[n]) perPerson[n] = { paid: 0, share: 0 };
+        perPerson[n].share += per;
+      });
+    });
+    const names = Object.keys(perPerson);
+    const maxRows = 14;
+    const shown = scoped.slice(0, maxRows);
+    const extra = scoped.length - shown.length;
+    const monthLabel = roomShareMonthLabel();
+
+    // Drawn onto an oversized canvas first (content height isn't known
+    // until everything's laid out), then cropped to the actual content —
+    // simpler than pre-computing exact heights for a variable row count.
+    const W = 720, PAD = 32, rowH = 34, listRowH = 40, scale = 2, MAX_H = 1600;
+    const raw = document.createElement("canvas");
+    raw.width = W * scale;
+    raw.height = MAX_H * scale;
+    const ctx = raw.getContext("2d");
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#0B1120";
+    ctx.fillRect(0, 0, W, MAX_H);
+
+    ctx.fillStyle = "#22D3A8";
+    ctx.font = "700 15px 'Segoe UI', sans-serif";
+    ctx.fillText("Kharchā", PAD, 40);
+    ctx.fillStyle = "#F8FAFC";
+    ctx.font = "800 24px 'Segoe UI', sans-serif";
+    ctx.fillText("Room expenses", PAD, 72);
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "600 13px 'Segoe UI', sans-serif";
+    ctx.fillText(`${monthLabel} · ${scoped.length} expense${scoped.length === 1 ? "" : "s"} · total ${rs(total)}`, PAD, 96);
+
+    let y = 112;
+    ctx.strokeStyle = "#1E293B";
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+    y += 30;
+
+    if (!shown.length){
+      ctx.fillStyle = "#64748B";
+      ctx.font = "500 13px 'Segoe UI', sans-serif";
+      ctx.fillText("No shared expenses logged this month.", PAD, y);
+      y += 24;
+    } else {
+      shown.forEach(e => {
+        ctx.fillStyle = "#E2E8F0";
+        ctx.font = "700 14px 'Segoe UI', sans-serif";
+        ctx.fillText(e.desc.length > 34 ? e.desc.slice(0, 33) + "…" : e.desc, PAD, y);
+        ctx.fillStyle = "#64748B";
+        ctx.font = "500 12px 'Segoe UI', sans-serif";
+        ctx.fillText(`Paid by ${roommateDisplayName(e.paidBy)}`, PAD, y + 17);
+        ctx.fillStyle = "#F8FAFC";
+        ctx.font = "700 14px 'Segoe UI', sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(rs(e.amount), W - PAD, y + 8);
+        ctx.textAlign = "left";
+        y += listRowH;
+      });
+      if (extra > 0){
+        ctx.fillStyle = "#64748B";
+        ctx.font = "600 12px 'Segoe UI', sans-serif";
+        ctx.fillText(`+ ${extra} more expense${extra === 1 ? "" : "s"}`, PAD, y);
+        y += 26;
+      }
+    }
+
+    y += 12;
+    ctx.strokeStyle = "#1E293B";
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+    y += 30;
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "700 12px 'Segoe UI', sans-serif";
+    ctx.fillText("WHO OWES WHAT THIS MONTH", PAD, y);
+    y += 26;
+
+    if (!names.length){
+      ctx.fillStyle = "#64748B";
+      ctx.font = "500 13px 'Segoe UI', sans-serif";
+      ctx.fillText("No roommates added yet.", PAD, y);
+      y += 24;
+    } else {
+      names.forEach(name => {
+        const net = perPerson[name].paid - perPerson[name].share;
+        const label = net > 0.5 ? `is owed ${rs(net)}` : net < -0.5 ? `owes ${rs(-net)}` : "settled up";
+        const color = net > 0.5 ? "#34D399" : net < -0.5 ? "#F59E0B" : "#64748B";
+        ctx.fillStyle = "#F8FAFC";
+        ctx.font = "700 14px 'Segoe UI', sans-serif";
+        ctx.fillText(roommateDisplayName(name), PAD, y);
+        ctx.fillStyle = color;
+        ctx.font = "700 13px 'Segoe UI', sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(label, W - PAD, y);
+        ctx.textAlign = "left";
+        y += rowH;
+      });
+    }
+
+    y += 6;
+    ctx.strokeStyle = "#1E293B";
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+    y += 26;
+    ctx.fillStyle = "#475569";
+    ctx.font = "500 11px 'Segoe UI', sans-serif";
+    ctx.fillText(`Generated ${bsLabel(todayStr())} · shared from Kharchā`, PAD, y);
+    y += 24;
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = W * scale;
+    outCanvas.height = y * scale;
+    outCanvas.getContext("2d").drawImage(raw, 0, 0, W * scale, y * scale, 0, 0, W * scale, y * scale);
+    return outCanvas;
+  }
+
+  function shareRoomExpensesImage(){
+    if (ROOMMATES.length < 2 && !ROOM_EXPENSES.length){
+      showToast("Add roommates and a shared expense first");
+      return;
+    }
+    const canvas = buildRoomShareCanvas();
+    canvas.toBlob(async blob => {
+      if (!blob){ showToast("Couldn't generate the image"); return; }
+      const monthLabel = roomShareMonthLabel();
+      const fileName = `room-expenses-${monthLabel.replace(/\s+/g, "-").toLowerCase()}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        try {
+          await navigator.share({ files: [file], title: "Room expenses", text: `Room expenses — ${monthLabel}` });
+          return;
+        } catch (err) {
+          if (err && err.name === "AbortError") return; // user cancelled the share sheet
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      showToast("Image saved — share it from your gallery");
+    }, "image/png");
+  }
+
   function markRoomSettled(from, to, amount){
     ROOM_SETTLEMENTS.push({ id: "rs" + (nextRoomSettlementId++), date: todayStr(), from, to, amount });
     saveCurrentUser();
