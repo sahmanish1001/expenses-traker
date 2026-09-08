@@ -4271,6 +4271,43 @@
     ctx.closePath();
   }
 
+  // Kharchā's actual app icon (index.html's <svg viewBox="0 0 512 512">
+  // mark — a dark rounded square, a 3-segment ring, and a tilted banknote
+  // bar), redrawn in canvas so shared images carry the real logo instead
+  // of a generic placeholder letter.
+  function drawKharchaMark(ctx, cx, cy, size){
+    const s = size / 512, r = size / 2;
+    roundRectPath(ctx, cx - r, cy - r, size, size, 112 * s);
+    ctx.fillStyle = "#191c27";
+    ctx.fill();
+
+    const ringR = 160 * s, ringW = 48 * s;
+    const segs = [
+      { frac: 502.65 / 1005.31, color: "#f2a93b" },
+      { frac: 301.59 / 1005.31, color: "#5fd1a4" },
+      { frac: 197.06 / 1005.31, color: "#ef6f6c" },
+    ];
+    ctx.lineCap = "butt";
+    ctx.lineWidth = ringW;
+    let a = -Math.PI / 2;
+    segs.forEach(seg => {
+      const end = a + seg.frac * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, a, end);
+      ctx.strokeStyle = seg.color;
+      ctx.stroke();
+      a = end;
+    });
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-18 * Math.PI / 180);
+    roundRectPath(ctx, -28 * s, -14 * s, 56 * s, 28 * s, 14 * s);
+    ctx.fillStyle = "#f2f0ea";
+    ctx.fill();
+    ctx.restore();
+  }
+
   function buildRoomShareCanvas(){
     const scoped = getScopedRoomExpenses();
     const perPerson = {};
@@ -4332,21 +4369,13 @@
     }
 
     // Header: logo mark + brand + "Split Ledger" badge
-    const logoGrad = ctx.createLinearGradient(PAD, 18, PAD + 24, 42);
-    logoGrad.addColorStop(0, "#2DD4BF"); logoGrad.addColorStop(1, "#059669");
-    ctx.beginPath(); ctx.arc(PAD + 12, 30, 12, 0, Math.PI * 2);
-    ctx.fillStyle = logoGrad; ctx.fill();
-    ctx.fillStyle = "#04231C";
-    ctx.font = "800 13px 'Segoe UI', sans-serif";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("K", PAD + 12, 31);
-    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    drawKharchaMark(ctx, PAD + 14, 30, 28);
 
     ctx.fillStyle = TEAL;
     ctx.font = "800 16px 'Segoe UI', sans-serif";
-    ctx.fillText("Kharchā", PAD + 32, 35);
+    ctx.fillText("Kharchā", PAD + 38, 35);
     const brandW = ctx.measureText("Kharchā").width;
-    fillPill(PAD + 32 + brandW + 10, 22, "SPLIT LEDGER", { bg: hexA(TEAL, 0.12), border: hexA(TEAL, 0.35), color: TEAL, font: "700 9px 'Segoe UI', sans-serif" });
+    fillPill(PAD + 38 + brandW + 10, 22, "SPLIT LEDGER", { bg: hexA(TEAL, 0.12), border: hexA(TEAL, 0.35), color: TEAL, font: "700 9px 'Segoe UI', sans-serif" });
 
     // Total spent box, top-right
     const totalLabel = "TOTAL SPENT", totalAmt = rs(total);
@@ -4401,43 +4430,43 @@
       settleRows.forEach(row => {
         const owed = row.net > 0;
         const accent = owed ? TEAL : AMBER;
-        const rowH = 52;
-        roundRectPath(ctx, PAD, y, W - PAD * 2, rowH, 14);
+        const rowH = 78;
+        roundRectPath(ctx, PAD, y, W - PAD * 2, rowH, 18);
         ctx.fillStyle = hexA(accent, 0.08); ctx.fill();
-        ctx.strokeStyle = hexA(accent, 0.3); ctx.stroke();
+        ctx.strokeStyle = hexA(accent, 0.3); ctx.lineWidth = 1.5; ctx.stroke();
 
-        const cx = PAD + 24, cy = y + rowH / 2;
-        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+        const cx = PAD + 34, cy = y + rowH / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, 23, 0, Math.PI * 2);
         ctx.fillStyle = hexA(accent, 0.18); ctx.fill();
-        ctx.strokeStyle = hexA(accent, 0.4); ctx.stroke();
+        ctx.strokeStyle = hexA(accent, 0.4); ctx.lineWidth = 1; ctx.stroke();
         ctx.fillStyle = accent;
-        ctx.font = "700 13px 'Segoe UI', sans-serif";
+        ctx.font = "700 19px 'Segoe UI', sans-serif";
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(roommateDisplayName(row.name).charAt(0).toUpperCase(), cx, cy + 1);
         ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
 
-        const nameX = cx + 26;
+        const nameX = cx + 36;
         const dispName = roommateDisplayName(row.name);
         ctx.fillStyle = WHITE;
-        ctx.font = "700 13.5px 'Segoe UI', sans-serif";
-        ctx.fillText(dispName, nameX, cy - 3);
+        ctx.font = "700 18px 'Segoe UI', sans-serif";
+        ctx.fillText(dispName, nameX, cy - 6);
         const nameW = ctx.measureText(dispName).width;
-        fillPill(nameX + nameW + 8, cy - 15, `Paid ${rs(perPerson[row.name].paid)}`, { bg: "#1E293B", border: null, color: DIM, font: "600 9px 'Segoe UI', sans-serif" });
+        fillPill(nameX + nameW + 10, cy - 21, `Paid ${rs(perPerson[row.name].paid)}`, { bg: "#1E293B", border: null, color: DIM, font: "600 10.5px 'Segoe UI', sans-serif" });
         ctx.fillStyle = accent;
-        ctx.font = "600 11.5px 'Segoe UI', sans-serif";
-        ctx.fillText(owed ? "To receive back" : "Owes this month", nameX, cy + 13);
+        ctx.font = "600 13.5px 'Segoe UI', sans-serif";
+        ctx.fillText(owed ? "To receive back" : "Owes this month", nameX, cy + 18);
 
         ctx.textAlign = "right";
         ctx.fillStyle = accent;
-        ctx.font = "700 14px 'Segoe UI', sans-serif";
-        ctx.fillText(`${owed ? "+" : "-"} ${rs(Math.abs(row.net))}`, W - PAD - 14, cy - 2);
-        ctx.font = "700 9px 'Segoe UI', sans-serif";
-        ctx.fillText(owed ? "IS OWED" : "OWES", W - PAD - 14, cy + 13);
+        ctx.font = "700 19px 'Segoe UI', sans-serif";
+        ctx.fillText(`${owed ? "+" : "-"} ${rs(Math.abs(row.net))}`, W - PAD - 18, cy - 4);
+        ctx.font = "700 10.5px 'Segoe UI', sans-serif";
+        ctx.fillText(owed ? "IS OWED" : "OWES", W - PAD - 18, cy + 18);
         ctx.textAlign = "left";
 
-        y += rowH + 10;
+        y += rowH + 14;
       });
-      y += 8;
+      y += 6;
     }
 
     // Itemized expenses
