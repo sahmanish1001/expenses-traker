@@ -73,14 +73,62 @@ export function computeIpoAlerts(data, sharedIpos, today){
   return alerts;
 }
 
+// Fires once, on the exact day an IPO opens — the mirror-image event to
+// "closing soon" above, so someone who doesn't check the app daily still
+// hears about a new IPO the moment it's actually applyable.
+export function computeIpoOpenAlerts(data, sharedIpos, today){
+  const alerts = [];
+  const all = [...(data.ipos || []), ...sharedIpos];
+  for (const ipo of all){
+    if (ipo.openDate !== today) continue;
+    if (ipoStatus(ipo, today) !== "Open") continue;
+    alerts.push({
+      key: `ipo-open:${ipo.id}`,
+      title: "IPO now open",
+      body: `${ipo.company} just opened for applications — closes ${ipo.closeDate}.`,
+      url: "/",
+    });
+  }
+  return alerts;
+}
+
+// Nepal's IPO allotment result has no public API a server can poll for a
+// specific investor: CDSC's own checker (iporesult.cdsc.com.np) requires
+// solving a CAPTCHA on every lookup, which rules out ever automating "is
+// THIS application allotted" from the backend. What's left, and still
+// genuinely useful, is a one-time nudge once a result is realistically
+// likely to be out, so an application doesn't sit silently forgotten in
+// "Applied" — the actual allotted/not-allotted call still has to be made
+// by hand in Meroshare/CDSC and then recorded in the IPO Tracker.
+const RESULT_CHECK_DAYS = 7;
+export function computeIpoResultCheckAlerts(data, sharedIpos, today){
+  const alerts = [];
+  const all = [...(data.ipos || []), ...sharedIpos];
+  for (const app of data.ipoApplications || []){
+    if (app.status !== "Applied") continue;
+    const ipo = all.find(i => i.id === app.ipoId);
+    if (!ipo || !ipo.closeDate) continue;
+    if (daysBetween(ipo.closeDate, today) < RESULT_CHECK_DAYS) continue;
+    alerts.push({
+      key: `ipo-result-check:${app.id}`,
+      title: "Check your IPO result",
+      body: `${app.company}'s allotment result should be out by now — check Meroshare or CDSC, then record it in Kharchā.`,
+      url: "/",
+    });
+  }
+  return alerts;
+}
+
 export function computeAllAlerts(data, sharedIpos, today){
   return [
     computeBudgetAlert(data, today),
     ...computeLoanAlerts(data, today),
+    ...computeIpoOpenAlerts(data, sharedIpos, today),
     ...computeIpoAlerts(data, sharedIpos, today),
+    ...computeIpoResultCheckAlerts(data, sharedIpos, today),
   ].filter(Boolean);
 }
 
 if (typeof window !== "undefined"){
-  Object.assign(window, { computeBudgetAlert, computeLoanAlerts, computeIpoAlerts, computeAllAlerts });
+  Object.assign(window, { computeBudgetAlert, computeLoanAlerts, computeIpoAlerts, computeIpoOpenAlerts, computeIpoResultCheckAlerts, computeAllAlerts });
 }

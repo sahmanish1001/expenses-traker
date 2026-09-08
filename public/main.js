@@ -1062,13 +1062,16 @@
   // scan isn't limited that way and sends every applicable alert instead).
   function checkAlerts(){
     const today = todayStr();
-    const data = { budgetOverall: BUDGET_OVERALL, hiddenAccounts: HIDDEN_ACCOUNTS, transactions: TRANSACTIONS, loans: LOANS, ipos: IPOS };
+    const data = { budgetOverall: BUDGET_OVERALL, hiddenAccounts: HIDDEN_ACCOUNTS, transactions: TRANSACTIONS, loans: LOANS, ipos: IPOS, ipoApplications: IPO_APPLICATIONS };
     const alerts = computeAllAlerts(data, SHARED_IPOS, today);
     const icons = { budget: "⚠", loan: "⏰", ipo: "⏳" };
     for (const category of ["budget", "loans", "ipo"]){
       if (!getNotifPref(category)) continue;
       const prefix = category === "loans" ? "loan" : category;
-      const alert = alerts.find(a => a.key.startsWith(prefix + ":"));
+      // "ipo" covers three distinct key shapes now (ipo:, ipo-open:,
+      // ipo-result-check:) — all under the one IPO notification toggle,
+      // so a plain startsWith (no trailing ":") catches every one of them.
+      const alert = alerts.find(a => a.key.startsWith(prefix));
       if (alert){
         showToast(`${icons[prefix]} ${alert.body}`);
         return;

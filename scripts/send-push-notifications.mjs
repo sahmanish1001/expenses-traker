@@ -1,8 +1,9 @@
 // Scans every signed-in user's data (via the service role, same trust
-// level as scripts/scrape-ipos.mjs's writes) for the same three
-// conditions checkAlerts() in public/main.js shows as an on-app-open
-// toast — over budget, a loan due soon, an IPO closing soon — and sends a
-// real Web Push notification for each one to every device that opted in.
+// level as scripts/scrape-ipos.mjs's writes) for the same conditions
+// checkAlerts() in public/main.js shows as an on-app-open toast — over
+// budget, a loan due soon, an IPO opening/closing soon, an IPO
+// application whose result is likely out — and sends a real Web Push
+// notification for each one to every device that opted in.
 // Runs on a schedule via .github/workflows/send-push-notifications.yml.
 //
 // The actual "is this worth alerting about" logic lives in

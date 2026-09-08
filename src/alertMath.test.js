@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeBudgetAlert, computeLoanAlerts, computeIpoAlerts, computeAllAlerts } from "./alertMath.js";
+import { computeBudgetAlert, computeLoanAlerts, computeIpoAlerts, computeIpoOpenAlerts, computeIpoResultCheckAlerts, computeAllAlerts } from "./alertMath.js";
 
 describe("computeBudgetAlert", () => {
   const today = "2026-09-07"; // BS 2083-5
@@ -124,8 +124,63 @@ describe("computeIpoAlerts", () => {
   });
 });
 
+describe("computeIpoOpenAlerts", () => {
+  const today = "2026-09-07";
+
+  it("flags an IPO whose open date is exactly today", () => {
+    const shared = [{ id: "ss-x", company: "Beni Hydropower", openDate: today, closeDate: "2026-09-14" }];
+    const alerts = computeIpoOpenAlerts({}, shared, today);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].key).toBe("ipo-open:ss-x");
+    expect(alerts[0].body).toContain("Beni Hydropower");
+  });
+
+  it("does not flag an IPO that opened on an earlier day", () => {
+    const shared = [{ id: "ss-x", company: "X", openDate: "2026-09-01", closeDate: "2026-09-14" }];
+    expect(computeIpoOpenAlerts({}, shared, today)).toHaveLength(0);
+  });
+
+  it("does not flag an IPO that opens in the future", () => {
+    const shared = [{ id: "ss-x", company: "X", openDate: "2026-09-08", closeDate: "2026-09-14" }];
+    expect(computeIpoOpenAlerts({}, shared, today)).toHaveLength(0);
+  });
+
+  it("checks both the user's own IPOs and the shared calendar", () => {
+    const data = { ipos: [{ id: "own1", company: "Mine", openDate: today, closeDate: "2026-09-14" }] };
+    const shared = [{ id: "ss-x", company: "Shared", openDate: today, closeDate: "2026-09-14" }];
+    expect(computeIpoOpenAlerts(data, shared, today)).toHaveLength(2);
+  });
+});
+
+describe("computeIpoResultCheckAlerts", () => {
+  const today = "2026-09-07";
+  const shared = [{ id: "ss-x", company: "Beni Hydropower", openDate: "2026-08-20", closeDate: "2026-08-31" }];
+
+  it("nudges once 7+ days have passed since close and the application is still 'Applied'", () => {
+    const data = { ipoApplications: [{ id: "ipa1", ipoId: "ss-x", company: "Beni Hydropower", status: "Applied" }] };
+    const alerts = computeIpoResultCheckAlerts(data, shared, today);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].key).toBe("ipo-result-check:ipa1");
+  });
+
+  it("does not nudge before 7 days have passed since close", () => {
+    const data = { ipoApplications: [{ id: "ipa1", ipoId: "ss-x", company: "Beni Hydropower", status: "Applied" }] };
+    expect(computeIpoResultCheckAlerts(data, shared, "2026-09-03")).toHaveLength(0);
+  });
+
+  it("does not nudge once a result has already been recorded", () => {
+    const data = { ipoApplications: [{ id: "ipa1", ipoId: "ss-x", company: "Beni Hydropower", status: "Allotted" }] };
+    expect(computeIpoResultCheckAlerts(data, shared, today)).toHaveLength(0);
+  });
+
+  it("ignores an application whose IPO can't be found", () => {
+    const data = { ipoApplications: [{ id: "ipa1", ipoId: "gone", company: "Ghost", status: "Applied" }] };
+    expect(computeIpoResultCheckAlerts(data, shared, today)).toHaveLength(0);
+  });
+});
+
 describe("computeAllAlerts", () => {
-  it("combines all three categories into one flat list", () => {
+  it("combines every category into one flat list", () => {
     const today = "2026-09-07";
     const data = {
       budgetOverall: 100,
