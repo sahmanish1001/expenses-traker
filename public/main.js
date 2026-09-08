@@ -4252,6 +4252,25 @@
     return `${NEPALI_MONTHS[m - 1].name} ${y}`;
   }
 
+  // hex "#RRGGBB" -> "rgba(r,g,b,a)", for translucent fills/borders that
+  // match a category or accent color without a second color table.
+  function hexA(hex, a){
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r){
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
   function buildRoomShareCanvas(){
     const scoped = getScopedRoomExpenses();
     const perPerson = {};
@@ -4269,111 +4288,271 @@
       });
     });
     const names = Object.keys(perPerson);
-    const maxRows = 14;
+    // Whoever's fronted the most cash this month — expenses paid by anyone
+    // else are the exceptions worth calling out in the itemized list.
+    let topPayer = names[0] || null;
+    names.forEach(n => { if (perPerson[n].paid > (perPerson[topPayer] || { paid: 0 }).paid) topPayer = n; });
+    const settleRows = names
+      .map(n => ({ name: n, net: perPerson[n].paid - perPerson[n].share }))
+      .filter(r => Math.abs(r.net) > 0.5)
+      .sort((a, b) => b.net - a.net);
+
+    const maxRows = 12;
     const shown = scoped.slice(0, maxRows);
     const extra = scoped.length - shown.length;
     const monthLabel = roomShareMonthLabel();
 
-    // Drawn onto an oversized canvas first (content height isn't known
-    // until everything's laid out), then cropped to the actual content —
-    // simpler than pre-computing exact heights for a variable row count.
-    const W = 720, PAD = 32, rowH = 34, listRowH = 40, scale = 2, MAX_H = 1600;
-    const raw = document.createElement("canvas");
-    raw.width = W * scale;
-    raw.height = MAX_H * scale;
-    const ctx = raw.getContext("2d");
-    ctx.scale(scale, scale);
-    ctx.fillStyle = "#0B1120";
-    ctx.fillRect(0, 0, W, MAX_H);
+    const W = 720, PAD = 28, scale = 2, MAX_H = 2200;
+    const TEAL = "#00D59B", AMBER = "#F59E0B", WHITE = "#F8FAFC", SLATE = "#CBD5E1", DIM = "#64748B", BORDER = "#1E293B";
 
-    ctx.fillStyle = "#22D3A8";
-    ctx.font = "700 15px 'Segoe UI', sans-serif";
-    ctx.fillText("Kharchā", PAD, 40);
-    ctx.fillStyle = "#F8FAFC";
-    ctx.font = "800 24px 'Segoe UI', sans-serif";
-    ctx.fillText("Room expenses", PAD, 72);
-    ctx.fillStyle = "#94A3B8";
-    ctx.font = "600 13px 'Segoe UI', sans-serif";
-    ctx.fillText(`${monthLabel} · ${scoped.length} expense${scoped.length === 1 ? "" : "s"} · total ${rs(total)}`, PAD, 96);
+    // Pass 1: draw all content onto a transparent, oversized layer — this
+    // is what lets a rounded card FRAME of the right (variable) height get
+    // composited underneath it in pass 2, without pre-computing exact
+    // pixel heights for a list whose length depends on the data.
+    const layer = document.createElement("canvas");
+    layer.width = W * scale;
+    layer.height = MAX_H * scale;
+    const ctx = layer.getContext("2d");
+    ctx.scale(scale, scale);
+
+    function fillPill(x, y, text, { bg, border, color, font, padX = 10, padY = 5, align = "left" }){
+      ctx.font = font;
+      const w = ctx.measureText(text).width + padX * 2;
+      const h = 10 + padY * 2;
+      const bx = align === "right" ? x - w : x;
+      roundRectPath(ctx, bx, y, w, h, h / 2);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      if (border){ ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.stroke(); }
+      ctx.fillStyle = color;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(text, bx + padX, y + h / 2 + 1);
+      ctx.textBaseline = "alphabetic";
+      return { w, h, x: bx };
+    }
+
+    // Header: logo mark + brand + "Split Ledger" badge
+    const logoGrad = ctx.createLinearGradient(PAD, 18, PAD + 24, 42);
+    logoGrad.addColorStop(0, "#2DD4BF"); logoGrad.addColorStop(1, "#059669");
+    ctx.beginPath(); ctx.arc(PAD + 12, 30, 12, 0, Math.PI * 2);
+    ctx.fillStyle = logoGrad; ctx.fill();
+    ctx.fillStyle = "#04231C";
+    ctx.font = "800 13px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("K", PAD + 12, 31);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+    ctx.fillStyle = TEAL;
+    ctx.font = "800 16px 'Segoe UI', sans-serif";
+    ctx.fillText("Kharchā", PAD + 32, 35);
+    const brandW = ctx.measureText("Kharchā").width;
+    fillPill(PAD + 32 + brandW + 10, 22, "SPLIT LEDGER", { bg: hexA(TEAL, 0.12), border: hexA(TEAL, 0.35), color: TEAL, font: "700 9px 'Segoe UI', sans-serif" });
+
+    // Total spent box, top-right
+    const totalLabel = "TOTAL SPENT", totalAmt = rs(total);
+    ctx.font = "700 9px 'Segoe UI', sans-serif";
+    const labelW = ctx.measureText(totalLabel).width;
+    ctx.font = "700 17px 'Segoe UI', sans-serif";
+    const amtW = ctx.measureText(totalAmt).width;
+    const boxW = Math.max(labelW, amtW) + 28, boxX = W - PAD - boxW, boxY = 14, boxH = 46;
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 14);
+    ctx.fillStyle = "#0F172A"; ctx.fill();
+    ctx.strokeStyle = BORDER; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = DIM;
+    ctx.font = "700 9px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(totalLabel, boxX + boxW / 2, boxY + 17);
+    ctx.fillStyle = WHITE;
+    ctx.font = "700 17px 'Segoe UI', sans-serif";
+    ctx.fillText(totalAmt, boxX + boxW / 2, boxY + 37);
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = WHITE;
+    ctx.font = "800 25px 'Segoe UI', sans-serif";
+    ctx.fillText("Room expenses", PAD, 76);
+    ctx.fillStyle = DIM;
+    ctx.font = "600 12.5px 'Segoe UI', sans-serif";
+    ctx.fillText(`${monthLabel} · ${scoped.length} expense${scoped.length === 1 ? "" : "s"} recorded`, PAD, 96);
 
     let y = 112;
-    ctx.strokeStyle = "#1E293B";
+    ctx.strokeStyle = BORDER;
     ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
-    y += 30;
+    y += 28;
+
+    // Monthly settlement
+    ctx.fillStyle = TEAL;
+    ctx.beginPath(); ctx.arc(PAD + 4, y - 4, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = DIM;
+    ctx.font = "800 11px 'Segoe UI', sans-serif";
+    ctx.fillText("MONTHLY SETTLEMENT", PAD + 14, y);
+    y += 14;
+
+    if (!settleRows.length){
+      roundRectPath(ctx, PAD, y, W - PAD * 2, 44, 14);
+      ctx.fillStyle = "#0F172A"; ctx.fill();
+      ctx.strokeStyle = BORDER; ctx.stroke();
+      ctx.fillStyle = SLATE;
+      ctx.font = "600 13px 'Segoe UI', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(names.length ? "Everyone's settled up 🎉" : "No roommates added yet.", W / 2, y + 22);
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      y += 44 + 20;
+    } else {
+      settleRows.forEach(row => {
+        const owed = row.net > 0;
+        const accent = owed ? TEAL : AMBER;
+        const rowH = 52;
+        roundRectPath(ctx, PAD, y, W - PAD * 2, rowH, 14);
+        ctx.fillStyle = hexA(accent, 0.08); ctx.fill();
+        ctx.strokeStyle = hexA(accent, 0.3); ctx.stroke();
+
+        const cx = PAD + 24, cy = y + rowH / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+        ctx.fillStyle = hexA(accent, 0.18); ctx.fill();
+        ctx.strokeStyle = hexA(accent, 0.4); ctx.stroke();
+        ctx.fillStyle = accent;
+        ctx.font = "700 13px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(roommateDisplayName(row.name).charAt(0).toUpperCase(), cx, cy + 1);
+        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+        const nameX = cx + 26;
+        const dispName = roommateDisplayName(row.name);
+        ctx.fillStyle = WHITE;
+        ctx.font = "700 13.5px 'Segoe UI', sans-serif";
+        ctx.fillText(dispName, nameX, cy - 3);
+        const nameW = ctx.measureText(dispName).width;
+        fillPill(nameX + nameW + 8, cy - 15, `Paid ${rs(perPerson[row.name].paid)}`, { bg: "#1E293B", border: null, color: DIM, font: "600 9px 'Segoe UI', sans-serif" });
+        ctx.fillStyle = accent;
+        ctx.font = "600 11.5px 'Segoe UI', sans-serif";
+        ctx.fillText(owed ? "To receive back" : "Owes this month", nameX, cy + 13);
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = accent;
+        ctx.font = "700 14px 'Segoe UI', sans-serif";
+        ctx.fillText(`${owed ? "+" : "-"} ${rs(Math.abs(row.net))}`, W - PAD - 14, cy - 2);
+        ctx.font = "700 9px 'Segoe UI', sans-serif";
+        ctx.fillText(owed ? "IS OWED" : "OWES", W - PAD - 14, cy + 13);
+        ctx.textAlign = "left";
+
+        y += rowH + 10;
+      });
+      y += 8;
+    }
+
+    // Itemized expenses
+    ctx.strokeStyle = BORDER;
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+    y += 26;
+    ctx.fillStyle = DIM;
+    ctx.font = "800 11px 'Segoe UI', sans-serif";
+    ctx.fillText("ITEMIZED EXPENSES", PAD, y);
+    ctx.textAlign = "right";
+    ctx.font = "600 11px 'Segoe UI', sans-serif";
+    ctx.fillText("All room members", W - PAD, y);
+    ctx.textAlign = "left";
+    y += 18;
 
     if (!shown.length){
-      ctx.fillStyle = "#64748B";
+      ctx.fillStyle = DIM;
       ctx.font = "500 13px 'Segoe UI', sans-serif";
-      ctx.fillText("No shared expenses logged this month.", PAD, y);
-      y += 24;
+      ctx.fillText("No shared expenses logged this month.", PAD, y + 12);
+      y += 30;
     } else {
       shown.forEach(e => {
-        ctx.fillStyle = "#E2E8F0";
-        ctx.font = "700 14px 'Segoe UI', sans-serif";
-        ctx.fillText(e.desc.length > 34 ? e.desc.slice(0, 33) + "…" : e.desc, PAD, y);
-        ctx.fillStyle = "#64748B";
-        ctx.font = "500 12px 'Segoe UI', sans-serif";
-        ctx.fillText(`Paid by ${roommateDisplayName(e.paidBy)}`, PAD, y + 17);
-        ctx.fillStyle = "#F8FAFC";
-        ctx.font = "700 14px 'Segoe UI', sans-serif";
+        const meta = CAT[e.category] || CAT.Other;
+        const flagged = e.paidBy !== topPayer;
+        const rowH = 44;
+        roundRectPath(ctx, PAD, y, W - PAD * 2, rowH, 12);
+        ctx.fillStyle = "#0F1420"; ctx.fill();
+        ctx.strokeStyle = flagged ? hexA(AMBER, 0.35) : BORDER;
+        ctx.stroke();
+
+        const iconCx = PAD + 22, iconCy = y + rowH / 2;
+        roundRectPath(ctx, iconCx - 15, iconCy - 15, 30, 30, 9);
+        ctx.fillStyle = hexA(meta.color, 0.18); ctx.fill();
+        ctx.strokeStyle = hexA(meta.color, 0.35); ctx.stroke();
+        ctx.font = "15px 'Segoe UI Emoji', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(meta.icon, iconCx, iconCy + 1);
+        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+        const textX = iconCx + 26;
+        ctx.fillStyle = SLATE;
+        ctx.font = "600 13.5px 'Segoe UI', sans-serif";
+        ctx.fillText(e.desc.length > 28 ? e.desc.slice(0, 27) + "…" : e.desc, textX, iconCy - 3);
+        ctx.fillStyle = flagged ? AMBER : DIM;
+        ctx.font = "500 11px 'Segoe UI', sans-serif";
+        ctx.fillText(`Paid by ${roommateDisplayName(e.paidBy)}`, textX, iconCy + 13);
+
         ctx.textAlign = "right";
-        ctx.fillText(rs(e.amount), W - PAD, y + 8);
+        ctx.fillStyle = flagged ? AMBER : WHITE;
+        ctx.font = "700 13.5px 'Segoe UI', sans-serif";
+        ctx.fillText(rs(e.amount), W - PAD - 14, iconCy + 4);
         ctx.textAlign = "left";
-        y += listRowH;
+
+        y += rowH + 8;
       });
       if (extra > 0){
-        ctx.fillStyle = "#64748B";
-        ctx.font = "600 12px 'Segoe UI', sans-serif";
-        ctx.fillText(`+ ${extra} more expense${extra === 1 ? "" : "s"}`, PAD, y);
-        y += 26;
+        roundRectPath(ctx, PAD, y, W - PAD * 2, 30, 10);
+        ctx.fillStyle = "#0F1420"; ctx.fill();
+        ctx.strokeStyle = BORDER; ctx.stroke();
+        ctx.fillStyle = DIM;
+        ctx.font = "600 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(`+ ${extra} earlier expense${extra === 1 ? "" : "s"} accounted in total`, W / 2, y + 15);
+        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+        y += 30 + 10;
       }
     }
 
-    y += 12;
-    ctx.strokeStyle = "#1E293B";
+    // Footer watermark
+    ctx.strokeStyle = BORDER;
     ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
-    y += 30;
-    ctx.fillStyle = "#94A3B8";
-    ctx.font = "700 12px 'Segoe UI', sans-serif";
-    ctx.fillText("WHO OWES WHAT THIS MONTH", PAD, y);
-    y += 26;
+    y += 22;
+    ctx.fillStyle = TEAL;
+    ctx.beginPath(); ctx.arc(PAD + 3, y - 4, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = DIM;
+    ctx.font = "500 10.5px 'Segoe UI', sans-serif";
+    ctx.fillText(`Generated ${bsLabel(todayStr())}`, PAD + 12, y);
+    ctx.textAlign = "right";
+    ctx.fillText("Shared from Kharchā · Room Ledger", W - PAD, y);
+    ctx.textAlign = "left";
+    y += 18;
 
-    if (!names.length){
-      ctx.fillStyle = "#64748B";
-      ctx.font = "500 13px 'Segoe UI', sans-serif";
-      ctx.fillText("No roommates added yet.", PAD, y);
-      y += 24;
-    } else {
-      names.forEach(name => {
-        const net = perPerson[name].paid - perPerson[name].share;
-        const label = net > 0.5 ? `is owed ${rs(net)}` : net < -0.5 ? `owes ${rs(-net)}` : "settled up";
-        const color = net > 0.5 ? "#34D399" : net < -0.5 ? "#F59E0B" : "#64748B";
-        ctx.fillStyle = "#F8FAFC";
-        ctx.font = "700 14px 'Segoe UI', sans-serif";
-        ctx.fillText(roommateDisplayName(name), PAD, y);
-        ctx.fillStyle = color;
-        ctx.font = "700 13px 'Segoe UI', sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText(label, W - PAD, y);
-        ctx.textAlign = "left";
-        y += rowH;
-      });
-    }
+    const H = y + PAD;
 
-    y += 6;
-    ctx.strokeStyle = "#1E293B";
-    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
-    y += 26;
-    ctx.fillStyle = "#475569";
-    ctx.font = "500 11px 'Segoe UI', sans-serif";
-    ctx.fillText(`Generated ${bsLabel(todayStr())} · shared from Kharchā`, PAD, y);
-    y += 24;
+    // Pass 2: composite a rounded, glowing card frame underneath the
+    // (transparent-background) content layer drawn above.
+    const out = document.createElement("canvas");
+    out.width = W * scale;
+    out.height = H * scale;
+    const octx = out.getContext("2d");
+    octx.scale(scale, scale);
+    roundRectPath(octx, 0, 0, W, H, 26);
+    octx.save();
+    octx.clip();
+    octx.fillStyle = "#0B0F17";
+    octx.fillRect(0, 0, W, H);
+    const glow1 = octx.createRadialGradient(W - 40, 20, 10, W - 40, 20, 160);
+    glow1.addColorStop(0, hexA(TEAL, 0.16));
+    glow1.addColorStop(1, hexA(TEAL, 0));
+    octx.fillStyle = glow1; octx.fillRect(0, 0, W, Math.min(H, 260));
+    const glow2 = octx.createRadialGradient(30, 220, 10, 30, 220, 150);
+    glow2.addColorStop(0, "rgba(99,102,241,0.10)");
+    glow2.addColorStop(1, "rgba(99,102,241,0)");
+    octx.fillStyle = glow2; octx.fillRect(0, 120, W, Math.min(Math.max(H - 120, 0), 260));
+    octx.restore();
+    roundRectPath(octx, 0.5, 0.5, W - 1, H - 1, 26);
+    octx.strokeStyle = BORDER;
+    octx.lineWidth = 1;
+    octx.stroke();
 
-    const outCanvas = document.createElement("canvas");
-    outCanvas.width = W * scale;
-    outCanvas.height = y * scale;
-    outCanvas.getContext("2d").drawImage(raw, 0, 0, W * scale, y * scale, 0, 0, W * scale, y * scale);
-    return outCanvas;
+    // Destination coords here are in the octx's own CSS space (it already
+    // has ctx.scale(scale, scale) applied) — only the source rect (always
+    // raw device pixels regardless of any transform) needs the *scale.
+    octx.drawImage(layer, 0, 0, W * scale, H * scale, 0, 0, W, H);
+    return out;
   }
 
   function shareRoomExpensesImage(){
