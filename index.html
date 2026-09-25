@@ -1885,6 +1885,12 @@
 
     <div id="importModeSms" style="display:none;">
       <p class="kh-import-hint">Paste one or more eSewa, Khalti, or bank SMS notifications — one per line, or separated by a blank line. Amount, date, merchant, and account are picked out automatically; review your transactions afterwards to fix anything that looks off.</p>
+      <details class="kh-import-auto-hint">
+        <summary>⚡ Set up automatic import from Messages (one-time)</summary>
+        <p>Kharchā can parse a bank SMS the moment you share it, no pasting needed — open <code>&lt;your Kharchā URL&gt;/?import_sms=&lt;the message, URL-encoded&gt;</code> and it imports instantly. Wire that up once:</p>
+        <p><strong>iPhone (Shortcuts app):</strong> New Shortcut → add "Text" (leave blank, this becomes the Share Sheet input) → "URL Encode" → "Open URLs" set to <code>https://expenses-traker-olive.vercel.app/?import_sms=[encoded text]</code> → in the shortcut's settings, turn on "Show in Share Sheet" for Text. Then from any bank SMS: Share → your shortcut.</p>
+        <p><strong>Android:</strong> the same "Open URLs" approach works in any shortcut/automation app (e.g. Tasker, or Shortcuts-style apps on the Play Store) — Android doesn't have Apple's Shortcuts app, but the URL trick is identical.</p>
+      </details>
       <textarea id="importSmsInput" class="kh-import-textarea" placeholder="Rs. 500.00 has been deducted from your eSewa a/c for Chai Town. Available balance Rs. 1,200.00"></textarea>
       <div class="kh-import-actions">
         <button type="button" class="kh-import-btn" onclick="importSms()">Import</button>

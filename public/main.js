@@ -2135,6 +2135,7 @@
     }
     document.getElementById("demoNote").innerHTML = "🎭 You're in Guest Mode — this sample data lives only in this browser. Sign in with Google any time to keep your own data permanently.";
     showToast("Guest Mode — your changes stay on this device only");
+    maybeAutoImportFromUrl();
   }
 
   function addCategory(){
@@ -2648,16 +2649,13 @@
     return { date, vendor, category, type: direction, amount, account, balance };
   }
 
-  function importSms(){
-    const raw = document.getElementById("importSmsInput").value.trim();
-    const status = document.getElementById("importStatus");
-
-    if (!raw){
-      status.textContent = "Paste one or more SMS messages first.";
-      status.className = "kh-import-status err";
-      return;
-    }
-
+  // The actual parse-and-save logic, taking raw text directly rather than
+  // reading a textarea — shared by importSms() (the "Paste SMS" panel)
+  // and maybeAutoImportFromUrl() (a phone's Share Sheet, via a personal
+  // Shortcut, forwarding a bank SMS straight into a ?import_sms= URL).
+  // Same offline regex parser either way, so a shared SMS is parsed
+  // exactly as if it had been pasted in by hand.
+  function importSmsText(raw){
     const blocks = splitSmsBlocks(raw);
     const errors = [];
     const balancesByAccount = {};
@@ -2685,6 +2683,23 @@
       renderAll();
       renderCategoryManager();
       renderAccountManager();
+    }
+    return { added, errors, balanceAccounts };
+  }
+
+  function importSms(){
+    const raw = document.getElementById("importSmsInput").value.trim();
+    const status = document.getElementById("importStatus");
+
+    if (!raw){
+      status.textContent = "Paste one or more SMS messages first.";
+      status.className = "kh-import-status err";
+      return;
+    }
+
+    const { added, errors, balanceAccounts } = importSmsText(raw);
+
+    if (added){
       const msg = [`${added} transaction${added === 1 ? "" : "s"}`];
       if (balanceAccounts.length) msg.push(`balance updated for ${balanceAccounts.length} account${balanceAccounts.length === 1 ? "" : "s"}`);
       showToast(`Imported ${msg.join(", ")}`);
@@ -2693,6 +2708,43 @@
     } else {
       status.textContent = errors.length ? errors.join(" · ") : "Couldn't parse any messages.";
       status.className = "kh-import-status err";
+    }
+  }
+
+  // Lets a phone's Share Sheet forward a bank SMS straight into Kharchā
+  // without opening the Import panel at all: a one-time personal Shortcut
+  // (the "Paste SMS" tab's own hint has the setup steps) takes whatever
+  // text was shared, URL-encodes it, and opens "/?import_sms=<encoded
+  // text>". This runs that same offline regex parser importSms() uses.
+  // The query param is stripped from the URL immediately after reading
+  // it, so refreshing or re-opening a bookmarked copy of that URL can't
+  // re-import it.
+  //
+  // Deliberately NOT called from inside signIn() itself, even though
+  // every sign-in path funnels through there — startGuestMode() checks
+  // "are there zero transactions yet" right after signIn() resolves to
+  // decide whether to seed the Guest Mode demo data, and an import
+  // landing first would make that check see 1 transaction instead of 0,
+  // silently skipping the demo seed on someone's very first guest visit.
+  // So each real entry point below calls this itself, after any such
+  // seeding logic has already run.
+  function maybeAutoImportFromUrl(){
+    const params = new URLSearchParams(location.search);
+    const raw = params.get("import_sms");
+    if (!raw) return;
+    params.delete("import_sms");
+    const rest = params.toString();
+    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : ""));
+
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const { added, errors, balanceAccounts } = importSmsText(trimmed);
+    if (added){
+      const msg = [`${added} transaction${added === 1 ? "" : "s"} imported from a shared SMS`];
+      if (balanceAccounts.length) msg.push(`balance updated for ${balanceAccounts.length} account${balanceAccounts.length === 1 ? "" : "s"}`);
+      showToast(msg.join(", "));
+    } else {
+      showToast(errors.length ? `Couldn't import shared SMS: ${errors[0]}` : "Couldn't parse the shared SMS.");
     }
   }
 
@@ -6635,6 +6687,7 @@
       }
     }
     await signIn(user);
+    maybeAutoImportFromUrl();
     offerGuestDataMigration(guestSnapshot);
   }
 
@@ -6815,6 +6868,7 @@
             name: meta.full_name || meta.name || session.user.email,
             picture: meta.avatar_url || meta.picture || "",
           });
+          maybeAutoImportFromUrl();
           resumed = true;
         }
       }catch(e){
@@ -6824,7 +6878,7 @@
     if (!resumed){
       try{
         const saved = JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
-        if (saved && saved.email) await signIn(saved);
+        if (saved && saved.email){ await signIn(saved); maybeAutoImportFromUrl(); }
       }catch(e){}
     }
 

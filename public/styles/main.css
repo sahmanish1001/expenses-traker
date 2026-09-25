@@ -369,6 +369,11 @@
   .kh-import-tab{flex:1; padding:8px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;}
   .kh-import-tab.active{background:rgba(16,185,129,.16); border-color:var(--accent); color:var(--accent);}
   .kh-import-hint{font-size:11.5px; color:var(--dim); margin:0 0 10px; line-height:1.5;}
+  .kh-import-auto-hint{margin:0 0 12px; padding:10px 12px; border-radius:10px; background:var(--surface2); border:1px solid var(--border);}
+  .kh-import-auto-hint summary{font-size:12px; font-weight:700; color:var(--text); cursor:pointer; list-style:none;}
+  .kh-import-auto-hint summary::-webkit-details-marker{display:none;}
+  .kh-import-auto-hint p{font-size:11.5px; color:var(--dim); line-height:1.55; margin:8px 0 0;}
+  .kh-import-auto-hint code{font-size:11px; background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:1px 5px; word-break:break-all;}
   .kh-import-textarea{width:100%; min-height:110px; resize:vertical; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; padding:10px 12px; line-height:1.5;}
   .kh-import-textarea:focus{outline:none; border-color:var(--accent);}
   .kh-import-actions{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;}
