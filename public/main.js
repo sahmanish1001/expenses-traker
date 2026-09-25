@@ -5776,7 +5776,34 @@
     loadSharedIpos().then(renderIpoCalendar);
   }
 
+  // Net worth = cash on hand (getScoped()-style, but unfiltered and as of
+  // a specific date) + money owed to you + IPO shares held at cost − what
+  // you owe. computeNetWorthTrend() (src/netWorthMath.js) does the actual
+  // point-in-time reconstruction; this just formats it into the same bar
+  // shape the "Last 6 months" spending trend already uses, colored by
+  // sign instead of always-one-color since a negative net worth (more
+  // owed than owned) is a real, meaningful state worth showing plainly.
+  function renderNetWorthTrend(){
+    const el = document.getElementById("netWorthTrendChart");
+    if (!el) return;
+    const data = { transactions: TRANSACTIONS, hiddenAccounts: HIDDEN_ACCOUNTS, loans: LOANS, ipoApplications: IPO_APPLICATIONS };
+    const points = computeNetWorthTrend(data, todayStr(), 6);
+    const maxAbs = Math.max(1, ...points.map(p => Math.abs(p.netWorth)));
+    const curKeyNw = points[points.length - 1].key;
+    el.innerHTML = points.map(p => {
+      const negative = p.netWorth < 0;
+      const barColor = negative ? "var(--out)" : (p.key === curKeyNw ? "var(--accent)" : "var(--in)");
+      return `
+      <div class="kh-trend-col">
+        <div class="kh-trend-amt" style="color:${negative ? "var(--out)" : "var(--dim)"}">${negative ? "− " : ""}${rs(Math.abs(p.netWorth))}</div>
+        <div class="kh-trend-bar" style="height:${Math.max(2, (Math.abs(p.netWorth) / maxAbs) * 100)}%; background:${barColor};"></div>
+        <div class="kh-trend-label">${p.label}</div>
+      </div>`;
+    }).join("");
+  }
+
   function renderInsightsPage(){
+    renderNetWorthTrend();
     const cur = adToBs(todayStr());
     const curKey = `${cur.year}-${cur.month}`;
     const prev = shiftBsMonth(cur.year, cur.month, -1);
