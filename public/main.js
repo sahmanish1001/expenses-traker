@@ -6031,6 +6031,23 @@
     }
   }
 
+  // Small, low-effort gamification: how many days in a row with no "out"
+  // transaction logged (same definition of "spend" the rest of the app
+  // already uses — see spendForMonthKey()). computeNoSpendStreak() does
+  // the actual counting; hidden entirely at 0 so a brand-new or
+  // just-broke streak doesn't read as a discouraging "0-day streak".
+  function renderNoSpendStreak(){
+    const el = document.getElementById("noSpendStreak");
+    if (!el) return;
+    const streak = computeNoSpendStreak(TRANSACTIONS, HIDDEN_ACCOUNTS, todayStr());
+    if (streak < 1){
+      el.style.display = "none";
+      return;
+    }
+    el.textContent = `🔥 ${streak}-day no-spend streak`;
+    el.style.display = "";
+  }
+
   // ---------------------------------------------------------------------
   // First-time-user checklist — shown on Home (mobile and desktop) until
   // every step is done or it's dismissed. "Done" is derived straight from
@@ -6127,6 +6144,7 @@
     renderChips();
     renderNepaliMonthFilter();
     renderBalanceCard();
+    renderNoSpendStreak();
     renderStats();
     renderPie();
     renderNepaliPie();

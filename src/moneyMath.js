@@ -23,6 +23,40 @@ export function daysBetween(d1, d2){
   return (new Date(d2 + "T00:00:00Z") - new Date(d1 + "T00:00:00Z")) / 86400000;
 }
 
+function addDaysStr(dateStr, delta){
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + delta);
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+// Consecutive no-spend days up to and including `today` (or yesterday, if
+// today already has an "out" transaction logged — a purchase this
+// morning shouldn't retroactively zero out a streak that's still valid
+// through the end of yesterday). "Spend" uses the same definition the
+// rest of the app already does (spendForMonthKey() etc. in main.js): any
+// "out" transaction on a visible account, no category exceptions.
+//
+// Stops at the earliest transaction on record rather than counting back
+// forever — days before you started using Kharchā aren't "no-spend",
+// they're just data the app never had, and a brand-new empty ledger
+// shouldn't report a multi-year streak.
+export function computeNoSpendStreak(transactions, hiddenAccounts, today){
+  const visible = (transactions || []).filter(t => !(hiddenAccounts || []).includes(t.account));
+  if (!visible.length) return 0;
+  const earliestDate = visible.reduce((min, t) => (t.date < min ? t.date : min), visible[0].date);
+  const spendDays = new Set(visible.filter(t => t.type === "out").map(t => t.date));
+
+  let cursor = today;
+  if (spendDays.has(cursor)) cursor = addDaysStr(cursor, -1);
+  let streak = 0;
+  while (cursor >= earliestDate && !spendDays.has(cursor)){
+    streak++;
+    cursor = addDaysStr(cursor, -1);
+  }
+  return streak;
+}
+
 export function loanPaid(loan){
   return (loan.payments || []).reduce((s, p) => s + p.amount, 0);
 }
@@ -185,6 +219,6 @@ if (typeof window !== "undefined"){
   Object.assign(window, {
     loanPaid, loanInterestAccrued, loanTotals, emiInstallmentsPaid, emiPayoffDate,
     LOAN_STATUS_META, loanStatus, netLoanPositionPure, computeRoomBalancesPure,
-    simplifyRoomDebts, computeBudgetPace,
+    simplifyRoomDebts, computeBudgetPace, computeNoSpendStreak,
   });
 }
