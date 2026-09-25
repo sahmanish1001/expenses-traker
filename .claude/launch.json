@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "shringar-shailee-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "8792", "-c-1", "C:\\Users\\Manis\\Downloads\\shringar-shailee-static-site\\site\\Shringar-shailee"],
+      "port": 8792
+    }
+  ]
+}
