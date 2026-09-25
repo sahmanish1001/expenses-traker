@@ -4219,7 +4219,7 @@
         <div class="kh-row-icon" style="background:${meta.color}">${meta.icon}</div>
         <div class="kh-row-mid">
           <div class="kh-row-vendor">${htmlEscape(e.desc)}</div>
-          <div class="kh-row-cat">Paid by ${htmlEscape(roommateDisplayName(e.paidBy))} · split with ${splitLabel}</div>
+          <div class="kh-row-cat">${fmtDate(e.date)} · Paid by ${htmlEscape(roommateDisplayName(e.paidBy))} · split with ${splitLabel}</div>
         </div>
         <div class="kh-row-amt" style="color:var(--out)">${rs(e.amount)}</div>
         <button class="kh-row-del" onclick="deleteRoomExpense(${attrJson(e.id)})" title="Delete">✕</button>
@@ -4515,7 +4515,7 @@
         ctx.fillText(e.desc.length > 28 ? e.desc.slice(0, 27) + "…" : e.desc, textX, iconCy - 3);
         ctx.fillStyle = flagged ? AMBER : DIM;
         ctx.font = "500 11px 'Segoe UI', sans-serif";
-        ctx.fillText(`Paid by ${roommateDisplayName(e.paidBy)}`, textX, iconCy + 13);
+        ctx.fillText(`${fmtDate(e.date)} · Paid by ${roommateDisplayName(e.paidBy)}`, textX, iconCy + 13);
 
         ctx.textAlign = "right";
         ctx.fillStyle = flagged ? AMBER : WHITE;
