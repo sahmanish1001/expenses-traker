@@ -9,7 +9,7 @@ import {
   computeRoomBalancesPure,
   simplifyRoomDebts,
   computeBudgetPace,
-  computeNoSpendStreak,
+  computeLoggingStreak,
 } from "./moneyMath.js";
 
 describe("loanPaid", () => {
@@ -256,47 +256,50 @@ describe("computeBudgetPace", () => {
   });
 });
 
-describe("computeNoSpendStreak", () => {
+describe("computeLoggingStreak", () => {
   const today = "2026-09-07";
 
   it("is 0 when there are no transactions at all", () => {
-    expect(computeNoSpendStreak([], [], today)).toBe(0);
+    expect(computeLoggingStreak([], [], today)).toBe(0);
   });
 
-  it("counts consecutive no-spend days back from today", () => {
+  it("counts consecutive logged days back from today", () => {
     const transactions = [
-      { date: "2026-09-01", type: "out", amount: 500, account: "eSewa" }, // last spend
-      { date: "2026-08-25", type: "in", amount: 2000, account: "eSewa" }, // income doesn't break it
+      { date: "2026-09-05", type: "out", amount: 500, account: "eSewa" },
+      { date: "2026-09-06", type: "in", amount: 2000, account: "eSewa" }, // income counts too
+      { date: today, type: "out", amount: 100, account: "eSewa" },
     ];
-    // No spend on 09-02..09-07 = 6 days
-    expect(computeNoSpendStreak(transactions, [], today)).toBe(6);
+    expect(computeLoggingStreak(transactions, [], today)).toBe(3);
   });
 
-  it("does not zero out the streak just because today itself has a fresh expense", () => {
+  it("a gap breaks the streak", () => {
     const transactions = [
-      { date: "2026-08-01", type: "in", amount: 2000, account: "eSewa" },
-      { date: today, type: "out", amount: 200, account: "eSewa" }, // logged this morning
+      { date: "2026-09-01", type: "out", amount: 500, account: "eSewa" },
+      // gap on 09-02..09-06
+      { date: today, type: "out", amount: 100, account: "eSewa" },
     ];
-    // Streak counts through yesterday (09-06), not reset to 0 by today's entry
-    expect(computeNoSpendStreak(transactions, [], today)).toBeGreaterThan(0);
+    expect(computeLoggingStreak(transactions, [], today)).toBe(1);
   });
 
-  it("is 0 the day right after a spend", () => {
-    const transactions = [{ date: today, type: "out", amount: 300, account: "eSewa" }];
-    expect(computeNoSpendStreak(transactions, [], today)).toBe(0);
-  });
-
-  it("ignores spend on a hidden account", () => {
+  it("does not break the streak just because today has nothing logged YET", () => {
     const transactions = [
-      { date: "2026-08-25", type: "in", amount: 1000, account: "eSewa" },
-      { date: "2026-09-05", type: "out", amount: 500, account: "Old Wallet" },
+      { date: "2026-09-05", type: "out", amount: 500, account: "eSewa" },
+      { date: "2026-09-06", type: "out", amount: 500, account: "eSewa" },
+      // nothing logged today (yet) — the day isn't over
     ];
-    expect(computeNoSpendStreak(transactions, ["Old Wallet"], today)).toBeGreaterThan(0);
+    expect(computeLoggingStreak(transactions, [], today)).toBe(2);
   });
 
-  it("does not count back further than the earliest transaction on record", () => {
-    const transactions = [{ date: "2026-09-05", type: "in", amount: 1000, account: "eSewa" }];
-    // Only 09-05, 09-06, 09-07 exist in the ledger — streak can't exceed 3.
-    expect(computeNoSpendStreak(transactions, [], today)).toBe(3);
+  it("is 0 when yesterday and today both have nothing logged", () => {
+    const transactions = [{ date: "2026-09-01", type: "out", amount: 500, account: "eSewa" }];
+    expect(computeLoggingStreak(transactions, [], today)).toBe(0);
+  });
+
+  it("ignores entries logged to a hidden account", () => {
+    const transactions = [
+      { date: "2026-09-06", type: "out", amount: 500, account: "Old Wallet" },
+      { date: today, type: "out", amount: 100, account: "eSewa" },
+    ];
+    expect(computeLoggingStreak(transactions, ["Old Wallet"], today)).toBe(1);
   });
 });

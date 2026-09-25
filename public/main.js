@@ -6031,20 +6031,20 @@
     }
   }
 
-  // Small, low-effort gamification: how many days in a row with no "out"
-  // transaction logged (same definition of "spend" the rest of the app
-  // already uses — see spendForMonthKey()). computeNoSpendStreak() does
+  // Small, low-effort gamification: how many days in a row you've logged
+  // at least one transaction — a tracking-habit streak, not a spending
+  // judgment (income counts same as expense). computeLoggingStreak() does
   // the actual counting; hidden entirely at 0 so a brand-new or
-  // just-broke streak doesn't read as a discouraging "0-day streak".
-  function renderNoSpendStreak(){
-    const el = document.getElementById("noSpendStreak");
+  // just-broken streak doesn't read as a discouraging "0-day streak".
+  function renderLoggingStreak(){
+    const el = document.getElementById("loggingStreak");
     if (!el) return;
-    const streak = computeNoSpendStreak(TRANSACTIONS, HIDDEN_ACCOUNTS, todayStr());
+    const streak = computeLoggingStreak(TRANSACTIONS, HIDDEN_ACCOUNTS, todayStr());
     if (streak < 1){
       el.style.display = "none";
       return;
     }
-    el.textContent = `🔥 ${streak}-day no-spend streak`;
+    el.textContent = `🔥 ${streak}-day logging streak`;
     el.style.display = "";
   }
 
@@ -6144,7 +6144,7 @@
     renderChips();
     renderNepaliMonthFilter();
     renderBalanceCard();
-    renderNoSpendStreak();
+    renderLoggingStreak();
     renderStats();
     renderPie();
     renderNepaliPie();

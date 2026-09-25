@@ -30,27 +30,25 @@ function addDaysStr(dateStr, delta){
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-// Consecutive no-spend days up to and including `today` (or yesterday, if
-// today already has an "out" transaction logged — a purchase this
-// morning shouldn't retroactively zero out a streak that's still valid
-// through the end of yesterday). "Spend" uses the same definition the
-// rest of the app already does (spendForMonthKey() etc. in main.js): any
-// "out" transaction on a visible account, no category exceptions.
+// Consecutive days with at least one transaction logged (any type — in
+// or out, doesn't matter, this is a "did you actually track something
+// today" habit streak, not a spending judgment) up to and including
+// `today`. If today doesn't have an entry YET, that's not a broken
+// streak — the day isn't over — so it counts from yesterday instead;
+// it only actually breaks once a full day passes with nothing logged.
 //
-// Stops at the earliest transaction on record rather than counting back
-// forever — days before you started using Kharchā aren't "no-spend",
-// they're just data the app never had, and a brand-new empty ledger
-// shouldn't report a multi-year streak.
-export function computeNoSpendStreak(transactions, hiddenAccounts, today){
+// No "earliest transaction" floor needed here (unlike a gap-counting
+// streak would need): the loop only keeps going by finding real logged
+// days, so it naturally stops the moment it reaches a day with nothing
+// in it — it can't run away past the start of the ledger.
+export function computeLoggingStreak(transactions, hiddenAccounts, today){
   const visible = (transactions || []).filter(t => !(hiddenAccounts || []).includes(t.account));
   if (!visible.length) return 0;
-  const earliestDate = visible.reduce((min, t) => (t.date < min ? t.date : min), visible[0].date);
-  const spendDays = new Set(visible.filter(t => t.type === "out").map(t => t.date));
+  const loggedDays = new Set(visible.map(t => t.date));
 
-  let cursor = today;
-  if (spendDays.has(cursor)) cursor = addDaysStr(cursor, -1);
+  let cursor = loggedDays.has(today) ? today : addDaysStr(today, -1);
   let streak = 0;
-  while (cursor >= earliestDate && !spendDays.has(cursor)){
+  while (loggedDays.has(cursor)){
     streak++;
     cursor = addDaysStr(cursor, -1);
   }
@@ -219,6 +217,6 @@ if (typeof window !== "undefined"){
   Object.assign(window, {
     loanPaid, loanInterestAccrued, loanTotals, emiInstallmentsPaid, emiPayoffDate,
     LOAN_STATUS_META, loanStatus, netLoanPositionPure, computeRoomBalancesPure,
-    simplifyRoomDebts, computeBudgetPace, computeNoSpendStreak,
+    simplifyRoomDebts, computeBudgetPace, computeLoggingStreak,
   });
 }
