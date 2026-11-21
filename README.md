@@ -19,6 +19,13 @@ Nepali (Bikram Sambat) calendar.
 - **Paste SMS** — paste eSewa, Khalti, or bank SMS notification text and it's
   parsed into transactions automatically (amount, date, merchant, and
   account are all picked out client-side, no network call).
+- **Gmail import** — the Import panel's Gmail tab reads payment alert emails
+  that match a saved search (default: eSewa and Khalti, last 30 days) with
+  read-only access, parses them with the same SMS parser, and shows a review
+  list before anything is added. Each email is remembered by its Gmail ID so
+  it never imports twice. One-time setup: enable the Gmail API in your Google
+  Cloud project, add the `gmail.readonly` scope, and add your address as a
+  test user (see the comment above `GMAIL_SCOPE` in `public/main.js`).
 - **Paste JSON import** — upload a statement photo to Claude in a separate
   chat, paste back the JSON it returns, and it's imported in one go.
 - **Smart categorization** — categories can be added, renamed, or removed —
@@ -66,6 +73,8 @@ profile — is stored **only in your browser's `localStorage`**, keyed by
 your signed-in Google email. There is no server component, so:
 
 - Nothing you enter (including pasted SMS text) ever leaves your device.
+  The optional Gmail import fetches only emails matching your search, in your
+  browser, straight from Google, and never stores the emails themselves.
 - Switching browsers or devices starts fresh unless you export a backup
   from Settings → Backup & Sync and restore it on the new device.
 - Clearing your browser's site data deletes your tracker permanently unless

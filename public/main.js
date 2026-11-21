@@ -912,12 +912,15 @@
     importMode = mode;
     document.getElementById("importTabJson").classList.toggle("active", mode === "json");
     document.getElementById("importTabSms").classList.toggle("active", mode === "sms");
+    document.getElementById("importTabGmail").classList.toggle("active", mode === "gmail");
     document.getElementById("importModeJson").style.display = mode === "json" ? "" : "none";
     document.getElementById("importModeSms").style.display = mode === "sms" ? "" : "none";
+    document.getElementById("importModeGmail").style.display = mode === "gmail" ? "" : "none";
     document.getElementById("importStatus").textContent = "";
     document.getElementById("importStatus").className = "kh-import-status";
+    if (mode === "gmail") gmailPrepareTab();
     setTimeout(() => {
-      const el = document.getElementById(mode === "json" ? "importInput" : "importSmsInput");
+      const el = document.getElementById(mode === "json" ? "importInput" : mode === "sms" ? "importSmsInput" : "gmailQueryInput");
       if (el) el.focus();
     }, 300);
   }
@@ -2746,6 +2749,252 @@
     } else {
       showToast(errors.length ? `Couldn't import shared SMS: ${errors[0]}` : "Couldn't parse the shared SMS.");
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // "Gmail" import tab — reads payment-alert emails (eSewa, Khalti, banks)
+  // and turns them into transactions, using the SAME regex parser as
+  // "Paste SMS" (parseSmsBlock), so nothing leaves the browser.
+  //
+  // Like Drive sync, this needs its own consent popup (gmail.readonly is
+  // a "restricted" scope). Setup in the same Google Cloud project as
+  // GOOGLE_CLIENT_ID:
+  //   1. Enable the "Gmail API".
+  //   2. On the OAuth consent screen, add the scope
+  //        https://www.googleapis.com/auth/gmail.readonly
+  //      and, while the app is in Testing, add your own Gmail address as
+  //      a test user. (Google requires a verification review before
+  //      other people can use a restricted scope.)
+  //
+  // Only emails matching the saved search are read. Every email that has
+  // been reviewed (added OR skipped) is remembered by its Gmail message
+  // ID, per account, so it never shows up twice.
+  // ---------------------------------------------------------------------
+  const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+  const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
+  const GMAIL_MAX_FETCH = 25;
+  let gmailTokenClient = null;
+  let gmailTokenCallback = null;
+  let gmailAccessToken = null;
+  let gmailTokenExpiresAt = 0; // ms epoch
+  let gmailPending = []; // [{ id, parsed, checked }] waiting for review
+
+  function gmailQueryFor(email){
+    try{ return localStorage.getItem("kh_gmail_query_" + email) || GMAIL_DEFAULT_QUERY; }catch(e){ return GMAIL_DEFAULT_QUERY; }
+  }
+  function setGmailQueryFor(email, q){
+    try{ localStorage.setItem("kh_gmail_query_" + email, q); }catch(e){}
+  }
+  function gmailSeenFor(email){
+    try{
+      const arr = JSON.parse(localStorage.getItem("kh_gmail_seen_" + email));
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){ return []; }
+  }
+  function markGmailSeen(email, ids){
+    try{ localStorage.setItem("kh_gmail_seen_" + email, JSON.stringify(addSeenIds(gmailSeenFor(email), ids))); }catch(e){}
+  }
+  function gmailGrantedFor(email){
+    try{ return localStorage.getItem("kh_gmail_granted_" + email) === "1"; }catch(e){ return false; }
+  }
+
+  function gmailStatus(msg, kind){
+    const status = document.getElementById("importStatus");
+    status.textContent = msg;
+    status.className = "kh-import-status" + (kind ? " " + kind : "");
+  }
+
+  function gmailSignedIn(){
+    return !!currentUser && currentUser.email !== GUEST_EMAIL;
+  }
+
+  function gmailPrepareTab(){
+    const results = document.getElementById("gmailResults");
+    const input = document.getElementById("gmailQueryInput");
+    const btn = document.getElementById("gmailCheckBtn");
+    results.textContent = "";
+    gmailPending = [];
+    if (!gmailSignedIn()){
+      btn.disabled = true;
+      gmailStatus("Sign in with Google to use Gmail import.", "err");
+      return;
+    }
+    btn.disabled = false;
+    input.value = gmailQueryFor(currentUser.email);
+  }
+
+  // Gets a live Gmail access token, then calls onReady(true|false). The
+  // first time shows Google's consent popup; later checks reuse the grant
+  // without a popup when possible.
+  function ensureGmailToken(onReady){
+    if (!window.google || !google.accounts || !google.accounts.oauth2 || GOOGLE_CLIENT_ID.startsWith("YOUR_")){
+      onReady(false);
+      return;
+    }
+    if (gmailAccessToken && Date.now() < gmailTokenExpiresAt - 30000){
+      onReady(true);
+      return;
+    }
+    gmailTokenCallback = onReady; // always the latest caller's callback
+    if (!gmailTokenClient){
+      gmailTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GMAIL_SCOPE,
+        hint: currentUser ? currentUser.email : undefined,
+        callback: (resp) => {
+          const cb = gmailTokenCallback; gmailTokenCallback = null;
+          if (resp && resp.access_token){
+            gmailAccessToken = resp.access_token;
+            gmailTokenExpiresAt = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+            try{ if (currentUser) localStorage.setItem("kh_gmail_granted_" + currentUser.email, "1"); }catch(e){}
+            if (cb) cb(true);
+          } else if (cb) cb(false);
+        },
+        error_callback: () => { const cb = gmailTokenCallback; gmailTokenCallback = null; if (cb) cb(false); },
+      });
+    }
+    const granted = currentUser && gmailGrantedFor(currentUser.email);
+    gmailTokenClient.requestAccessToken({ prompt: granted ? "" : "consent" });
+  }
+
+  async function gmailApi(path){
+    const r = await fetch(GMAIL_API + path, { headers: { Authorization: "Bearer " + gmailAccessToken } });
+    if (r.status === 401){ gmailAccessToken = null; throw new Error("auth"); }
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+
+  function gmailCheckNow(){
+    if (!gmailSignedIn()){ gmailStatus("Sign in with Google to use Gmail import.", "err"); return; }
+    const input = document.getElementById("gmailQueryInput");
+    const btn = document.getElementById("gmailCheckBtn");
+    const query = sanitizeQuery(input.value);
+    input.value = query;
+    setGmailQueryFor(currentUser.email, query);
+    document.getElementById("gmailResults").textContent = "";
+    gmailPending = [];
+    gmailStatus("Connecting to Gmail…");
+    btn.disabled = true;
+    ensureGmailToken(async (ok) => {
+      try{
+        if (!ok){ gmailStatus("Couldn't connect to Gmail. Check that the Gmail API is enabled and your address is a test user (see the setup notes in the code).", "err"); return; }
+        gmailStatus("Reading matching emails…");
+        await gmailRun(query);
+      }catch(e){
+        gmailStatus(e && e.message === "auth" ? "Gmail access expired — tap Check Gmail again." : "Couldn't read Gmail right now — try again.", "err");
+      }finally{
+        btn.disabled = false;
+      }
+    });
+  }
+
+  async function gmailRun(query){
+    const email = currentUser.email;
+    const seen = new Set(gmailSeenFor(email));
+    const list = await gmailApi("/messages?maxResults=" + GMAIL_MAX_FETCH + "&q=" + encodeURIComponent(query));
+    const ids = (list.messages || []).map((m) => m.id).filter((id) => !seen.has(id));
+    if (!ids.length){ gmailStatus("No new emails found for that search.", "ok"); return; }
+
+    const messages = await Promise.all(ids.map((id) => gmailApi("/messages/" + id + "?format=full").catch(() => null)));
+    const errors = [];
+    const unreadable = [];
+    gmailPending = [];
+    messages.forEach((msg, i) => {
+      if (!msg) return; // fetch failed — stays unseen so the next check retries it
+      const text = buildEmailText(msg);
+      const parsed = parseSmsBlock(text, i, errors);
+      if (!parsed){ unreadable.push(msg.id); return; }
+      // The parser falls back to today when the email has no date in its
+      // text; the email's own received date is a better fallback.
+      if (!smsDetectDate(text.replace(/\s+/g, " "))) parsed.date = emailDateStr(msg.internalDate) || parsed.date;
+      gmailPending.push({ id: msg.id, parsed, checked: true });
+    });
+    if (unreadable.length) markGmailSeen(email, unreadable);
+
+    if (!gmailPending.length){
+      gmailStatus(`Found ${unreadable.length} email${unreadable.length === 1 ? "" : "s"}, but none looked like a transaction.`, "err");
+      return;
+    }
+    gmailStatus(unreadable.length ? `${unreadable.length} email${unreadable.length === 1 ? "" : "s"} skipped (no amount found).` : "");
+    gmailRenderPending();
+  }
+
+  function gmailRenderPending(){
+    const box = document.getElementById("gmailResults");
+    box.textContent = "";
+    gmailPending.forEach((item) => {
+      const p = item.parsed;
+      const row = document.createElement("label");
+      row.style.cssText = "display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = item.checked;
+      cb.onchange = () => { item.checked = cb.checked; gmailUpdateAddBtn(); };
+      const info = document.createElement("span");
+      info.style.cssText = "flex:1; min-width:0;";
+      const vendor = document.createElement("div");
+      vendor.style.cssText = "font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+      vendor.textContent = p.vendor;
+      const meta = document.createElement("div");
+      meta.style.cssText = "color:var(--dim); font-size:12px;";
+      meta.textContent = `${p.date} · ${p.account}`;
+      info.append(vendor, meta);
+      const amt = document.createElement("span");
+      amt.style.cssText = "font-weight:700; white-space:nowrap; color:" + (p.type === "in" ? "var(--accent)" : "inherit");
+      amt.textContent = (p.type === "in" ? "+" : "−") + "Rs. " + Number(p.amount).toLocaleString("en-IN");
+      row.append(cb, info, amt);
+      box.appendChild(row);
+    });
+    const actions = document.createElement("div");
+    actions.className = "kh-import-actions";
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "kh-import-btn";
+    addBtn.id = "gmailAddBtn";
+    addBtn.onclick = gmailAddSelected;
+    actions.appendChild(addBtn);
+    box.appendChild(actions);
+    gmailUpdateAddBtn();
+  }
+
+  function gmailUpdateAddBtn(){
+    const btn = document.getElementById("gmailAddBtn");
+    if (!btn) return;
+    const n = gmailPending.filter((p) => p.checked).length;
+    btn.textContent = n ? `Add ${n} transaction${n === 1 ? "" : "s"}` : "Dismiss all";
+  }
+
+  function gmailAddSelected(){
+    if (!gmailPending.length) return;
+    const email = currentUser.email;
+    const chosen = gmailPending.filter((p) => p.checked);
+    // Gmail lists newest first; add oldest first so the newest email's
+    // balance reading is the one that sticks.
+    chosen.slice().reverse().forEach(({ parsed }) => {
+      ensureAccount(parsed.account);
+      ensureCategory(parsed.category);
+      TRANSACTIONS.push({
+        date: parsed.date, vendor: parsed.vendor, category: parsed.category,
+        type: parsed.type, amount: parsed.amount, account: parsed.account,
+        id: "tx" + (nextTxId++),
+      });
+      if (parsed.balance !== null) BALANCES[parsed.account] = parsed.balance;
+    });
+    // Skipped (unchecked) emails count as reviewed too, so they don't
+    // keep coming back.
+    markGmailSeen(email, gmailPending.map((p) => p.id));
+    const added = chosen.length;
+    gmailPending = [];
+    if (added){
+      saveCurrentUser();
+      renderAll();
+      renderCategoryManager();
+      renderAccountManager();
+      showToast(`Added ${added} transaction${added === 1 ? "" : "s"} from Gmail`);
+    } else {
+      showToast("Dismissed");
+    }
+    closePanel();
   }
 
   function renderChips(){

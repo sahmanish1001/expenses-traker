@@ -1868,6 +1868,7 @@
     <div class="kh-import-tabs">
       <button type="button" class="kh-import-tab active" id="importTabJson" onclick="setImportMode('json')">Paste JSON</button>
       <button type="button" class="kh-import-tab" id="importTabSms" onclick="setImportMode('sms')">Paste SMS</button>
+      <button type="button" class="kh-import-tab" id="importTabGmail" onclick="setImportMode('gmail')">Gmail</button>
     </div>
 
     <div id="importModeJson">
@@ -1896,6 +1897,16 @@
         <button type="button" class="kh-import-btn" onclick="importSms()">Import</button>
         <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
       </div>
+    </div>
+
+    <div id="importModeGmail" style="display:none;">
+      <p class="kh-import-hint">Turn payment alert emails (eSewa, Khalti, banks) into transactions. Kharchā reads only emails that match the search below, in your browser, with read-only access. You review the results before anything is added.</p>
+      <input type="text" id="gmailQueryInput" class="kh-import-textarea" style="min-height:0; height:42px;" aria-label="Gmail search" placeholder="(from:esewa OR from:khalti) newer_than:30d">
+      <div class="kh-import-actions">
+        <button type="button" class="kh-import-btn" id="gmailCheckBtn" onclick="gmailCheckNow()">📥 Check Gmail</button>
+        <button type="button" class="kh-import-btn" style="background:transparent; border:1px solid var(--border); color:var(--text);" onclick="closePanel()">Cancel</button>
+      </div>
+      <div id="gmailResults" style="margin-top:12px;"></div>
     </div>
 
     <span class="kh-import-status" id="importStatus"></span>
@@ -2101,6 +2112,7 @@
 <script type="module" src="/src/ipoMath.js"></script>
 <script type="module" src="/src/alertMath.js"></script>
 <script type="module" src="/src/netWorthMath.js"></script>
+<script type="module" src="/src/gmailImport.js"></script>
 <script defer src="/main.js"></script>
 </body>
 </html>
